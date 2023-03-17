@@ -48,28 +48,28 @@ loadResolvConf() {
 if isAccessPoint
 then
 	echo "Stop Wifi in AP mode"
-	ifdown wlan0
-	ifdown eth0
 	stopProcess "hostapd.service"
 	stopProcess "dnsmasq.service"
+	sudo ifdown wlan0
+	sudo ifdown eth0
 	loadInterfaceDefault
+	sudo ifup wlan0
+	sudo ifup eth0
 	startProcess "NetworkManager.service"
 	startProcess "networkd-dispatcher.service"
-	ifup wlan0
-	ifup eth0
 	echo "Now wifi in Default mode!"
 else
 	echo "Stop Wifi in default mode"
 	stopProcess "NetworkManager.service"
 	stopProcess "networkd-dispathcer.service"
-	ifdown wlan0
-	ifdown eth0
+	sudo ifdown wlan0
+	sudo ifdown eth0
 	loadInterfaceAP
 	loadResolvConf
 	loadHosts
+	sudo ifup wlan0
+	sudo ifup eth0
 	startProcess "hostapd.service"
 	startProcess "dnsmasq.service"
-	ifup wlan0
-	ifup eth0
 	echo "Now wifi in AP mode!"
 fi

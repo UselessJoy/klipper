@@ -19,7 +19,7 @@ class WifiMode:
         self.timer.register_timer(self.set_wifiMode, self.timer.monotonic()+ 0.1)
 
     def cmd_CHANGE_WIFI_MODE(self, gcmd):
-        self.run_service("changemode.sh")
+        self.run_bash_script("changemode.sh")
         self.set_wifiMode()
         
     def cmd_GET_WIFI_MODE(self, gcmd):
@@ -45,7 +45,7 @@ class WifiMode:
         status = os.system("systemctl is-active %s.service" % service)
         return status
     
-    def run_service(self, service):
+    def run_bash_script(self, service):
         os.system("./$HOME/klipper/scripts/%s" % service)
 
     def get_status(self, eventtime):

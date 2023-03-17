@@ -36,13 +36,13 @@ isAccessPoint()
 
 
 loadHosts() {
-	sudo echo 20.20.1.1   printer.gelios.test >> /etc/hosts
+	sudo bash -c "echo 20.20.1.1   printer.gelios.test >> /etc/hosts"
 }
 
 loadResolvConf() {
-	sudo echo nameserver 127.0.0.1 >> /etc/resolv.conf
-	sudo echo nameserver 20.20.1.1 >> /etc/resolv.conf
-	sudo echo nameserver 8.8.8.8 >> /etc/resolv.conf
+	sudo bash -c "echo nameserver 127.0.0.1 >> /etc/resolv.conf"
+	sudo bash -c "echo nameserver 20.20.1.1 >> /etc/resolv.conf"
+	sudo bash -c "echo nameserver 8.8.8.8 >> /etc/resolv.conf"
 }
 
 if isAccessPoint
@@ -60,10 +60,10 @@ then
 	echo "Now wifi in Default mode!"
 else
 	echo "Stop Wifi in default mode"
-	stopProcess "NetworkManager.service"
-	stopProcess "networkd-dispathcer.service"
 	sudo ifdown wlan0
 	sudo ifdown eth0
+	stopProcess "NetworkManager.service"
+	stopProcess "networkd-dispathcer.service"
 	loadInterfaceAP
 	loadResolvConf
 	loadHosts

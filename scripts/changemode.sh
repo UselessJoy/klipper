@@ -34,21 +34,42 @@ isAccessPoint()
 	fi
 }
 
+
+loadHosts() {
+	sudo echo 20.20.1.1   printer.gelios.test >> /etc/hosts
+}
+
+loadResolvConf() {
+	sudo echo nameserver 127.0.0.1 >> /etc/resolv.conf
+	sudo echo nameserver 20.20.1.1 >> /etc/resolv.conf
+	sudo echo nameserver 8.8.8.8 >> /etc/resolv.conf
+}
+
 if isAccessPoint
 then
 	echo "Stop Wifi in AP mode"
+	ifdown wlan0
+	ifdown eth0
 	stopProcess "hostapd.service"
 	stopProcess "dnsmasq.service"
 	loadInterfaceDefault
 	startProcess "NetworkManager.service"
 	startProcess "networkd-dispatcher.service"
-	echo "Start Wifi in default mode, system will reboot"
+	ifup wlan0
+	ifup eth0
+	echo "Now wifi in Default mode!"
 else
 	echo "Stop Wifi in default mode"
 	stopProcess "NetworkManager.service"
 	stopProcess "networkd-dispathcer.service"
+	ifdown wlan0
+	ifdown eth0
 	loadInterfaceAP
+	loadResolvConf
+	loadHosts
 	startProcess "hostapd.service"
 	startProcess "dnsmasq.service"
-	echo "Start Wifi in AP mode, system will reboot"
+	ifup wlan0
+	ifup eth0
+	echo "Now wifi in AP mode!"
 fi

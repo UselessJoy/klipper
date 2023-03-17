@@ -20,7 +20,6 @@ class WifiMode:
 
     def cmd_CHANGE_WIFI_MODE(self, gcmd):
         self.run_bash_script("changemode.sh")
-        self.set_wifiMode()
         
     def cmd_GET_WIFI_MODE(self, gcmd):
         if self.get_wifiMode():

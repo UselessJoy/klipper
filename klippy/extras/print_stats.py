@@ -6,16 +6,16 @@
 
 class PrintStats:
     def __init__(self, config):
-        printer = config.get_printer()
-        self.gcode_move = printer.load_object(config, 'gcode_move')
-        self.reactor = printer.get_reactor()
+        self.printer = config.get_printer()
+        self.gcode = self.printer.lookup_object('gcode')
+        self.gcode_move = self.printer.load_object(config, 'gcode_move')
+        self.reactor = self.printer.get_reactor()
         self.reset()
         # Register commands
-        self.gcode = printer.lookup_object('gcode')
         self.gcode.register_command(
             "SET_PRINT_STATS_INFO", self.cmd_SET_PRINT_STATS_INFO,
             desc=self.cmd_SET_PRINT_STATS_INFO_help)
-        
+
     def _update_filament_usage(self, eventtime):
         gc_status = self.gcode_move.get_status(eventtime)
         cur_epos = gc_status['position'].e
@@ -107,7 +107,7 @@ class PrintStats:
         self.print_start_time = self.last_pause_time = None
         self.init_duration = 0.
         self.info_total_layer = None
-        self.info_current_layer = None
+        self.info_current_layer = None  
     def get_status(self, eventtime):
         time_paused = self.prev_pause_duration
         if self.print_start_time is not None:
@@ -132,6 +132,5 @@ class PrintStats:
             'info': {'total_layer': self.info_total_layer,
                      'current_layer': self.info_current_layer}
         }
-
 def load_config(config):
     return PrintStats(config)

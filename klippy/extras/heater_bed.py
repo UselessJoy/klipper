@@ -16,11 +16,13 @@ class PrinterHeaterBed:
         gcode.register_command("M140", self.cmd_M140)
         gcode.register_command("M190", self.cmd_M190)
     def cmd_M140(self, gcmd, wait=False):
+        self.printer.send_event("bed:heating")
         # Set Bed Temperature
         temp = gcmd.get_float('S', 0.)
         pheaters = self.printer.lookup_object('heaters')
         pheaters.set_temperature(self.heater, temp, wait)
     def cmd_M190(self, gcmd):
+        self.printer.send_event("bed:heating")
         # Set Bed Temperature and Wait
         self.cmd_M140(gcmd, wait=True)
 

@@ -27,6 +27,7 @@ class PrinterNeoPixel:
         # Build color map
         chain_count = config.getint('chain_count', 1, minval=1)
         color_order = config.getlist("color_order", ["GRB"])
+        self.locale = config.get('locale', 'None')
         if len(color_order) == 1:
             color_order = [color_order[0]] * chain_count
         if len(color_order) != chain_count:

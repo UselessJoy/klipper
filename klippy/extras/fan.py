@@ -14,6 +14,7 @@ class Fan:
         self.last_fan_time = 0.
         # Read config
         self.max_power = config.getfloat('max_power', 1., above=0., maxval=1.)
+        self.locale = config.get('locale', None)
         self.kick_start_time = config.getfloat('kick_start_time', 0.1,
                                                minval=0.)
         self.off_below = config.getfloat('off_below', default=0.,

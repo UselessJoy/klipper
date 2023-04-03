@@ -125,6 +125,7 @@ class GCodeMacro:
         self.gcode = printer.lookup_object('gcode')
         self.rename_existing = config.get("rename_existing", None)
         self.cmd_desc = config.get("description", "G-Code macro")
+        self.macro_locale = config.get("macro_locale", None)
         if self.rename_existing is not None:
             if (self.gcode.is_traditional_gcode(self.alias)
                 != self.gcode.is_traditional_gcode(self.rename_existing)):

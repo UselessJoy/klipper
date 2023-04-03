@@ -23,6 +23,7 @@ class Heater:
         self.sensor = sensor
         self.min_temp = config.getfloat('min_temp', minval=KELVIN_TO_CELSIUS)
         self.max_temp = config.getfloat('max_temp', above=self.min_temp)
+        self.locale = config.get('locale', None)
         self.sensor.setup_minmax(self.min_temp, self.max_temp)
         self.sensor.setup_callback(self.temperature_callback)
         self.pwm_delay = self.sensor.get_report_time_delta()
@@ -134,10 +135,14 @@ class Heater:
             smoothed_temp = self.smoothed_temp
             last_pwm_value = self.last_pwm_value
         return {'temperature': round(smoothed_temp, 2), 'target': target_temp,
-                'power': last_pwm_value}
+                'power': last_pwm_value, 'is_busy': self.check_busy(eventtime)}
     cmd_SET_HEATER_TEMPERATURE_help = "Sets a heater temperature"
     def cmd_SET_HEATER_TEMPERATURE(self, gcmd):
         temp = gcmd.get_float('TARGET', 0.)
+        if self.name == "extruder":
+            self.printer.send_event("extruder:heating")
+        elif self.name == "heater_bed":
+            self.printer.send_event("bed:heating")
         pheaters = self.printer.lookup_object('heaters')
         pheaters.set_temperature(self, temp)
 

@@ -13,6 +13,7 @@ class PrinterOutputPin:
         self.printer = config.get_printer()
         ppins = self.printer.lookup_object('pins')
         self.is_pwm = config.getboolean('pwm', False)
+        self.locale = config.get('locale', None)
         if self.is_pwm:
             self.mcu_pin = ppins.setup_pin('pwm', config.get('pin'))
             cycle_time = config.getfloat('cycle_time', 0.100, above=0.,

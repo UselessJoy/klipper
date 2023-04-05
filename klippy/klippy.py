@@ -7,45 +7,24 @@
 import sys, os, gc, optparse, logging, time, collections, importlib
 import util, reactor, queuelogger, msgproto
 import gcode, configfile, pins, mcu, toolhead, webhooks
+import locales
 
-message_ready = "Printer is ready"
+locales.set_locale()
+message_ready = _("Printer is ready")
 
-message_startup = """
-Printer is not ready
-The klippy host software is attempting to connect.  Please
-retry in a few moments.
-"""
+message_startup = _("Printer is not ready. The klippy host software is attempting to connect. Please retry in a few moments.")
 
-message_restart = """
-Once the underlying issue is corrected, use the "RESTART"
-command to reload the config and restart the host software.
-Printer is halted
-"""
+message_restart = _("Once the underlying issue is corrected, use the \"RESTART\" command to reload the config and restart the host software. Printer is halted")
 
-message_protocol_error1 = """
-This is frequently caused by running an older version of the
-firmware on the MCU(s). Fix by recompiling and flashing the
-firmware.
-"""
+message_protocol_error1 = _("This is frequently caused by running an older version of the firmware on the MCU(s). Fix by recompiling and flashing the firmware.")
 
-message_protocol_error2 = """
-Once the underlying issue is corrected, use the "RESTART"
-command to reload the config and restart the host software.
-"""
+message_protocol_error2 = _("Once the underlying issue is corrected, use the \"RESTART\" command to reload the config and restart the host software.")
 
-message_mcu_connect_error = """
-Once the underlying issue is corrected, use the
-"FIRMWARE_RESTART" command to reset the firmware, reload the
-config, and restart the host software.
-Error configuring printer
-"""
+message_mcu_connect_error = _("Once the underlying issue is corrected, use the \"FIRMWARE_RESTART\" "
+"command to reset the firmware, reload the config, and restart the host software. Error configuring printer")
 
-message_shutdown = """
-Once the underlying issue is corrected, use the
-"FIRMWARE_RESTART" command to reset the firmware, reload the
-config, and restart the host software.
-Printer is shutdown
-"""
+message_shutdown = _("Once the underlying issue is corrected, use the \"FIRMWARE_RESTART\" "
+"command to reset the firmware, reload the config, and restart the host software. Printer is shutdown")
 
 class Printer:
     config_error = configfile.error
@@ -88,13 +67,13 @@ class Printer:
     def add_object(self, name, obj):
         if name in self.objects:
             raise self.config_error(
-                "Printer object '%s' already created" % (name,))
+                _("Printer object '%s' already created") % (name,))
         self.objects[name] = obj
     def lookup_object(self, name, default=configfile.sentinel):
         if name in self.objects:
             return self.objects[name]
         if default is configfile.sentinel:
-            raise self.config_error("Unknown config object '%s'" % (name,))
+            raise self.config_error(_("Unknown config object '%s'") % (name,))
         return default
     def lookup_objects(self, module=None):
         if module is None:
@@ -117,7 +96,7 @@ class Printer:
         if not os.path.exists(py_name) and not os.path.exists(py_dirname):
             if default is not configfile.sentinel:
                 return default
-            raise self.config_error("Unable to load module '%s'" % (section,))
+            raise self.config_error(_("Unable to load module '%s'") % (section,))
         mod = importlib.import_module('extras.' + module_name)
         init_func = 'load_config'
         if len(module_parts) > 1:
@@ -126,7 +105,7 @@ class Printer:
         if init_func is None:
             if default is not configfile.sentinel:
                 return default
-            raise self.config_error("Unable to load module '%s'" % (section,))
+            raise self.config_error(_("Unable to load module '%s'") % (section,))
         self.objects[section] = init_func(config.getsection(section))
         return self.objects[section]
     def _read_config(self):
@@ -163,11 +142,11 @@ class Printer:
             msg_update.append("<none>")
         if not msg_updated:
             msg_updated.append("<none>")
-        msg = ["MCU Protocol error",
+        msg = [_("MCU Protocol error"),
                message_protocol_error1,
-               "Your Klipper version is: %s" % (host_version,),
-               "MCU(s) which should be updated:"]
-        msg += msg_update + ["Up-to-date MCU(s):"] + msg_updated
+               _("Your Klipper version is: %s") % (host_version,),
+               _("MCU(s) which should be updated:")]
+        msg += msg_update + [_("Up-to-date MCU(s):")] + msg_updated
         msg += [message_protocol_error2, str(e)]
         return "\n".join(msg)
     def _connect(self, eventtime):
@@ -194,7 +173,7 @@ class Printer:
             return
         except Exception as e:
             logging.exception("Unhandled exception during connect")
-            self._set_state("Internal error during connect: %s\n%s"
+            self._set_state(_("Internal error during connect: %s\n%s")
                             % (str(e), message_restart,))
             return
         try:
@@ -205,7 +184,7 @@ class Printer:
                 cb()
         except Exception as e:
             logging.exception("Unhandled exception during ready callback")
-            self.invoke_shutdown("Internal error during ready callback: %s"
+            self.invoke_shutdown(_("Internal error during ready callback: %s")
                                  % (str(e),))
     def run(self):
         systime = time.time()
@@ -323,7 +302,6 @@ def main():
         opts.error("Incorrect number of arguments")
     start_args = {'config_file': args[0], 'apiserver': options.apiserver,
                   'start_reason': 'startup'}
-
     debuglevel = logging.INFO
     if options.verbose:
         debuglevel = logging.DEBUG

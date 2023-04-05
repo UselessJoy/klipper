@@ -1,0 +1,588 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2022-11-30 18:17-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#=========================KLIPPY MODULE=========================#
+msgid "Printer is ready"
+msgstr ""
+
+msgid "Hello"
+msgstr ""
+msgid "Printer is not ready. The klippy host software is attempting to connect. Please retry in a few moments."
+msgstr ""
+
+#, python-format
+msgid "Once the underlying issue is corrected, use the \"RESTART\" command to reload the config and restart the host software. Printer is halted"
+msgstr ""
+
+msgid "This is frequently caused by running an older version of the firmware on the MCU(s). Fix by recompiling and flashing the firmware."
+msgstr ""
+
+#, python-format
+msgid "Once the underlying issue is corrected, use the \"RESTART\" command to reload the config and restart the host software."
+msgstr ""
+
+#, python-format
+msgid "Once the underlying issue is corrected, use the \"FIRMWARE_RESTART\" command to reset the firmware, reload the config, and restart the host software. Error configuring printer"
+msgstr ""
+
+#, python-format
+msgid "Once the underlying issue is corrected, use the \"FIRMWARE_RESTART\" command to reset the firmware, reload the config, and restart the host software. Printer is shutdown"
+msgstr ""
+
+#, python-format
+msgid "Printer object '%s' already created"
+msgstr ""
+
+#, python-format
+msgid "Unknown config object '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unable to load module '%s'"
+msgstr ""
+
+msgid "MCU Protocol error"
+msgstr ""
+
+#, python-format
+msgid "Your Klipper version is: %s"
+msgstr ""
+
+msgid "MCU(s) which should be updated:"
+msgstr ""
+
+msgid "Up-to-date MCU(s):"
+msgstr ""
+
+#, python-format
+msgid "Internal error during connect: %s\n%s"
+msgstr ""
+
+#, python-format
+msgid "Internal error during ready callback: %s"
+msgstr ""
+#=======================END KLIPPY MODULE=======================#
+
+#==========================GCODE MODULE=========================#
+#, python-format
+msgid "Error on '%s': missing %s"
+msgstr ""
+
+#, python-format
+msgid "Error on '%s': unable to parse %s"
+msgstr ""
+
+#, python-format
+msgid "Error on '%s': %s must have minimum of %s"
+msgstr ""
+
+#, python-format
+msgid "Error on '%s': %s must have maximum of %s"
+msgstr ""
+
+#, python-format
+msgid "Error on '%s': %s must be above %s"
+msgstr ""
+
+#, python-format
+msgid "Error on '%s': %s must be below %s"
+msgstr ""
+
+#, python-format
+msgid "gcode command %s already registered"
+msgstr ""
+
+#, python-format
+msgid "mux command %s %s %s may have only one key (%s)"
+msgstr ""
+
+#, python-format
+msgid "mux command %s %s %s already registered (%s)"
+msgstr ""
+
+#, python-format
+msgid "Internal error on command:\"%s\""
+msgstr ""
+
+#, python-format
+msgid "Klipper state: %s"
+msgstr ""
+
+#, python-format
+msgid "Malformed command '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unknown command:\"%s\""
+msgstr ""
+
+#, python-format
+msgid "The value '%s' is not valid for %s"
+msgstr ""
+
+msgid "Reload config file and restart host software"
+msgstr ""
+
+msgid "Restart firmware, host, and reload config"
+msgstr ""
+
+msgid "Report the printer status"
+msgstr ""
+
+#, python-format
+msgid "\nKlipper state: Not ready"
+msgstr ""
+
+msgid "Report the list of available extended G-Code commands"
+msgstr ""
+
+msgid "Printer is not ready - not all commands available."
+msgstr ""
+
+msgid "Available extended commands:"
+msgstr ""
+
+#, python-format
+msgid "Dumping gcode input %d blocks"
+msgstr ""
+
+#, python-format
+msgid "Read %f: %s"
+msgstr ""
+#========================END GCODE MODULE=======================#
+
+#========================CLOCKSYNC MODULE=======================#
+#======================END CLOCKSYNC MODULE=====================#
+
+#=======================CONFIGFILE MODULE=======================#
+#, python-format
+msgid "Option '%s' in section '%s' must be specified"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse option '%s' in section '%s'"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' must have minimum of %s"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' must have maximum of %s"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' must be above %s"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' must be below %s"
+msgstr ""
+
+#, python-format
+msgid "Choice '%s' for option '%s' in section '%s' is not a valid choice"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' must have %d elements"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' is deprecated."
+msgstr ""
+
+#, python-format
+msgid "Value '%s' in option '%s' in section '%s' is deprecated."
+msgstr ""
+
+#, python-format
+msgid "Unable to open config file %s"
+msgstr ""
+
+#, python-format
+msgid "Include file '%s' does not exist"
+msgstr ""
+
+#, python-format
+msgid "Recursive include of config file '%s'"
+msgstr ""
+
+#, python-format
+msgid "Section '%s' is not a valid config section"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' is not valid in section '%s'"
+msgstr ""
+
+#, python-format
+msgid "SAVE_CONFIG section '%s' option '%s' conflictswith included value"
+msgstr ""
+
+#, python-format
+msgid "Overwrite config file and restart"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse existing config on SAVE_CONFIG"
+msgstr ""
+
+#, python-format
+msgid "Unable to write config file during SAVE_CONFIG"
+msgstr ""
+#=====================END CONFIGFILE MODULE=====================#
+
+#=========================CONSOLE MODULE========================#
+#=======================END CONSOLE MODULE======================#
+
+#========================MATHUTIL MODULE========================#
+msgid "Working on calibration..."
+msgstr ""
+
+#, python-format
+msgid "Error in coordinate descent: %s"
+msgstr ""
+#======================END MATHUTIL MODULE======================#
+
+#===========================MCU MODULE==========================#
+msgid "Multi-mcu homing not supported on multi-mcu shared axis"
+msgstr ""
+
+msgid "Static pin can not have shutdown value"
+msgstr ""
+
+msgid "Pin with max duration must have start value equal to shutdown value"
+msgstr ""
+
+msgid "Digital pin max duration too large"
+msgstr ""
+
+msgid "Static pin can not have shutdown value"
+msgstr ""
+
+msgid "Pin with max duration must have start value equal to shutdown value"
+msgstr ""
+
+msgid "PWM pin max duration too large"
+msgstr ""
+
+msgid "shutdown value must be 0.0 or 1.0 on soft pwm"
+msgstr ""
+
+msgid "PWM pin cycle time too large"
+msgstr ""
+
+msgid "PWM cycle time too large"
+msgstr ""
+
+#, python-format
+msgid "Timeout on wait for '%s' response"
+msgstr ""
+
+#, python-format
+msgid "Attempt MCU '%s' restart failed"
+msgstr ""
+
+#, python-format
+msgid "MCU '%s' CRC does not match config"
+msgstr ""
+
+#, python-format
+msgid "Pin '%s' is not a valid pin name on mcu '%s'"
+msgstr ""
+
+#, python-format
+msgid "Can not update MCU '%s' config as it is shutdown"
+msgstr ""
+
+#, python-format
+msgid "Unable to configure MCU '%s'"
+msgstr ""
+
+#, python-format
+msgid "Too few moves available on MCU '%s'"
+msgstr ""
+
+#, python-format
+msgid "pin type %s not supported on mcu"
+msgstr ""
+
+#, python-format
+msgid "Internal error in MCU '%s' stepcompress"
+msgstr ""
+
+#, python-format
+msgid "Lost communication with MCU '%s'"
+msgstr ""
+
+#, python-format
+msgid "MCU '%s' spontaneous restart"
+msgstr ""
+
+#, python-format
+msgid "Previous MCU '%s' shutdown: "
+msgstr ""
+
+#, python-format
+msgid "MCU '%s' shutdown: "
+msgstr ""
+
+msgid "This often indicates the host computer is overloaded. Check for other processes consuming excessive CPU time, high swap usage, disk errors, overheating, unstable voltage, or similar system problems on the host computer."
+msgstr ""
+
+msgid "This is generally indicative of an intermittent communication failure between micro-controller and host."
+msgstr ""
+
+msgid "This generally occurs when a heater temperature exceeds its configured min_temp or max_temp."
+msgstr ""
+
+msgid "This generally occurs when the micro-controller has been requested to step at a rate higher than it is capable of obtaining."
+msgstr ""
+
+msgid "This generally occurs in response to an M112 G-Code command or in response to an internal error in the host software."
+msgstr ""
+
+#=========================END MCU MODULE========================#
+
+#========================MSGPROTO MODULE========================#
+#, python-format
+msgid "Unknown value '%s' in enumeration '%s'"
+msgstr ""
+
+#, python-format
+msgid "Invalid output format for '%s'"
+msgstr ""
+
+msgid "Extra data at end of message"
+msgstr ""
+
+#, python-format
+msgid "Unknown command: %s"
+msgstr ""
+
+#, python-format
+msgid "Command format mismatch: %s vs %s"
+msgstr ""
+
+#, python-format
+msgid "Unable to extract params from: %s"
+msgstr ""
+
+#, python-format
+msgid "Unable to encode: %s"
+msgstr ""
+
+#, python-format
+msgid "Multi-byte msgtag not supported"
+msgstr ""
+
+#, python-format
+msgid "Error during identify: %s"
+msgstr ""
+
+#, python-format
+msgid "Firmware constant '%s' not found"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse firmware constant %s: %s"
+msgstr ""
+#======================END MSGPROTO MODULE======================#
+
+#========================PARSEDUMP MODULE=======================#
+#======================END PARSEDUMP MODULE=====================#
+
+#===========================PINS MODULE=========================#
+#, python-format
+msgid "Pin %s reserved for %s - can't reserve for %s"
+msgstr ""
+
+#, python-format
+msgid "Alias %s mapped to %s - can't alias to %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid pin alias '%s'\n"
+msgstr ""
+
+#, python-format
+msgid "pin %s is an alias for %s"
+msgstr ""
+
+#, python-format
+msgid "pin %s is reserved for %s"
+msgstr ""
+
+#, python-format
+msgid "Unknown pin chip name '%s'"
+msgstr ""
+
+#, python-format
+msgid "Invalid pin description '%s'\nFormat is: %s[chip_name:] pin_name"
+msgstr ""
+
+#, python-format
+msgid "pin %s used multiple times in config"
+msgstr ""
+
+#, python-format
+msgid "Shared pin %s must have same polarity"
+msgstr ""
+
+#, python-format
+msgid "Unknown chip name '%s'"
+msgstr ""
+
+#, python-format
+msgid "Duplicate chip name '%s'"
+msgstr ""
+#=========================END PINS MODULE=======================#
+
+#=======================QUEUELOGGER MODULE======================#
+#=====================END QUEUELOGGER MODULE====================#
+
+#=========================REACTOR MODULE========================#
+#=======================END REACTOR MODULE======================#
+
+#========================SERIALHDL MODULE=======================#
+msgid "Invalid CAN uuid"
+msgstr ""
+
+msgid "Unable to connect"
+msgstr ""
+
+msgid "Serial connection closed"
+msgstr ""
+
+#, python-format
+msgid "Unable to obtain '%s' response"
+msgstr ""
+#======================END SERIALHDL MODULE=====================#
+
+#=========================STEPPER MODULE========================#
+#, python-format
+msgid "Stepper dir pin must be on same mcu as step pin"
+msgstr ""
+
+msgid "Internal error in stepcompress"
+msgstr ""
+
+#, python-format
+msgid "position_endstop in section '%s' must be between position_min and position_max"
+msgstr ""
+
+#, python-format
+msgid "Unable to infer homing_positive_dir in section '%s'"
+msgstr ""
+
+#, python-format
+msgid "Invalid homing_positive_dir / position_endstop in '%s'"
+msgstr ""
+
+#, python-format
+msgid "Pinter rail %s shared endstop pin %s must specify the same pullup/invert settings"
+msgstr ""
+#=======================END STEPPER MODULE======================#
+
+#========================TOOLHEAD MODULE========================#
+msgid "Move out of range"
+msgstr ""
+
+#, python-format
+msgid "Error loading kinematics '%s'"
+msgstr ""
+
+msgid "Exception in flush_handler"
+msgstr ""
+
+msgid "Set printer velocity limits"
+msgstr ""
+
+#, python-format
+msgid "Invalid M204 command \"%s\""
+msgstr ""
+#======================END TOOLHEAD MODULE======================#
+
+#===========================UTIL MODULE=========================#
+#=========================END UTIL MODULE=======================#
+
+#========================WEBHOOKS MODULE========================#
+msgid "Not a top-level dictionary"
+msgstr ""
+
+msgid "Invalid request type"
+msgstr ""
+
+#, python-format
+msgid "Missing Argument [%s]"
+msgstr ""
+
+#, python-format
+msgid "Invalid Argument Type [%s]"
+msgstr ""
+
+msgid "Multiple calls to send not allowed"
+msgstr ""
+
+#, python-format
+msgid "webhooks: Unable to delete socket file '%s'"
+msgstr ""
+
+#, python-format
+msgid "Internal Error on WebRequest: %s"
+msgstr ""
+
+#, python-format
+msgid "webhooks: socket write error %d"
+msgstr ""
+
+msgid "Path already registered to an endpoint"
+msgstr ""
+
+#, python-format
+msgid "mux endpoint %s %s %s may have only one key (%s)"
+msgstr ""
+
+#, python-format
+msgid "mux endpoint %s %s %s already registered (%s)"
+msgstr ""
+
+#, python-format
+msgid "The value '%s' is not valid for %s"
+msgstr ""
+
+msgid "Shutdown due to webhooks request"
+msgstr ""
+
+#, python-format
+msgid "webhooks: No registered callback for path '%s'"
+msgstr ""
+
+#, python-format
+msgid "Remote method '%s' not registered"
+msgstr ""
+
+#, python-format
+msgid "No active connections for method '%s'"
+msgstr ""
+
+msgid "Invalid argument"
+msgstr ""
+#======================END WEBHOOKS MODULE======================#

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging, collections
 import chelper
-
+import locales 
 class error(Exception):
     pass
 
@@ -34,7 +34,7 @@ class MCU_stepper:
         self._invert_step = step_pin_params['invert']
         if dir_pin_params['chip'] is not self._mcu:
             raise self._mcu.get_printer().config_error(
-                "Stepper dir pin must be on same mcu as step pin")
+                _("Stepper dir pin must be on same mcu as step pin"))
         self._dir_pin = dir_pin_params['pin']
         self._invert_dir = self._orig_invert_dir = dir_pin_params['invert']
         self._step_both_edge = self._req_step_both_edge = False
@@ -175,11 +175,11 @@ class MCU_stepper:
         ffi_main, ffi_lib = chelper.get_ffi()
         ret = ffi_lib.stepcompress_reset(self._stepqueue, 0)
         if ret:
-            raise error("Internal error in stepcompress")
+            raise error(_("Internal error in stepcompress"))
         data = (self._reset_cmd_tag, self._oid, 0)
         ret = ffi_lib.stepcompress_queue_msg(self._stepqueue, data, len(data))
         if ret:
-            raise error("Internal error in stepcompress")
+            raise error(_("Internal error in stepcompress"))
         self._query_mcu_position()
     def _query_mcu_position(self):
         if self._mcu.is_fileoutput():
@@ -194,7 +194,7 @@ class MCU_stepper:
         ret = ffi_lib.stepcompress_set_last_position(self._stepqueue, clock,
                                                      last_pos)
         if ret:
-            raise error("Internal error in stepcompress")
+            raise error(_("Internal error in stepcompress"))
         self._set_mcu_position(last_pos)
         self._mcu.get_printer().send_event("stepper:sync_mcu_position", self)
     def get_trapq(self):
@@ -223,7 +223,7 @@ class MCU_stepper:
         sk = self._stepper_kinematics
         ret = self._itersolve_generate_steps(sk, flush_time)
         if ret:
-            raise error("Internal error in stepcompress")
+            raise error(_("Internal error in stepcompress"))
     def is_active_axis(self, axis):
         ffi_main, ffi_lib = chelper.get_ffi()
         a = axis.encode()
@@ -324,8 +324,8 @@ class PrinterRail:
         if (self.position_endstop < self.position_min
             or self.position_endstop > self.position_max):
             raise config.error(
-                "position_endstop in section '%s' must be between"
-                " position_min and position_max" % config.get_name())
+                _("position_endstop in section '%s' must be between"
+                " position_min and position_max") % config.get_name())
         # Homing mechanics
         self.homing_speed = config.getfloat('homing_speed', 5.0, above=0.)
         self.second_homing_speed = config.getfloat(
@@ -344,7 +344,7 @@ class PrinterRail:
                 self.homing_positive_dir = True
             else:
                 raise config.error(
-                    "Unable to infer homing_positive_dir in section '%s'"
+                    _("Unable to infer homing_positive_dir in section '%s'")
                     % (config.get_name(),))
             config.getboolean('homing_positive_dir', self.homing_positive_dir)
         elif ((self.homing_positive_dir
@@ -352,7 +352,7 @@ class PrinterRail:
               or (not self.homing_positive_dir
                   and self.position_endstop == self.position_max)):
             raise config.error(
-                "Invalid homing_positive_dir / position_endstop in '%s'"
+                _("Invalid homing_positive_dir / position_endstop in '%s'")
                 % (config.get_name(),))
     def get_range(self):
         return self.position_min, self.position_max
@@ -398,8 +398,8 @@ class PrinterRail:
             changed_invert = pin_params['invert'] != endstop['invert']
             changed_pullup = pin_params['pullup'] != endstop['pullup']
             if changed_invert or changed_pullup:
-                raise error("Pinter rail %s shared endstop pin %s "
-                            "must specify the same pullup/invert settings" % (
+                raise error(_("Pinter rail %s shared endstop pin %s "
+                            "must specify the same pullup/invert settings") % (
                                 self.get_name(), pin_name))
         mcu_endstop.add_stepper(stepper)
     def setup_itersolve(self, alloc_func, *params):

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging, importlib
 import mcu, chelper, kinematics.extruder
-
+import locales 
 # Common suffixes: _d is distance (in mm), _v is velocity (in
 #   mm/second), _v2 is velocity squared (mm^2/s^2), _t is time (in
 #   seconds), _r is ratio (scalar between 0.0 and 1.0)
@@ -55,7 +55,7 @@ class Move:
         self.accel = min(self.accel, accel)
         self.delta_v2 = 2.0 * self.move_d * self.accel
         self.smooth_delta_v2 = min(self.smooth_delta_v2, self.delta_v2)
-    def move_error(self, msg="Move out of range"):
+    def move_error(self, msg=_("Move out of range")):
         ep = self.end_pos
         m = "%s: %.3f %.3f %.3f [%.3f]" % (msg, ep[0], ep[1], ep[2], ep[3])
         return self.toolhead.printer.command_error(m)
@@ -260,7 +260,7 @@ class ToolHead:
         except self.printer.lookup_object('pins').error as e:
             raise
         except:
-            msg = "Error loading kinematics '%s'" % (kin_name,)
+            msg = _("Error loading kinematics '%s'") % (kin_name,)
             logging.exception(msg)
             raise config.error(msg)
         # Register commands
@@ -401,7 +401,7 @@ class ToolHead:
                 self.idle_flush_print_time = self.print_time
         except:
             logging.exception("Exception in flush_handler")
-            self.printer.invoke_shutdown("Exception in flush_handler")
+            self.printer.invoke_shutdown(_("Exception in flush_handler"))
         return self.reactor.NEVER
     # Movement commands
     def get_position(self):
@@ -557,7 +557,7 @@ class ToolHead:
     def cmd_M400(self, gcmd):
         # Wait for current moves to finish
         self.wait_moves()
-    cmd_SET_VELOCITY_LIMIT_help = "Set printer velocity limits"
+    cmd_SET_VELOCITY_LIMIT_help = _("Set printer velocity limits")
     def cmd_SET_VELOCITY_LIMIT(self, gcmd):
         max_velocity = gcmd.get_float('VELOCITY', None, above=0.)
         max_accel = gcmd.get_float('ACCEL', None, above=0.)
@@ -595,7 +595,7 @@ class ToolHead:
             p = gcmd.get_float('P', None, above=0.)
             t = gcmd.get_float('T', None, above=0.)
             if p is None or t is None:
-                gcmd.respond_info('Invalid M204 command "%s"'
+                gcmd.respond_info(_('Invalid M204 command "%s"')
                                   % (gcmd.get_commandline(),))
                 return
             accel = min(p, t)

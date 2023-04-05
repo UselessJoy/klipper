@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import json, zlib, logging
-
+import locales 
 DefaultMessages = {
     "identify_response offset=%u data=%.*s": 0,
     "identify offset=%u count=%c": 1,
@@ -88,7 +88,7 @@ class enumeration_error(error):
     def __init__(self, enum_name, value):
         self.enum_name = enum_name
         self.value = value
-        error.__init__(self, "Unknown value '%s' in enumeration '%s'"
+        error.__init__(self, _("Unknown value '%s' in enumeration '%s'")
                        % (value, enum_name))
     def get_enum_params(self):
         return self.enum_name, self.value
@@ -149,7 +149,7 @@ def lookup_output_params(msgformat):
                     param_types.append(t)
                     break
             else:
-                raise error("Invalid output format for '%s'" % (msgformat,))
+                raise error(_("Invalid output format for '%s'") % (msgformat,))
         args = args[pos+1:]
     return param_types
 
@@ -286,7 +286,7 @@ class MessageParser:
         mid = self.messages_by_id.get(msgid, self.unknown)
         params, pos = mid.parse(s, MESSAGE_HEADER_SIZE)
         if pos != len(s)-MESSAGE_TRAILER_SIZE:
-            self._error("Extra data at end of message")
+            self._error(_("Extra data at end of message"))
         params['#name'] = mid.name
         return params
     def encode(self, seq, cmd):
@@ -311,9 +311,9 @@ class MessageParser:
         msgname = parts[0]
         mp = self.messages_by_name.get(msgname)
         if mp is None:
-            self._error("Unknown command: %s", msgname)
+            self._error(_("Unknown command: %s"), msgname)
         if msgformat != mp.msgformat:
-            self._error("Command format mismatch: %s vs %s",
+            self._error(_("Command format mismatch: %s vs %s"),
                         msgformat, mp.msgformat)
         return mp
     def create_command(self, msg):
@@ -339,14 +339,14 @@ class MessageParser:
             raise
         except:
             #logging.exception("Unable to extract params")
-            self._error("Unable to extract params from: %s", msgname)
+            self._error(_("Unable to extract params from: %s"), msgname)
         try:
             cmd = mp.encode_by_name(**argparts)
         except error as e:
             raise
         except:
             #logging.exception("Unable to encode")
-            self._error("Unable to encode: %s", msgname)
+            self._error(_("Unable to encode: %s"), msgname)
         return cmd
     def fill_enumerations(self, enumerations):
         for add_name, add_enums in enumerations.items():
@@ -375,7 +375,7 @@ class MessageParser:
                 msgtype = 'output'
             self.messages.append((msgtag, msgtype, msgformat))
             if msgtag < -32 or msgtag > 95:
-                self._error("Multi-byte msgtag not supported")
+                self._error(_("Multi-byte msgtag not supported"))
             msgid = msgtag & 0x7f
             if msgtype == 'output':
                 self.messages_by_id[msgid] = OutputFormat(msgid, msgformat)
@@ -405,7 +405,7 @@ class MessageParser:
             raise
         except Exception as e:
             logging.exception("process_identify error")
-            self._error("Error during identify: %s", str(e))
+            self._error(_("Error during identify: %s"), str(e))
     def get_raw_data_dictionary(self):
         return self.raw_identify_data
     def get_version_info(self):
@@ -421,11 +421,11 @@ class MessageParser:
         if name not in self.config:
             if default is not self.sentinel:
                 return default
-            self._error("Firmware constant '%s' not found", name)
+            self._error(_("Firmware constant '%s' not found"), name)
         try:
             value = parser(self.config[name])
         except:
-            self._error("Unable to parse firmware constant %s: %s",
+            self._error(_("Unable to parse firmware constant %s: %s"),
                         name, self.config[name])
         return value
     def get_constant_float(self, name, default=sentinel):

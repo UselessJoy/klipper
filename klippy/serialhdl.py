@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, threading, os
 import serial
-
+import locales 
 import msgproto, chelper, util
 
 class error(Exception):
@@ -118,7 +118,7 @@ class SerialReader:
         except ValueError:
             uuid = -1
         if uuid < 0 or uuid > 0xffffffffffff:
-            self._error("Invalid CAN uuid")
+            self._error(_("Invalid CAN uuid"))
         uuid = [(uuid >> (40 - i*8)) & 0xff for i in range(6)]
         CANBUS_ID_ADMIN = 0x3f0
         CMD_SET_NODEID = 0x01
@@ -130,7 +130,7 @@ class SerialReader:
         start_time = self.reactor.monotonic()
         while 1:
             if self.reactor.monotonic() > start_time + 90.:
-                self._error("Unable to connect")
+                self._error(_("Unable to connect"))
             try:
                 bus = can.interface.Bus(channel=canbus_iface,
                                         can_filters=filters,
@@ -162,7 +162,7 @@ class SerialReader:
         start_time = self.reactor.monotonic()
         while 1:
             if self.reactor.monotonic() > start_time + 90.:
-                self._error("Unable to connect")
+                self._error(_("Unable to connect"))
             try:
                 fd = os.open(filename, os.O_RDWR | os.O_NOCTTY)
             except OSError as e:
@@ -179,7 +179,7 @@ class SerialReader:
         start_time = self.reactor.monotonic()
         while 1:
             if self.reactor.monotonic() > start_time + 90.:
-                self._error("Unable to connect")
+                self._error(_("Unable to connect"))
             try:
                 serial_dev = serial.Serial(baudrate=baud, timeout=0,
                                            exclusive=True)
@@ -250,7 +250,7 @@ class SerialReader:
                                       cmd, len(cmd), minclock, reqclock, nid)
         params = completion.wait()
         if params is None:
-            self._error("Serial connection closed")
+            self._error(_("Serial connection closed"))
         return params
     def send(self, msg, minclock=0, reqclock=0):
         cmd = self.msgparser.create_command(msg)
@@ -323,7 +323,7 @@ class SerialRetryCommand:
                 return params
             if retries <= 0:
                 self.serial.register_response(None, self.name, self.oid)
-                raise error("Unable to obtain '%s' response" % (self.name,))
+                raise error(_("Unable to obtain '%s' response") % (self.name,))
             reactor = self.serial.reactor
             reactor.pause(reactor.monotonic() + retry_delay)
             retries -= 1

@@ -6,7 +6,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, sys, logging
 import msgproto
-
+import locales 
 def read_dictionary(filename):
     dfile = open(filename, 'rb')
     dictionary = dfile.read()

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import sys, os, zlib, logging, math
 import serialhdl, msgproto, pins, chelper, clocksync
-
+import locales 
 class error(Exception):
     pass
 
@@ -159,8 +159,8 @@ class MCU_endstop:
                 for s in ot.get_steppers():
                     if ot is not trsync and s.get_name().startswith(sname[:9]):
                         cerror = self._mcu.get_printer().config_error
-                        raise cerror("Multi-mcu homing not supported on"
-                                     " multi-mcu shared axis")
+                        raise cerror(_("Multi-mcu homing not supported on"
+                                     " multi-mcu shared axis"))
     def get_steppers(self):
         return [s for trsync in self._trsyncs for s in trsync.get_steppers()]
     def _build_config(self):
@@ -245,7 +245,7 @@ class MCU_digital_out:
         self._max_duration = max_duration
     def setup_start_value(self, start_value, shutdown_value, is_static=False):
         if is_static and start_value != shutdown_value:
-            raise pins.error("Static pin can not have shutdown value")
+            raise pins.error(_("Static pin can not have shutdown value"))
         self._start_value = (not not start_value) ^ self._invert
         self._shutdown_value = (not not shutdown_value) ^ self._invert
         self._is_static = is_static
@@ -255,11 +255,11 @@ class MCU_digital_out:
                                      % (self._pin, self._start_value))
             return
         if self._max_duration and self._start_value != self._shutdown_value:
-            raise pins.error("Pin with max duration must have start"
-                             " value equal to shutdown value")
+            raise pins.error(_("Pin with max duration must have start"
+                             " value equal to shutdown value"))
         mdur_ticks = self._mcu.seconds_to_clock(self._max_duration)
         if mdur_ticks >= 1<<31:
-            raise pins.error("Digital pin max duration too large")
+            raise pins.error(_("Digital pin max duration too large"))
         self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
         self._mcu.add_config_cmd(
@@ -302,7 +302,7 @@ class MCU_pwm:
         self._hardware_pwm = hardware_pwm
     def setup_start_value(self, start_value, shutdown_value, is_static=False):
         if is_static and start_value != shutdown_value:
-            raise pins.error("Static pin can not have shutdown value")
+            raise pins.error(_("Static pin can not have shutdown value"))
         if self._invert:
             start_value = 1. - start_value
             shutdown_value = 1. - shutdown_value
@@ -311,8 +311,8 @@ class MCU_pwm:
         self._is_static = is_static
     def _build_config(self):
         if self._max_duration and self._start_value != self._shutdown_value:
-            raise pins.error("Pin with max duration must have start"
-                             " value equal to shutdown value")
+            raise pins.error(_("Pin with max duration must have start"
+                             " value equal to shutdown value"))
         cmd_queue = self._mcu.alloc_command_queue()
         curtime = self._mcu.get_printer().get_reactor().monotonic()
         printtime = self._mcu.estimated_print_time(curtime)
@@ -320,7 +320,7 @@ class MCU_pwm:
         cycle_ticks = self._mcu.seconds_to_clock(self._cycle_time)
         mdur_ticks = self._mcu.seconds_to_clock(self._max_duration)
         if mdur_ticks >= 1<<31:
-            raise pins.error("PWM pin max duration too large")
+            raise pins.error(_("PWM pin max duration too large"))
         if self._hardware_pwm:
             self._pwm_max = self._mcu.get_constant_float("PWM_MAX")
             if self._is_static:
@@ -346,13 +346,13 @@ class MCU_pwm:
             return
         # Software PWM
         if self._shutdown_value not in [0., 1.]:
-            raise pins.error("shutdown value must be 0.0 or 1.0 on soft pwm")
+            raise pins.error(_("shutdown value must be 0.0 or 1.0 on soft pwm"))
         if self._is_static:
             self._mcu.add_config_cmd("set_digital_out pin=%s value=%d"
                                      % (self._pin, self._start_value >= 0.5))
             return
         if cycle_ticks >= 1<<31:
-            raise pins.error("PWM pin cycle time too large")
+            raise pins.error(_("PWM pin cycle time too large"))
         self._mcu.request_move_queue_slot()
         self._oid = self._mcu.create_oid()
         self._mcu.add_config_cmd(
@@ -390,7 +390,7 @@ class MCU_pwm:
         if cycle_ticks != self._last_cycle_ticks:
             if cycle_ticks >= 1<<31:
                 raise self._mcu.get_printer().command_error(
-                    "PWM cycle time too large")
+                    _("PWM cycle time too large"))
             self._set_cycle_ticks.send([self._oid, cycle_ticks],
                                        minclock=minclock, reqclock=clock)
             self._last_cycle_ticks = cycle_ticks
@@ -484,7 +484,7 @@ class RetryAsyncCommand:
             query_time = self.reactor.monotonic()
             if query_time > first_query_time + self.TIMEOUT_TIME:
                 self.serial.register_response(None, self.name, self.oid)
-                raise serialhdl.error("Timeout on wait for '%s' response"
+                raise serialhdl.error(_("Timeout on wait for '%s' response")
                                       % (self.name,))
             self.serial.raw_send(cmd, minclock, minclock, cmd_queue)
 
@@ -618,13 +618,13 @@ class MCU:
         logging.info("MCU '%s' %s: %s\n%s\n%s", self._name, params['#name'],
                      self._shutdown_msg, self._clocksync.dump_debug(),
                      self._serial.dump_debug())
-        prefix = "MCU '%s' shutdown: " % (self._name,)
+        prefix = _("MCU '%s' shutdown: ") % (self._name,)
         if params['#name'] == 'is_shutdown':
-            prefix = "Previous MCU '%s' shutdown: " % (self._name,)
+            prefix = _("Previous MCU '%s' shutdown: ") % (self._name,)
         self._printer.invoke_async_shutdown(prefix + msg + error_help(msg))
     def _handle_starting(self, params):
         if not self._is_shutdown:
-            self._printer.invoke_async_shutdown("MCU '%s' spontaneous restart"
+            self._printer.invoke_async_shutdown(_("MCU '%s' spontaneous restart")
                                                 % (self._name,))
     # Connection phase
     def _check_restart(self, reason):
@@ -635,7 +635,7 @@ class MCU:
                      self._name, reason)
         self._printer.request_exit('firmware_restart')
         self._reactor.pause(self._reactor.monotonic() + 2.000)
-        raise error("Attempt MCU '%s' restart failed" % (self._name,))
+        raise error(_("Attempt MCU '%s' restart failed") % (self._name,))
     def _connect_file(self, pace=False):
         # In a debugging mode.  Open debug output file and read data dictionary
         start_args = self._printer.get_start_args()
@@ -675,7 +675,7 @@ class MCU:
         self.add_config_cmd("finalize_config crc=%d" % (config_crc,))
         if prev_crc is not None and config_crc != prev_crc:
             self._check_restart("CRC mismatch")
-            raise error("MCU '%s' CRC does not match config" % (self._name,))
+            raise error(_("MCU '%s' CRC does not match config") % (self._name,))
         # Transmit config messages (if needed)
         self.register_response(self._handle_starting, 'starting')
         try:
@@ -695,7 +695,7 @@ class MCU:
             if enum_name == 'pin':
                 # Raise pin name errors as a config error (not a protocol error)
                 raise self._printer.config_error(
-                    "Pin '%s' is not a valid pin name on mcu '%s'"
+                    _("Pin '%s' is not a valid pin name on mcu '%s'")
                     % (enum_value, self._name))
             raise
     def _send_get_config(self):
@@ -709,7 +709,7 @@ class MCU:
             raise error("MCU '%s' error during config: %s" % (
                 self._name, self._shutdown_msg))
         if config_params['is_shutdown']:
-            raise error("Can not update MCU '%s' config as it is shutdown" % (
+            raise error(_("Can not update MCU '%s' config as it is shutdown") % (
                 self._name,))
         return config_params
     def _log_info(self):
@@ -732,7 +732,7 @@ class MCU:
             self._send_config(None)
             config_params = self._send_get_config()
             if not config_params['is_config'] and not self.is_fileoutput():
-                raise error("Unable to configure MCU '%s'" % (self._name,))
+                raise error(_("Unable to configure MCU '%s'") % (self._name,))
         else:
             start_reason = self._printer.get_start_args().get("start_reason")
             if start_reason == 'firmware_restart':
@@ -743,7 +743,7 @@ class MCU:
         # Setup steppersync with the move_count returned by get_config
         move_count = config_params['move_count']
         if move_count < self._reserved_move_slots:
-            raise error("Too few moves available on MCU '%s'" % (self._name,))
+            raise error(_("Too few moves available on MCU '%s'") % (self._name,))
         ffi_main, ffi_lib = chelper.get_ffi()
         self._steppersync = ffi_main.gc(
             ffi_lib.steppersync_alloc(self._serial.get_serialqueue(),
@@ -813,7 +813,7 @@ class MCU:
         pcs = {'endstop': MCU_endstop,
                'digital_out': MCU_digital_out, 'pwm': MCU_pwm, 'adc': MCU_adc}
         if pin_type not in pcs:
-            raise pins.error("pin type %s not supported on mcu" % (pin_type,))
+            raise pins.error(_("pin type %s not supported on mcu") % (pin_type,))
         return pcs[pin_type](self, pin_params)
     def create_oid(self):
         self._oid_count += 1
@@ -946,7 +946,7 @@ class MCU:
             return
         ret = self._ffi_lib.steppersync_flush(self._steppersync, clock)
         if ret:
-            raise error("Internal error in MCU '%s' stepcompress"
+            raise error(_("Internal error in MCU '%s' stepcompress")
                         % (self._name,))
     def check_active(self, print_time, eventtime):
         if self._steppersync is None:
@@ -959,7 +959,7 @@ class MCU:
         self._is_timeout = True
         logging.info("Timeout with MCU '%s' (eventtime=%f)",
                      self._name, eventtime)
-        self._printer.invoke_shutdown("Lost communication with MCU '%s'" % (
+        self._printer.invoke_shutdown(_("Lost communication with MCU '%s'") % (
             self._name,))
     def get_status(self, eventtime=None):
         return dict(self._get_status_info)
@@ -974,24 +974,24 @@ class MCU:
         return False, '%s: %s' % (self._name, stats)
 
 Common_MCU_errors = {
-    ("Timer too close",): """
+    ("Timer too close",): _("""
 This often indicates the host computer is overloaded. Check
 for other processes consuming excessive CPU time, high swap
 usage, disk errors, overheating, unstable voltage, or
-similar system problems on the host computer.""",
-    ("Missed scheduling of next ",): """
+similar system problems on the host computer."""),
+    ("Missed scheduling of next ",): _("""
 This is generally indicative of an intermittent
-communication failure between micro-controller and host.""",
-    ("ADC out of range",): """
+communication failure between micro-controller and host."""),
+    ("ADC out of range",): _("""
 This generally occurs when a heater temperature exceeds
-its configured min_temp or max_temp.""",
-    ("Rescheduled timer in the past", "Stepper too far in past"): """
+its configured min_temp or max_temp."""),
+    ("Rescheduled timer in the past", "Stepper too far in past"): _("""
 This generally occurs when the micro-controller has been
 requested to step at a rate higher than it is capable of
-obtaining.""",
-    ("Command request",): """
+obtaining."""),
+    ("Command request",): _("""
 This generally occurs in response to an M112 G-Code command
-or in response to an internal error in the host software.""",
+or in response to an internal error in the host software."""),
 }
 
 def error_help(msg):

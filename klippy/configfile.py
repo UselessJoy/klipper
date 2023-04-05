@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import sys, os, glob, re, time, logging, configparser, io
-
+import locales 
 error = configparser.Error
 
 class sentinel:
@@ -29,28 +29,28 @@ class ConfigWrapper:
                     acc_id = (self.section.lower(), option.lower())
                     self.access_tracking[acc_id] = default
                 return default
-            raise error("Option '%s' in section '%s' must be specified"
+            raise error(_("Option '%s' in section '%s' must be specified")
                         % (option, self.section))
         try:
             v = parser(self.section, option)
         except self.error as e:
             raise
         except:
-            raise error("Unable to parse option '%s' in section '%s'"
+            raise error(_("Unable to parse option '%s' in section '%s'")
                         % (option, self.section))
         if note_valid:
             self.access_tracking[(self.section.lower(), option.lower())] = v
         if minval is not None and v < minval:
-            raise error("Option '%s' in section '%s' must have minimum of %s"
+            raise error(_("Option '%s' in section '%s' must have minimum of %s")
                         % (option, self.section, minval))
         if maxval is not None and v > maxval:
-            raise error("Option '%s' in section '%s' must have maximum of %s"
+            raise error(_("Option '%s' in section '%s' must have maximum of %s")
                         % (option, self.section, maxval))
         if above is not None and v <= above:
-            raise error("Option '%s' in section '%s' must be above %s"
+            raise error(_("Option '%s' in section '%s' must be above %s")
                         % (option, self.section, above))
         if below is not None and v >= below:
-            raise self.error("Option '%s' in section '%s' must be below %s"
+            raise self.error(_("Option '%s' in section '%s' must be below %s")
                              % (option, self.section, below))
         return v
     def get(self, option, default=sentinel, note_valid=True):
@@ -74,8 +74,8 @@ class ConfigWrapper:
         else:
             c = self.get(option, default, note_valid=note_valid)
         if c not in choices:
-            raise error("Choice '%s' for option '%s' in section '%s'"
-                        " is not a valid choice" % (c, option, self.section))
+            raise error(_("Choice '%s' for option '%s' in section '%s'"
+                        " is not a valid choice") % (c, option, self.section))
         return choices[c]
     def getlists(self, option, default=sentinel, seps=(',',), count=None,
                  parser=str, note_valid=True):
@@ -86,7 +86,7 @@ class ConfigWrapper:
                 return tuple([lparser(p, pos - 1) for p in parts if p])
             res = [parser(p.strip()) for p in value.split(seps[pos])]
             if count is not None and len(res) != count:
-                raise error("Option '%s' in section '%s' must have %d elements"
+                raise error(_("Option '%s' in section '%s' must have %d elements")
                             % (option, self.section, count))
             return tuple(res)
         def fcparser(section, option):
@@ -120,10 +120,10 @@ class ConfigWrapper:
         if not self.fileconfig.has_option(self.section, option):
             return
         if value is None:
-            msg = ("Option '%s' in section '%s' is deprecated."
+            msg = (_("Option '%s' in section '%s' is deprecated.")
                    % (option, self.section))
         else:
-            msg = ("Value '%s' in option '%s' in section '%s' is deprecated."
+            msg = (_("Value '%s' in option '%s' in section '%s' is deprecated.")
                    % (value, option, self.section))
         pconfig = self.printer.lookup_object("configfile")
         pconfig.deprecate(self.section, option, value, msg)
@@ -155,7 +155,7 @@ class PrinterConfig:
             data = f.read()
             f.close()
         except:
-            msg = "Unable to open config file %s" % (filename,)
+            msg = _("Unable to open config file %s") % (filename,)
             logging.exception(msg)
             raise error(msg)
         return data.replace('\r\n', '\n')
@@ -222,7 +222,7 @@ class PrinterConfig:
         include_filenames = glob.glob(include_glob)
         if not include_filenames and not glob.has_magic(include_glob):
             # Empty set is OK if wildcard but not for direct file reference
-            raise error("Include file '%s' does not exist" % (include_glob,))
+            raise error(_("Include file '%s' does not exist") % (include_glob,))
         include_filenames.sort()
         for include_filename in include_filenames:
             include_data = self._read_config_file(include_filename)
@@ -232,7 +232,7 @@ class PrinterConfig:
     def _parse_config(self, data, filename, fileconfig, visited):
         path = os.path.abspath(filename)
         if path in visited:
-            raise error("Recursive include of config file '%s'" % (filename))
+            raise error(_("Recursive include of config file '%s'") % (filename))
         visited.add(path)
         lines = data.split('\n')
         # Buffer lines between includes and parse as a unit so that overrides
@@ -292,12 +292,12 @@ class PrinterConfig:
         for section_name in fileconfig.sections():
             section = section_name.lower()
             if section not in valid_sections and section not in objects:
-                raise error("Section '%s' is not a valid config section"
+                raise error(_("Section '%s' is not a valid config section")
                             % (section,))
             for option in fileconfig.options(section_name):
                 option = option.lower()
                 if (section, option) not in access_tracking:
-                    raise error("Option '%s' is not valid in section '%s'"
+                    raise error(_("Option '%s' is not valid in section '%s'")
                                 % (option, section))
         # Setup get_status()
         self._build_status(config)
@@ -367,10 +367,10 @@ class PrinterConfig:
         for section in self.autosave.fileconfig.sections():
             for option in self.autosave.fileconfig.options(section):
                 if config.fileconfig.has_option(section, option):
-                    msg = ("SAVE_CONFIG section '%s' option '%s' conflicts "
-                           "with included value" % (section, option))
+                    msg = (_("SAVE_CONFIG section '%s' option '%s' conflicts "
+                           "with included value") % (section, option))
                     raise gcode.error(msg)
-    cmd_SAVE_CONFIG_help = "Overwrite config file and restart"
+    cmd_SAVE_CONFIG_help = _("Overwrite config file and restart")
     def cmd_SAVE_CONFIG(self, gcmd):
         if not self.autosave.fileconfig.sections():
             return
@@ -389,7 +389,7 @@ class PrinterConfig:
             regular_data, old_autosave_data = self._find_autosave_data(data)
             config = self._build_config_wrapper(regular_data, cfgname)
         except error as e:
-            msg = "Unable to parse existing config on SAVE_CONFIG"
+            msg = _("Unable to parse existing config on SAVE_CONFIG")
             logging.exception(msg)
             raise gcode.error(msg)
         regular_data = self._strip_duplicates(regular_data, self.autosave)
@@ -412,7 +412,7 @@ class PrinterConfig:
             os.rename(cfgname, backup_name)
             os.rename(temp_name, cfgname)
         except:
-            msg = "Unable to write config file during SAVE_CONFIG"
+            msg = _("Unable to write config file during SAVE_CONFIG")
             logging.exception(msg)
             raise gcode.error(msg)
         # Request a restart

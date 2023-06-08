@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, bisect
-
+import locales
 class ManualProbe:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -59,7 +59,7 @@ class ManualProbe:
         }
     def get_status(self, eventtime):
         return self.status
-    cmd_MANUAL_PROBE_help = "Start manual probe helper script"
+    cmd_MANUAL_PROBE_help = _("Start manual probe helper script")
     def cmd_MANUAL_PROBE(self, gcmd):
         ManualProbeHelper(self.printer, gcmd, self.manual_probe_finalize)
     def z_endstop_finalize(self, kin_pos):
@@ -67,42 +67,42 @@ class ManualProbe:
             return
         z_pos = self.z_position_endstop - kin_pos[2]
         self.gcode.respond_info(
-            "stepper_z: position_endstop: %.3f\n"
+            _("stepper_z: position_endstop: %.3f\n"
             "The SAVE_CONFIG command will update the printer config file\n"
-            "with the above and restart the printer." % (z_pos,))
+            "with the above and restart the printer.") % (z_pos,))
         configfile = self.printer.lookup_object('configfile')
         configfile.set('stepper_z', 'position_endstop', "%.3f" % (z_pos,))
-    cmd_Z_ENDSTOP_CALIBRATE_help = "Calibrate a Z endstop"
+    cmd_Z_ENDSTOP_CALIBRATE_help = _("Calibrate a Z endstop")
     def cmd_Z_ENDSTOP_CALIBRATE(self, gcmd):
         ManualProbeHelper(self.printer, gcmd, self.z_endstop_finalize)
     def cmd_Z_OFFSET_APPLY_ENDSTOP(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
         if offset == 0:
-            self.gcode.respond_info("Nothing to do: Z Offset is 0")
+            self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
             new_calibrate = self.z_position_endstop - offset
             self.gcode.respond_info(
-                "stepper_z: position_endstop: %.3f\n"
+                _("stepper_z: position_endstop: %.3f\n"
                 "The SAVE_CONFIG command will update the printer config file\n"
-                "with the above and restart the printer." % (new_calibrate))
+                "with the above and restart the printer.") % (new_calibrate))
             configfile.set('stepper_z', 'position_endstop',
                 "%.3f" % (new_calibrate,))
     def cmd_Z_OFFSET_APPLY_DELTA_ENDSTOPS(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
         if offset == 0:
-            self.gcode.respond_info("Nothing to do: Z Offset is 0")
+            self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
             new_a_calibrate = self.a_position_endstop - offset
             new_b_calibrate = self.b_position_endstop - offset
             new_c_calibrate = self.c_position_endstop - offset
             self.gcode.respond_info(
-                "stepper_a: position_endstop: %.3f\n"
+                _("stepper_a: position_endstop: %.3f\n"
                 "stepper_b: position_endstop: %.3f\n"
                 "stepper_c: position_endstop: %.3f\n"
                 "The SAVE_CONFIG command will update the printer config file\n"
-                "with the above and restart the printer." % (new_a_calibrate,
+                "with the above and restart the printer.") % (new_a_calibrate,
                                                              new_b_calibrate,
                                                              new_c_calibrate))
             configfile.set('stepper_a', 'position_endstop',
@@ -111,7 +111,7 @@ class ManualProbe:
                 "%.3f" % (new_b_calibrate,))
             configfile.set('stepper_c', 'position_endstop',
                 "%.3f" % (new_c_calibrate,))
-    cmd_Z_OFFSET_APPLY_ENDSTOP_help = "Adjust the z endstop_position"
+    cmd_Z_OFFSET_APPLY_ENDSTOP_help = _("Adjust the z endstop_position")
 
 # Verify that a manual probe isn't already in progress
 def verify_no_manual_probe(printer):
@@ -120,7 +120,7 @@ def verify_no_manual_probe(printer):
         gcode.register_command('ACCEPT', 'dummy')
     except printer.config_error as e:
         raise gcode.error(
-            "Already in a manual Z probe. Use ABORT to abort it.")
+            _("Already in a manual Z probe. Use ABORT to abort it."))
     gcode.register_command('ACCEPT', None)
 
 Z_BOB_MINIMUM = 0.500
@@ -147,8 +147,8 @@ class ManualProbeHelper:
         self.gcode.register_command('TESTZ', self.cmd_TESTZ,
                                     desc=self.cmd_TESTZ_help)
         self.gcode.respond_info(
-            "Starting manual Z probe. Use TESTZ to adjust position.\n"
-            "Finish with ACCEPT or ABORT command.")
+            _("Starting manual Z probe. Use TESTZ to adjust position.\n"
+            "Finish with ACCEPT or ABORT command."))
         self.start_position = self.toolhead.get_position()
         self.report_z_status()
     def get_kinematics_pos(self):
@@ -201,23 +201,23 @@ class ManualProbeHelper:
             'z_position_upper': next_pos_val,
         }
         # Find recent positions
-        self.gcode.respond_info("Z position: %s --> %.3f <-- %s"
+        self.gcode.respond_info(_("Z position: %s --> %.3f <-- %s")
                                 % (prev_str, z_pos, next_str))
-    cmd_ACCEPT_help = "Accept the current Z position"
+    cmd_ACCEPT_help = _("Accept the current Z position")
     def cmd_ACCEPT(self, gcmd):
         pos = self.toolhead.get_position()
         start_pos = self.start_position
         if pos[:2] != start_pos[:2] or pos[2] >= start_pos[2]:
             gcmd.respond_info(
-                "Manual probe failed! Use TESTZ commands to position the\n"
-                "nozzle prior to running ACCEPT.")
+                _("Manual probe failed! Use TESTZ commands to position the\n"
+                "nozzle prior to running ACCEPT."))
             self.finalize(False)
             return
         self.finalize(True)
-    cmd_ABORT_help = "Abort manual Z probing tool"
+    cmd_ABORT_help = _("Abort manual Z probing tool")
     def cmd_ABORT(self, gcmd):
         self.finalize(False)
-    cmd_TESTZ_help = "Move to new Z height"
+    cmd_TESTZ_help = _("Move to new Z height")
     def cmd_TESTZ(self, gcmd):
         # Store current position for later reference
         kin_pos = self.get_kinematics_pos()

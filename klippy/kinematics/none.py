@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class NoneKinematics:
     def __init__(self, toolhead, config):
         self.axes_minmax = toolhead.Coord(0., 0., 0., 0.)

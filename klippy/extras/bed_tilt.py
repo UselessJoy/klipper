@@ -6,7 +6,7 @@
 import logging
 import mathutil
 from . import probe
-
+import locales
 class BedTilt:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -53,7 +53,7 @@ class BedTiltCalibrate:
         self.gcode.register_command(
             'BED_TILT_CALIBRATE', self.cmd_BED_TILT_CALIBRATE,
             desc=self.cmd_BED_TILT_CALIBRATE_help)
-    cmd_BED_TILT_CALIBRATE_help = "Bed tilt calibration script"
+    cmd_BED_TILT_CALIBRATE_help = _("Bed tilt calibration script")
     def cmd_BED_TILT_CALIBRATE(self, gcmd):
         self.probe_helper.start_probe(gcmd)
     def probe_finalize(self, offsets, positions):
@@ -91,9 +91,9 @@ class BedTiltCalibrate:
             x_adjust, y_adjust, z_adjust)
         self.printer.set_rollover_info("bed_tilt", "bed_tilt: %s" % (msg,))
         self.gcode.respond_info(
-            "%s\nThe above parameters have been applied to the current\n"
+            _("%s\nThe above parameters have been applied to the current\n"
             "session. The SAVE_CONFIG command will update the printer\n"
-            "config file and restart the printer." % (msg,))
+            "config file and restart the printer.") % (msg,))
 
 def load_config(config):
     return BedTilt(config)

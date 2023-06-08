@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-
+import locales
 class RunoutHelper:
     def __init__(self, config):
         self.name = config.get_name().split()[-1]
@@ -92,14 +92,14 @@ class RunoutHelper:
         return {
             "filament_detected": bool(self.filament_present),
             "enabled": bool(self.sensor_enabled)}
-    cmd_QUERY_FILAMENT_SENSOR_help = "Query the status of the Filament Sensor"
+    cmd_QUERY_FILAMENT_SENSOR_help = _("Query the status of the Filament Sensor")
     def cmd_QUERY_FILAMENT_SENSOR(self, gcmd):
         if self.filament_present:
-            msg = "Filament Sensor %s: filament detected" % (self.name)
+            msg = _("Filament Sensor %s: filament detected") % (self.name)
         else:
-            msg = "Filament Sensor %s: filament not detected" % (self.name)
+            msg = _("Filament Sensor %s: filament not detected") % (self.name)
         gcmd.respond_info(msg)
-    cmd_SET_FILAMENT_SENSOR_help = "Sets the filament sensor on/off"
+    cmd_SET_FILAMENT_SENSOR_help = _("Sets the filament sensor on/off")
     def cmd_SET_FILAMENT_SENSOR(self, gcmd):
         self.sensor_enabled = gcmd.get_int("ENABLE", 1)
 

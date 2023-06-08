@@ -6,7 +6,7 @@
 import logging
 import mathutil
 from . import probe
-
+import locales
 class ZAdjustHelper:
     def __init__(self, config, z_count):
         self.printer = config.get_printer()
@@ -20,11 +20,11 @@ class ZAdjustHelper:
         z_steppers = [s for s in kin.get_steppers() if s.is_active_axis('z')]
         if len(z_steppers) != self.z_count:
             raise self.printer.config_error(
-                "%s z_positions needs exactly %d items" % (
+                _("%s z_positions needs exactly %d items") % (
                     self.name, len(z_steppers)))
         if len(z_steppers) < 2:
             raise self.printer.config_error(
-                "%s requires multiple z steppers" % (self.name,))
+                _("%s requires multiple z steppers") % (self.name,))
         self.z_steppers = z_steppers
     def adjust_steppers(self, adjustments, speed):
         toolhead = self.printer.lookup_object('toolhead')
@@ -33,7 +33,7 @@ class ZAdjustHelper:
         # Report on movements
         stepstrs = ["%s = %.6f" % (s.get_name(), a)
                     for s, a in zip(self.z_steppers, adjustments)]
-        msg = "Making the following Z adjustments:\n%s" % ("\n".join(stepstrs),)
+        msg = _("Making the following Z adjustments:\n%s") % ("\n".join(stepstrs),)
         gcode.respond_info(msg)
         # Disable Z stepper movements
         toolhead.flush_step_generation()
@@ -111,17 +111,17 @@ class RetryHelper:
             return
         error = round(max(z_positions) - min(z_positions),6)
         self.gcode.respond_info(
-            "Retries: %d/%d %s: %0.6f tolerance: %0.6f" % (
+            _("Retries: %d/%d %s: %0.6f tolerance: %0.6f") % (
                 self.current_retry, self.max_retries, self.value_label,
                 error, self.retry_tolerance))
         if self.check_increase(error):
-            raise self.gcode.error("Retries aborting: %s is increasing. %s"
+            raise self.gcode.error(_("Retries aborting: %s is increasing. %s")
                                    % (self.value_label, self.error_msg_extra))
         if error <= self.retry_tolerance:
             return "done"
         self.current_retry += 1
         if self.current_retry > self.max_retries:
-            raise self.gcode.error("Too many retries")
+            raise self.gcode.error(_("Too many retries"))
         return "retry"
 
 class ZTilt:
@@ -138,7 +138,7 @@ class ZTilt:
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command('Z_TILT_ADJUST', self.cmd_Z_TILT_ADJUST,
                                desc=self.cmd_Z_TILT_ADJUST_help)
-    cmd_Z_TILT_ADJUST_help = "Adjust the Z tilt"
+    cmd_Z_TILT_ADJUST_help = _("Adjust the Z tilt")
     def cmd_Z_TILT_ADJUST(self, gcmd):
         self.z_status.reset()
         self.retry_helper.start(gcmd)

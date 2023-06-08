@@ -3,7 +3,7 @@
 # Copyright (C) 2018  Alec Plumb <alec@etherwalker.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 respond_types = {
     'echo': 'echo:',
     'command': '//',
@@ -28,7 +28,7 @@ class HostResponder:
     def cmd_M118(self, gcmd):
         msg = gcmd.get_raw_command_parameters()
         gcmd.respond_raw("%s %s" % (self.default_prefix, msg))
-    cmd_RESPOND_help = ("Echo the message prepended with a prefix")
+    cmd_RESPOND_help = (_("Echo the message prepended with a prefix"))
     def cmd_RESPOND(self, gcmd):
         no_space = False
         respond_type = gcmd.get('TYPE', None)
@@ -42,8 +42,8 @@ class HostResponder:
                 no_space = True
             else:
                 raise gcmd.error(
-                    "RESPOND TYPE '%s' is invalid. Must be one"
-                    " of 'echo', 'command', or 'error'" % (respond_type,))
+                    _("RESPOND TYPE '%s' is invalid. Must be one"
+                    " of 'echo', 'command', or 'error'") % (respond_type,))
         prefix = gcmd.get('PREFIX', prefix)
         msg = gcmd.get('MSG', '')
         if(no_space):

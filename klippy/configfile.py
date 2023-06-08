@@ -184,6 +184,7 @@ class PrinterConfig:
         return regular_data, "\n".join(out)
     comment_r = re.compile('[#;].*$')
     value_r = re.compile('[^A-Za-z0-9_].*$')
+    #data - string, config - ConfigWrapper
     def _strip_duplicates(self, data, config):
         fileconfig = config.fileconfig
         # Comment out fields in 'data' that are defined in 'config'
@@ -205,7 +206,7 @@ class PrinterConfig:
             field = self.value_r.sub('', pruned_line)
             if config.fileconfig.has_option(section, field):
                 is_dup_field = True
-                lines[lineno] = '#' + lines[lineno]
+                lines[lineno] = '#' + lines[lineno]    
         return "\n".join(lines)
     def _parse_config_buffer(self, buffer, filename, fileconfig):
         if not buffer:
@@ -376,23 +377,30 @@ class PrinterConfig:
             return
         gcode = self.printer.lookup_object('gcode')
         # Create string containing autosave data
-        autosave_data = self._build_config_string(self.autosave)
-        lines = [('#*# ' + l).strip()
-                 for l in autosave_data.split('\n')]
-        lines.insert(0, "\n" + AUTOSAVE_HEADER.rstrip())
-        lines.append("")
-        autosave_data = '\n'.join(lines)
+        # autosave_data = self._build_config_string(self.autosave)
+        # lines = [('#*# ' + l).strip()
+        #          for l in autosave_data.split('\n')]
+        # lines.insert(0, "\n" + AUTOSAVE_HEADER.rstrip())
+        # lines.append("")
+        #autosave_data = '\n'.join(lines)
         # Read in and validate current config file
         cfgname = self.printer.get_start_args()['config_file']
         try:
             data = self._read_config_file(cfgname)
-            regular_data, old_autosave_data = self._find_autosave_data(data)
+            regular_data, __ = self._find_autosave_data(data)
             config = self._build_config_wrapper(regular_data, cfgname)
         except error as e:
             msg = _("Unable to parse existing config on SAVE_CONFIG")
             logging.exception(msg)
             raise gcode.error(msg)
-        regular_data = self._strip_duplicates(regular_data, self.autosave)
+        regular_data, remain = self._overwrite_duplicates(data, self.autosave)
+        autosave_data = self._build_config_string(remain)
+        lines = [(l)#.strip()
+                 for l in autosave_data.split('\n')]
+        lines.insert(0, "\n")
+        lines.append("")
+        autosave_data = '\n'.join(lines)
+        #regular_data = self._strip_duplicates(regular_data, self.autosave)
         self._disallow_include_conflicts(regular_data, cfgname, gcode)
         data = regular_data.rstrip() + autosave_data
         # Determine filenames
@@ -417,3 +425,26 @@ class PrinterConfig:
             raise gcode.error(msg)
         # Request a restart
         gcode.request_restart('restart')
+        
+        
+    #data - string, config - ConfigWrapper    
+    def _overwrite_duplicates(self, data, new_config):
+        # Comment out fields in 'data' that are defined in 'config'
+        lines = data.split('\n')
+        section = None
+        for lineno, line in enumerate(lines):
+            pruned_line = self.comment_r.sub('', line).rstrip()
+            if not pruned_line:
+                continue
+            if pruned_line[0] == '[':
+                if new_config.has_section(section):
+                    if new_config.fileconfig.options(section):
+                        raise error(_("Error in overwrite section '%s': section has not overwritten parameters") % (section))
+                    new_config.fileconfig.remove_section(section)
+                section = pruned_line[1:-1].strip()
+                continue
+            field = self.value_r.sub('', pruned_line)
+            if new_config.fileconfig.has_option(section, field):
+                lines[lineno] = field + ": " + new_config.fileconfig.get(section, field)
+                new_config.fileconfig.remove_option(section, field) 
+        return "\n".join(lines), new_config

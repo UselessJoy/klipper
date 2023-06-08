@@ -3,7 +3,7 @@
 # Copyright (C) 2019  Eric Callahan <arksine.code@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class PauseResume:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -33,6 +33,8 @@ class PauseResume:
     def handle_connect(self):
         self.v_sd = self.printer.lookup_object('virtual_sdcard', None)
     def _handle_cancel_request(self, web_request):
+        pheaters = self.printer.lookup_object('heaters')
+        pheaters.invoke_interrupt()
         self.gcode.run_script("CANCEL_PRINT")
     def _handle_pause_request(self, web_request):
         self.gcode.run_script("PAUSE")
@@ -55,12 +57,12 @@ class PauseResume:
                 self.v_sd.do_pause()
             else:
                 self.sd_paused = False
-                self.gcode.respond_info("action:paused")
+                self.gcode.respond_info(_("action:paused"))
             self.pause_command_sent = True
-    cmd_PAUSE_help = ("Pauses the current print")
+    cmd_PAUSE_help = (_("Pauses the current print"))
     def cmd_PAUSE(self, gcmd):
         if self.is_paused:
-            gcmd.respond_info("Print already paused")
+            gcmd.respond_info(_("Print already paused"))
             return
         self.send_pause_command()
         self.gcode.run_script_from_command("SAVE_GCODE_STATE NAME=PAUSE_STATE")
@@ -71,12 +73,12 @@ class PauseResume:
             self.v_sd.do_resume()
             self.sd_paused = False
         else:
-            self.gcode.respond_info("action:resumed")
+            self.gcode.respond_info(_("action:resumed"))
         self.pause_command_sent = False
-    cmd_RESUME_help = ("Resumes the print from a pause")
+    cmd_RESUME_help = (_("Resumes the print from a pause"))
     def cmd_RESUME(self, gcmd):
         if not self.is_paused:
-            gcmd.respond_info("Print is not paused, resume aborted")
+            gcmd.respond_info(_("Print is not paused, resume aborted"))
             return
         velocity = gcmd.get_float('VELOCITY', self.recover_velocity)
         self.gcode.run_script_from_command(
@@ -85,15 +87,15 @@ class PauseResume:
         self.send_resume_command()
         self.is_paused = False
     cmd_CLEAR_PAUSE_help = (
-        "Clears the current paused state without resuming the print")
+        _("Clears the current paused state without resuming the print"))
     def cmd_CLEAR_PAUSE(self, gcmd):
         self.is_paused = self.pause_command_sent = False
-    cmd_CANCEL_PRINT_help = ("Cancel the current print")
+    cmd_CANCEL_PRINT_help = (_("Cancel the current print"))
     def cmd_CANCEL_PRINT(self, gcmd):
         if self.is_sd_active() or self.sd_paused:
             self.v_sd.do_cancel()
         else:
-            gcmd.respond_info("action:cancel")
+            gcmd.respond_info(_("action:cancel"))
         self.cmd_CLEAR_PAUSE(gcmd)
 
 def load_config(config):

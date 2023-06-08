@@ -4,9 +4,9 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import fan
-
+import locales
 class PrinterFanGeneric:
-    cmd_SET_FAN_SPEED_help = "Sets the speed of a fan"
+    cmd_SET_FAN_SPEED_help = _("Sets the speed of a fan")
     def __init__(self, config):
         self.printer = config.get_printer()
         self.fan = fan.Fan(config, default_shutdown_speed=0.)

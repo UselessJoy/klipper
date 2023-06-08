@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
-
+import locales
 CANCEL_Z_DELTA=2.0
 
 class TuningTower:
@@ -20,7 +20,7 @@ class TuningTower:
         self.gcode = self.printer.lookup_object("gcode")
         self.gcode.register_command("TUNING_TOWER", self.cmd_TUNING_TOWER,
                                     desc=self.cmd_TUNING_TOWER_help)
-    cmd_TUNING_TOWER_help = "Tool to adjust a parameter at each Z height"
+    cmd_TUNING_TOWER_help = _("Tool to adjust a parameter at each Z height")
     def cmd_TUNING_TOWER(self, gcmd):
         if self.normal_transform is not None:
             self.end_test()
@@ -35,9 +35,9 @@ class TuningTower:
         self.skip = gcmd.get_float('SKIP', 0., minval=0.)
         if self.factor and (self.step_height or self.step_delta):
             raise gcmd.error(
-                "Cannot specify both FACTOR and STEP_DELTA/STEP_HEIGHT")
+                _("Cannot specify both FACTOR and STEP_DELTA/STEP_HEIGHT"))
         if (self.step_delta != 0.) != (self.step_height != 0.):
-            raise gcmd.error("Must specify both STEP_DELTA and STEP_HEIGHT")
+            raise gcmd.error(_("Must specify both STEP_DELTA and STEP_HEIGHT"))
         # Enable test mode
         if self.gcode.is_traditional_gcode(command):
             self.command_fmt = "%s %s%%.9f" % (command, parameter)
@@ -60,7 +60,7 @@ class TuningTower:
         if self.skip:
             message_parts.append("skip=%.6f" % (self.skip,))
         gcmd.respond_info(
-            "Starting tuning test (" + " ".join(message_parts) + ")")
+            _("Starting tuning test (") + " ".join(message_parts) + ")")
     def get_position(self):
         pos = self.normal_transform.get_position()
         self.last_position = list(pos)
@@ -96,7 +96,7 @@ class TuningTower:
         self.last_position[:] = newpos
         normal_transform.move(newpos, speed)
     def end_test(self):
-        self.gcode.respond_info("Ending tuning test mode")
+        self.gcode.respond_info(_("Ending tuning test mode"))
         self.gcode_move.set_move_transform(self.normal_transform, force=True)
         self.normal_transform = None
     def is_active(self):

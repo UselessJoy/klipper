@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import logging
-
+import locales
 HOST_REPORT_TIME = 1.0
 RPI_PROC_TEMP_FILE = "/sys/class/thermal/thermal_zone0/temp"
 
@@ -26,7 +26,7 @@ class Temperature_HOST:
         try:
             self.file_handle = open(self.path, "r")
         except:
-            raise config.error("Unable to open temperature file '%s'"
+            raise config.error(_("Unable to open temperature file '%s'")
                                % (self.path,))
 
         self.printer.register_event_handler("klippy:connect",
@@ -56,11 +56,11 @@ class Temperature_HOST:
 
         if self.temp < self.min_temp:
             self.printer.invoke_shutdown(
-                "HOST temperature %0.1f below minimum temperature of %0.1f."
+                _("HOST temperature %0.1f below minimum temperature of %0.1f.")
                 % (self.temp, self.min_temp,))
         if self.temp > self.max_temp:
             self.printer.invoke_shutdown(
-                "HOST temperature %0.1f above maximum temperature of %0.1f."
+                _("HOST temperature %0.1f above maximum temperature of %0.1f.")
                 % (self.temp, self.max_temp,))
 
         mcu = self.printer.lookup_object('mcu')

@@ -7,7 +7,7 @@
 import logging
 import os
 import serial
-
+import locales
 from serial import SerialException
 
 try:
@@ -37,7 +37,7 @@ SETUP_TIMEOUT = 10
 SERIAL_TIMER = 0.1
 AUTOLOAD_TIMER = 5.
 
-INFO_NOT_CONNECTED = "Palette 2 is not connected, connect first"
+INFO_NOT_CONNECTED = _("Palette 2 is not connected, connect first")
 
 
 class Palette2:
@@ -49,15 +49,15 @@ class Palette2:
                 config, "virtual_sdcard")
         except config.error:
             raise self.printer.config_error(
-                "Palette 2 requires [virtual_sdcard] to work,"
-                " please add it to your config!")
+                _("Palette 2 requires [virtual_sdcard] to work,"
+                " please add it to your config!"))
         try:
             self.pause_resume = self.printer.load_object(
                 config, "pause_resume")
         except config.error:
             raise self.printer.config_error(
-                "Palette 2 requires [pause_resume] to work,"
-                " please add it to your config!")
+                _("Palette 2 requires [pause_resume] to work,"
+                " please add it to your config!"))
         self.gcode_move = self.printer.load_object(config, 'gcode_move')
         self.gcode = self.printer.lookup_object("gcode")
         self.gcode.register_command(
@@ -77,7 +77,7 @@ class Palette2:
         self.serial = None
         self.serial_port = config.get("serial")
         if not self.serial_port:
-            raise config.error("Invalid serial port specific for Palette 2")
+            raise config.error(_("Invalid serial port specific for Palette 2"))
         self.baud = config.getint("baud", default=115200)
         self.feedrate_splice = config.getfloat(
             "feedrate_splice", default=0.8, minval=0., maxval=1.)
@@ -137,12 +137,12 @@ class Palette2:
             gcmd.respond_info(INFO_NOT_CONNECTED)
         return False
 
-    cmd_Connect_Help = ("Connect to the Palette 2")
+    cmd_Connect_Help = (_("Connect to the Palette 2"))
 
     def cmd_Connect(self, gcmd):
         if self.serial:
             gcmd.respond_info(
-                "Palette 2 serial port is already active, disconnect first")
+                _("Palette 2 serial port is already active, disconnect first"))
             return
 
         self.signal_disconnect = False
@@ -152,7 +152,7 @@ class Palette2:
             self.serial = serial.Serial(
                 self.serial_port, self.baud, timeout=0, write_timeout=0)
         except SerialException:
-            gcmd.respond_info("Unable to connect to the Palette 2")
+            gcmd.respond_info(_("Unable to connect to the Palette 2"))
             return
 
         with self.write_queue.mutex:
@@ -172,10 +172,10 @@ class Palette2:
         self.write_queue.put(COMMAND_FIRMWARE)
         self._wait_for_heartbeat()
 
-    cmd_Disconnect_Help = ("Disconnect from the Palette 2")
+    cmd_Disconnect_Help = (_("Disconnect from the Palette 2"))
 
     def cmd_Disconnect(self, gcmd=None):
-        self.gcode.respond_info("Disconnecting from Palette 2")
+        self.gcode.respond_info(_("Disconnecting from Palette 2"))
         if self.serial:
             self.serial.close()
             self.serial = None
@@ -188,7 +188,7 @@ class Palette2:
         self.heartbeat = None
         self.is_printing = False
 
-    cmd_Clear_Help = ("Clear the input and output of the Palette 2")
+    cmd_Clear_Help = (_("Clear the input and output of the Palette 2"))
 
     def cmd_Clear(self, gcmd):
         logging.info("Clearing Palette 2 input and output")
@@ -196,20 +196,20 @@ class Palette2:
             for l in COMMAND_CLEAR:
                 self.write_queue.put(l)
 
-    cmd_Cut_Help = ("Cut the outgoing filament")
+    cmd_Cut_Help = (_("Cut the outgoing filament"))
 
     def cmd_Cut(self, gcmd):
         logging.info("Cutting outgoing filament in Palette 2")
         if self._check_P2(gcmd):
             self.write_queue.put(COMMAND_CUT)
 
-    cmd_Smart_Load_Help = ("Automatically load filament through the extruder")
+    cmd_Smart_Load_Help = (_("Automatically load filament through the extruder"))
 
     def cmd_Smart_Load(self, gcmd):
         if self._check_P2(gcmd):
             if not self.is_loading:
                 gcmd.respond_info(
-                    "Cannot auto load when the Palette 2 is not ready")
+                    _("Cannot auto load when the Palette 2 is not ready"))
                 return
             self.p2cmd_O102(params=None)
 
@@ -229,25 +229,25 @@ class Palette2:
         if self.heartbeat < (currTs - SETUP_TIMEOUT):
             self.signal_disconnect = True
             raise self.printer.command_error(
-                "No response from Palette 2")
+                _("No response from Palette 2"))
 
     cmd_O1_help = (
-        "Initialize the print, and check connection with the Palette 2")
+        _("Initialize the print, and check connection with the Palette 2"))
 
     def cmd_O1(self, gcmd):
         logging.info("Initializing print with Pallete 2")
         if not self._check_P2(gcmd):
             raise self.printer.command_error(
-                "Cannot initialize print, palette 2 is not connected")
+                _("Cannot initialize print, palette 2 is not connected"))
 
         self.reactor.update_timer(self.heartbeat_timer, self.reactor.NOW)
         self._wait_for_heartbeat()
         self.write_queue.put(gcmd.get_commandline())
         self.gcode.respond_info(
-            "Palette 2 waiting on user to complete setup")
+            _("Palette 2 waiting on user to complete setup"))
         self.pause_resume.send_pause_command()
 
-    cmd_O9_help = ("Reset print information")
+    cmd_O9_help = (_("Reset print information"))
 
     def cmd_O9(self, gcmd):
         logging.info("Print finished, resetting Palette 2 state")
@@ -306,11 +306,11 @@ class Palette2:
             param_distance = gcmd.get_commandline()[8:]
         except IndexError:
             gcmd.respond_info(
-                "Incorrect number of arguments for splice command")
+                _("Incorrect number of arguments for splice command"))
         try:
             self.omega_splices.append((int(param_drive), param_distance))
         except ValueError:
-            gcmd.respond_info("Incorrectly formatted splice command")
+            gcmd.respond_info(_("Incorrectly formatted splice command"))
         logging.debug("Omega splice command drive %s distance %s" %
                       (param_drive, param_distance))
 
@@ -407,8 +407,8 @@ class Palette2:
 
             if fw < "9.0.9":
                 raise self.printer.command_error(
-                    "Palette 2 firmware version is too old, "
-                    "update to at least 9.0.9")
+                    _("Palette 2 firmware version is too old, "
+                    "update to at least 9.0.9"))
         else:
             self.files = [
                 file for (
@@ -495,7 +495,7 @@ class Palette2:
         if not toolhead.get_extruder().get_heater().can_extrude:
             self.write_queue.put(COMMAND_SMART_LOAD_STOP)
             self.gcode.respond_info(
-                "Unable to auto load filament, extruder is below minimum temp")
+                _("Unable to auto load filament, extruder is below minimum temp"))
             return
 
         if self.smart_load_timer is None:

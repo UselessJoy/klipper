@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-
+import locales
 DEFAULT_IDLE_GCODE = """
 {% if 'heaters' in printer %}
    TURN_OFF_HEATERS
@@ -103,11 +103,11 @@ class IdleTimeout:
         self.reactor.update_timer(self.timeout_timer, curtime + check_time)
         self.printer.send_event("idle_timeout:printing",
                                 est_print_time + PIN_MIN_TIME)
-    cmd_SET_IDLE_TIMEOUT_help = "Set the idle timeout in seconds"
+    cmd_SET_IDLE_TIMEOUT_help = _("Set the idle timeout in seconds")
     def cmd_SET_IDLE_TIMEOUT(self, gcmd):
         timeout = gcmd.get_float('TIMEOUT', self.idle_timeout, above=0.)
         self.idle_timeout = timeout
-        gcmd.respond_info("idle_timeout: Timeout set to %.2f s" % (timeout,))
+        gcmd.respond_info(_("idle_timeout: Timeout set to %.2f s") % (timeout,))
         if self.state == "Ready":
             checktime = self.reactor.monotonic() + timeout
             self.reactor.update_timer(self.timeout_timer, checktime)

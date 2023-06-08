@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 from . import adc_temperature
-
+import locales
 KELVIN_TO_CELSIUS = -273.15
 
 # Analog voltage to temperature converter for thermistors

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import filament_switch_sensor
-
+import locales
 CHECK_RUNOUT_TIMEOUT = .250
 
 class EncoderSensor:

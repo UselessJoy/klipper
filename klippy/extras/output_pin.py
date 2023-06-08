@@ -3,7 +3,7 @@
 # Copyright (C) 2017-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 PIN_MIN_TIME = 0.100
 RESEND_HOST_TIME = 0.300 + PIN_MIN_TIME
 MAX_SCHEDULE_TIME = 5.0
@@ -72,14 +72,14 @@ class PrinterOutputPin:
         if self.resend_interval and self.resend_timer is None:
             self.resend_timer = self.reactor.register_timer(
                 self._resend_current_val, self.reactor.NOW)
-    cmd_SET_PIN_help = "Set the value of an output pin"
+    cmd_SET_PIN_help = _("Set the value of an output pin")
     def cmd_SET_PIN(self, gcmd):
         value = gcmd.get_float('VALUE', minval=0., maxval=self.scale)
         value /= self.scale
         cycle_time = gcmd.get_float('CYCLE_TIME', self.default_cycle_time,
                                     above=0., maxval=MAX_SCHEDULE_TIME)
         if not self.is_pwm and value not in [0., 1.]:
-            raise gcmd.error("Invalid pin value")
+            raise gcmd.error(_("Invalid pin value"))
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback(
             lambda print_time: self._set_pin(print_time, value, cycle_time))

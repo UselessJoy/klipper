@@ -3,7 +3,7 @@
 # Copyright (C) 2019  Mustafa YILDIZ <mydiz@hotmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 ADC_REPORT_TIME = 0.500
 ADC_SAMPLE_TIME = 0.001
 ADC_SAMPLE_COUNT = 8
@@ -110,22 +110,22 @@ class FilamentWidthSensor:
     def cmd_M407(self, gcmd):
         response = ""
         if self.lastFilamentWidthReading > 0:
-            response += ("Filament dia (measured mm): "
+            response += (_("Filament dia (measured mm): ")
                          + str(self.lastFilamentWidthReading))
         else:
-            response += "Filament NOT present"
+            response += _("Filament NOT present")
         gcmd.respond_info(response)
 
     def cmd_ClearFilamentArray(self, gcmd):
         self.filament_array = []
-        gcmd.respond_info("Filament width measurements cleared!")
+        gcmd.respond_info(_("Filament width measurements cleared!"))
         # Set extrude multiplier to 100%
         self.gcode.run_script_from_command("M221 S100")
 
     def cmd_M405(self, gcmd):
-        response = "Filament width sensor Turned On"
+        response = _("Filament width sensor Turned On")
         if self.is_active:
-            response = "Filament width sensor is already On"
+            response = _("Filament width sensor is already On")
         else:
             self.is_active = True
             # Start extrude factor update timer
@@ -134,9 +134,9 @@ class FilamentWidthSensor:
         gcmd.respond_info(response)
 
     def cmd_M406(self, gcmd):
-        response = "Filament width sensor Turned Off"
+        response = _("Filament width sensor Turned Off")
         if not self.is_active:
-            response = "Filament width sensor is already Off"
+            response = _("Filament width sensor is already Off")
         else:
             self.is_active = False
             # Stop extrude factor update timer

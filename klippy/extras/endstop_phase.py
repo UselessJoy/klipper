@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 import stepper
-
+import locales
 TRINAMIC_DRIVERS = ["tmc2130", "tmc2208", "tmc2209", "tmc2660", "tmc5160"]
 
 # Calculate the trigger phase of a stepper motor
@@ -38,7 +38,7 @@ class PhaseCalc:
             mcu_phase_offset, phases = self.tmc_module.get_phase_offset()
             if mcu_phase_offset is None:
                 if self.printer.get_start_args().get('debugoutput') is None:
-                    raise self.printer.command_error("Stepper %s phase unknown"
+                    raise self.printer.command_error(_("Stepper %s phase unknown")
                                                      % (self.name,))
                 mcu_phase_offset = 0
         phase = (trig_mcu_pos + mcu_phase_offset) % self.phases
@@ -70,7 +70,7 @@ class EndstopPhase:
         if trigger_phase is not None:
             p, ps = config.getintlist('trigger_phase', sep='/', count=2)
             if p >= ps:
-                raise config.error("Invalid trigger_phase '%s'"
+                raise config.error(_("Invalid trigger_phase '%s'")
                                    % (trigger_phase,))
             self.endstop_phase = self.phase_calc.convert_phase(p, ps)
         self.endstop_align_zero = config.getboolean('endstop_align_zero', False)
@@ -86,8 +86,8 @@ class EndstopPhase:
             self.endstop_phase_accuracy = int(
                 math.ceil(self.endstop_accuracy / self.step_dist))
         if self.endstop_phase_accuracy >= self.phases // 2:
-            raise config.error("Endstop for %s is not accurate enough for"
-                               " stepper phase adjustment" % (self.name,))
+            raise config.error(_("Endstop for %s is not accurate enough for"
+                               " stepper phase adjustment") % (self.name,))
         if self.printer.get_start_args().get('debugoutput') is not None:
             self.endstop_phase_accuracy = self.phases
     def align_endstop(self, rail):
@@ -112,7 +112,7 @@ class EndstopPhase:
             delta -= self.phases
         elif delta > self.endstop_phase_accuracy:
             raise self.printer.command_error(
-                "Endstop %s incorrect phase (got %d vs %d)" % (
+                _("Endstop %s incorrect phase (got %d vs %d)" )% (
                     self.name, phase, self.endstop_phase))
         return delta * self.step_dist
     def handle_home_rails_end(self, homing_state, rails):
@@ -166,7 +166,7 @@ class EndstopPhases:
                 trig_mcu_pos = homing_state.get_trigger_position(sname)
                 self.update_stepper(stepper, trig_mcu_pos, is_primary)
                 is_primary = False
-    cmd_ENDSTOP_PHASE_CALIBRATE_help = "Calibrate stepper phase"
+    cmd_ENDSTOP_PHASE_CALIBRATE_help = _("Calibrate stepper phase")
     def cmd_ENDSTOP_PHASE_CALIBRATE(self, gcmd):
         stepper_name = gcmd.get('STEPPER', None)
         if stepper_name is None:
@@ -174,7 +174,7 @@ class EndstopPhases:
             return
         phase_calc = self.tracking.get(stepper_name)
         if phase_calc is None or phase_calc.phase_history is None:
-            raise gcmd.error("Stats not available for stepper %s"
+            raise gcmd.error(_("Stats not available for stepper %s")
                              % (stepper_name,))
         endstop_phase, phases = self.generate_stats(stepper_name, phase_calc)
         if not phase_calc.is_primary:
@@ -185,8 +185,8 @@ class EndstopPhases:
         configfile.set(section, "trigger_phase",
                        "%s/%s" % (endstop_phase, phases))
         gcmd.respond_info(
-            "The SAVE_CONFIG command will update the printer config\n"
-            "file with these parameters and restart the printer.")
+            _("The SAVE_CONFIG command will update the printer config\n"
+            "file with these parameters and restart the printer."))
     def generate_stats(self, stepper_name, phase_calc):
         phase_history = phase_calc.phase_history
         wph = phase_history + phase_history
@@ -204,13 +204,13 @@ class EndstopPhases:
                  if wph[j]]
         best_phase = best % phases
         lo, hi = found[0] % phases, found[-1] % phases
-        self.gcode.respond_info("%s: trigger_phase=%d/%d (range %d to %d)"
+        self.gcode.respond_info(_("%s: trigger_phase=%d/%d (range %d to %d)")
                                 % (stepper_name, best_phase, phases, lo, hi))
         return best_phase, phases
     def report_stats(self):
         if not self.tracking:
             self.gcode.respond_info(
-                "No steppers found. (Be sure to home at least once.)")
+                _("No steppers found. (Be sure to home at least once.)"))
             return
         for stepper_name in sorted(self.tracking.keys()):
             phase_calc = self.tracking[stepper_name]

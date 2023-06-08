@@ -3,7 +3,9 @@
 # Copyright (C) 2020  Dmitry Butyugin <dmbutyugin@google.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import collections, importlib, logging, math, multiprocessing, traceback
+import collections, functools, importlib, logging, math, multiprocessing
+import locales
+background_process = importlib.import_module('.background_process', 'extras')
 shaper_defs = importlib.import_module('.shaper_defs', 'extras')
 
 MIN_FREQ = 5.
@@ -43,6 +45,8 @@ class CalibrationData:
         self.data_sets = joined_data_sets
     def set_numpy(self, numpy):
         self.numpy = numpy
+    def get_numpy(self):
+        return self.numpy
     def normalize_to_frequencies(self):
         for psd in self._psd_list:
             # Avoid division by zero errors
@@ -51,6 +55,8 @@ class CalibrationData:
             psd[self.freq_bins < MIN_FREQ] = 0.
     def get_psd(self, axis='all'):
         return self._psd_map[axis]
+    def get_freq_bins(self):
+        return self.freq_bins
 
 
 CalibrationResult = collections.namedtuple(
@@ -61,49 +67,15 @@ class ShaperCalibrate:
     def __init__(self, printer):
         self.printer = printer
         self.error = printer.command_error if printer else Exception
+        self.background_process_exec = functools.partial(
+                background_process.background_process_exec, printer)
         try:
             self.numpy = importlib.import_module('numpy')
         except ImportError:
             raise self.error(
-                    "Failed to import `numpy` module, make sure it was "
+                    _("Failed to import `numpy` module, make sure it was "
                     "installed via `~/klippy-env/bin/pip install` (refer to "
-                    "docs/Measuring_Resonances.md for more details).")
-
-    def background_process_exec(self, method, args):
-        if self.printer is None:
-            return method(*args)
-        import queuelogger
-        parent_conn, child_conn = multiprocessing.Pipe()
-        def wrapper():
-            queuelogger.clear_bg_logging()
-            try:
-                res = method(*args)
-            except:
-                child_conn.send((True, traceback.format_exc()))
-                child_conn.close()
-                return
-            child_conn.send((False, res))
-            child_conn.close()
-        # Start a process to perform the calculation
-        calc_proc = multiprocessing.Process(target=wrapper)
-        calc_proc.daemon = True
-        calc_proc.start()
-        # Wait for the process to finish
-        reactor = self.printer.get_reactor()
-        gcode = self.printer.lookup_object("gcode")
-        eventtime = last_report_time = reactor.monotonic()
-        while calc_proc.is_alive():
-            if eventtime > last_report_time + 5.:
-                last_report_time = eventtime
-                gcode.respond_info("Wait for calculations..", log=False)
-            eventtime = reactor.pause(eventtime + .1)
-        # Return results
-        is_err, res = parent_conn.recv()
-        if is_err:
-            raise self.error("Error in remote calculation: %s" % (res,))
-        calc_proc.join()
-        parent_conn.close()
-        return res
+                    "docs/Measuring_Resonances.md for more details)."))
 
     def _split_into_windows(self, x, window_size, overlap):
         # Memory-efficient algorithm to split an input 'x' into a series
@@ -177,7 +149,7 @@ class ShaperCalibrate:
                 self.calc_freq_response, (data,))
         if calibration_data is None:
             raise self.error(
-                    "Internal error processing accelerometer data %s" % (data,))
+                    _("Internal error processing accelerometer data %s" )% (data,))
         calibration_data.set_numpy(self.numpy)
         return calibration_data
 
@@ -309,12 +281,12 @@ class ShaperCalibrate:
             shaper = self.background_process_exec(self.fit_shaper, (
                 shaper_cfg, calibration_data, max_smoothing))
             if logger is not None:
-                logger("Fitted shaper '%s' frequency = %.1f Hz "
-                       "(vibrations = %.1f%%, smoothing ~= %.3f)" % (
+                logger(_("Fitted shaper '%s' frequency = %.1f Hz "
+                       "(vibrations = %.1f%%, smoothing ~= %.3f)") % (
                            shaper.name, shaper.freq, shaper.vibrs * 100.,
                            shaper.smoothing))
-                logger("To avoid too much smoothing with '%s', suggested "
-                       "max_accel <= %.0f mm/sec^2" % (
+                logger(_("To avoid too much smoothing with '%s', suggested "
+                       "max_accel <= %.0f mm/sec^2") % (
                            shaper.name, round(shaper.max_accel / 100.) * 100.))
             all_shapers.append(shaper)
             if (best_shaper is None or shaper.score * 1.2 < best_shaper.score or
@@ -357,4 +329,4 @@ class ShaperCalibrate:
                             csvfile.write(",%.3f" % (shaper.vals[i],))
                     csvfile.write("\n")
         except IOError as e:
-            raise self.error("Error writing to file '%s': %s", output, str(e))
+            raise self.error(_("Error writing to file '%s': %s"), output, str(e))

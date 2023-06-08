@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 import chelper
-
+import locales
 API_UPDATE_INTERVAL = 0.500
 
 # Helper to periodically transmit data to a set of API clients

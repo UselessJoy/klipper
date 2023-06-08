@@ -4,11 +4,11 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-
-HINT_THERMAL = """
+import locales
+HINT_THERMAL = _("""
 See the 'verify_heater' section in docs/Config_Reference.md
 for the parameters that control this check.
-"""
+""")
 
 class HeaterCheck:
     def __init__(self, config):
@@ -84,7 +84,7 @@ class HeaterCheck:
         self.last_target = target
         return eventtime + 1.
     def heater_fault(self):
-        msg = "Heater %s not heating at expected rate" % (self.heater_name,)
+        msg = _("Heater %s not heating at expected rate") % (self.heater_name,)
         logging.error(msg)
         self.printer.invoke_shutdown(msg + HINT_THERMAL)
         return self.printer.get_reactor().NEVER

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 import chelper
-
+import locales
 BUZZ_DISTANCE = 1.
 BUZZ_VELOCITY = BUZZ_DISTANCE / .250
 BUZZ_RADIANS_DISTANCE = math.radians(1.)
@@ -53,7 +53,7 @@ class ForceMove:
         self.steppers[mcu_stepper.get_name()] = mcu_stepper
     def lookup_stepper(self, name):
         if name not in self.steppers:
-            raise self.printer.config_error("Unknown stepper %s" % (name,))
+            raise self.printer.config_error(_("Unknown stepper %s")% (name,))
         return self.steppers[name]
     def _force_enable(self, stepper):
         toolhead = self.printer.lookup_object('toolhead')
@@ -94,9 +94,9 @@ class ForceMove:
     def _lookup_stepper(self, gcmd):
         name = gcmd.get('STEPPER')
         if name not in self.steppers:
-            raise gcmd.error("Unknown stepper %s" % (name,))
+            raise gcmd.error(_("Unknown stepper %s") % (name,))
         return self.steppers[name]
-    cmd_STEPPER_BUZZ_help = "Oscillate a given stepper to help id it"
+    cmd_STEPPER_BUZZ_help = _("Oscillate a given stepper to help id it")
     def cmd_STEPPER_BUZZ(self, gcmd):
         stepper = self._lookup_stepper(gcmd)
         logging.info("Stepper buzz %s", stepper.get_name())
@@ -111,7 +111,7 @@ class ForceMove:
             self.manual_move(stepper, -dist, speed)
             toolhead.dwell(.450)
         self._restore_enable(stepper, was_enable)
-    cmd_FORCE_MOVE_help = "Manually move a stepper; invalidates kinematics"
+    cmd_FORCE_MOVE_help = _("Manually move a stepper; invalidates kinematics")
     def cmd_FORCE_MOVE(self, gcmd):
         stepper = self._lookup_stepper(gcmd)
         distance = gcmd.get_float('DISTANCE')
@@ -121,7 +121,7 @@ class ForceMove:
                      stepper.get_name(), distance, speed, accel)
         self._force_enable(stepper)
         self.manual_move(stepper, distance, speed, accel)
-    cmd_SET_KINEMATIC_POSITION_help = "Force a low-level kinematic position"
+    cmd_SET_KINEMATIC_POSITION_help = _("Force a low-level kinematic position")
     def cmd_SET_KINEMATIC_POSITION(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.get_last_move_time()

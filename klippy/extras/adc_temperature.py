@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, bisect
-
+import locales
 
 ######################################################################
 # Interface between MCU adc and heater temperature callbacks
@@ -54,7 +54,7 @@ class LinearInterpolate:
                 last_value = value
                 continue
             if key <= last_key:
-                raise ValueError("duplicate value")
+                raise ValueError(_("duplicate value"))
             gain = (value - last_value) / (key - last_key)
             offset = last_value - last_key * gain
             if self.slopes and self.slopes[-1] == (gain, offset):
@@ -64,7 +64,7 @@ class LinearInterpolate:
             self.keys.append(key)
             self.slopes.append((gain, offset))
         if not self.keys:
-            raise ValueError("need at least two samples")
+            raise ValueError(_("need at least two samples"))
         self.keys.append(9999999999999.)
         self.slopes.append(self.slopes[-1])
     def interpolate(self, key):
@@ -102,7 +102,7 @@ class LinearVoltage:
         try:
             li = LinearInterpolate(samples)
         except ValueError as e:
-            raise config.error("adc_temperature %s in heater %s" % (
+            raise config.error(_("adc_temperature %s in heater %s") % (
                 str(e), config.get_name()))
         self.calc_temp = li.interpolate
         self.calc_adc = li.reverse_interpolate
@@ -134,7 +134,7 @@ class LinearResistance:
         try:
             self.li = LinearInterpolate([(r, t) for t, r in samples])
         except ValueError as e:
-            raise config.error("adc_temperature %s in heater %s" % (
+            raise config.error(_("adc_temperature %s in heater %s") % (
                 str(e), config.get_name()))
     def calc_temp(self, adc):
         # Calculate temperature from adc

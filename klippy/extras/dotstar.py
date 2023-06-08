@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import bus
-
+import locales
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 
 class PrinterDotstar:
@@ -17,7 +17,7 @@ class PrinterDotstar:
         clock_pin_params = ppins.lookup_pin(config.get('clock_pin'))
         mcu = data_pin_params['chip']
         if mcu is not clock_pin_params['chip']:
-            raise config.error("Dotstar pins must be on same mcu")
+            raise config.error(_("Dotstar pins must be on same mcu"))
         sw_spi_pins = (data_pin_params['pin'], data_pin_params['pin'],
                        clock_pin_params['pin'])
         self.spi = bus.MCU_SPI(mcu, None, None, 0, 500000, sw_spi_pins)

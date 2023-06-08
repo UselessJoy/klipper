@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-
+import locales
 class GCodeMove:
     def __init__(self, config):
         self.printer = printer = config.get_printer()
@@ -78,7 +78,7 @@ class GCodeMove:
     def set_move_transform(self, transform, force=False):
         if self.move_transform is not None and not force:
             raise self.printer.config_error(
-                "G-Code move transform already specified")
+                _("G-Code move transform already specified"))
         old_transform = self.move_transform
         if old_transform is None:
             old_transform = self.printer.lookup_object('toolhead', None)
@@ -134,17 +134,17 @@ class GCodeMove:
             if 'F' in params:
                 gcode_speed = float(params['F'])
                 if gcode_speed <= 0.:
-                    raise gcmd.error("Invalid speed in '%s'"
+                    raise gcmd.error(_("Invalid speed in '%s'")
                                      % (gcmd.get_commandline(),))
                 self.speed = gcode_speed * self.speed_factor
         except ValueError as e:
-            raise gcmd.error("Unable to parse move '%s'"
+            raise gcmd.error(_("Unable to parse move '%s'")
                              % (gcmd.get_commandline(),))
         self.move_with_transform(self.last_position, self.speed)
     # G-Code coordinate manipulation
     def cmd_G20(self, gcmd):
         # Set units to inches
-        raise gcmd.error('Machine does not support G20 (inches) command')
+        raise gcmd.error(_("Machine does not support G20 (inches) command"))
     def cmd_G21(self, gcmd):
         # Set units to millimeters
         pass
@@ -186,7 +186,7 @@ class GCodeMove:
         e_value = (last_e_pos - self.base_position[3]) / self.extrude_factor
         self.base_position[3] = last_e_pos - e_value * new_extrude_factor
         self.extrude_factor = new_extrude_factor
-    cmd_SET_GCODE_OFFSET_help = "Set a virtual offset to g-code positions"
+    cmd_SET_GCODE_OFFSET_help = _("Set a virtual offset to g-code positions")
     def cmd_SET_GCODE_OFFSET(self, gcmd):
         move_delta = [0., 0., 0., 0.]
         for pos, axis in enumerate('XYZE'):
@@ -206,7 +206,7 @@ class GCodeMove:
             for pos, delta in enumerate(move_delta):
                 self.last_position[pos] += delta
             self.move_with_transform(self.last_position, speed)
-    cmd_SAVE_GCODE_STATE_help = "Save G-Code coordinate state"
+    cmd_SAVE_GCODE_STATE_help = _("Save G-Code coordinate state")
     def cmd_SAVE_GCODE_STATE(self, gcmd):
         state_name = gcmd.get('NAME', 'default')
         self.saved_states[state_name] = {
@@ -218,12 +218,12 @@ class GCodeMove:
             'speed': self.speed, 'speed_factor': self.speed_factor,
             'extrude_factor': self.extrude_factor,
         }
-    cmd_RESTORE_GCODE_STATE_help = "Restore a previously saved G-Code state"
+    cmd_RESTORE_GCODE_STATE_help = _("Restore a previously saved G-Code state")
     def cmd_RESTORE_GCODE_STATE(self, gcmd):
         state_name = gcmd.get('NAME', 'default')
         state = self.saved_states.get(state_name)
         if state is None:
-            raise gcmd.error("Unknown g-code state: %s" % (state_name,))
+            raise gcmd.error(_("Unknown g-code state: %s") % (state_name,))
         # Restore state
         self.absolute_coord = state['absolute_coord']
         self.absolute_extrude = state['absolute_extrude']
@@ -241,7 +241,7 @@ class GCodeMove:
             self.last_position[:3] = state['last_position'][:3]
             self.move_with_transform(self.last_position, speed)
     cmd_GET_POSITION_help = (
-        "Return information on the current location of the toolhead")
+        _("Return information on the current location of the toolhead"))
     def cmd_GET_POSITION(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead', None)
         if toolhead is None:

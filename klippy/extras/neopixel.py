@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-
+import locales
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 
 BIT_MAX_TIME=.000004
@@ -31,15 +31,15 @@ class PrinterNeoPixel:
         if len(color_order) == 1:
             color_order = [color_order[0]] * chain_count
         if len(color_order) != chain_count:
-            raise config.error("color_order does not match chain_count")
+            raise config.error(_("color_order does not match chain_count"))
         color_indexes = []
         for lidx, co in enumerate(color_order):
             if sorted(co) not in (sorted("RGB"), sorted("RGBW")):
-                raise config.error("Invalid color_order '%s'" % (co,))
+                raise config.error(_("Invalid color_order '%s'") % (co,))
             color_indexes.extend([(lidx, "RGBW".index(c)) for c in co])
         self.color_map = list(enumerate(color_indexes))
         if len(self.color_map) > MAX_MCU_SIZE:
-            raise config.error("neopixel chain too long")
+            raise config.error(_("neopixel chain too long"))
         # Initialize color data
         pled = printer.load_object(config, "led")
         self.led_helper = pled.setup_helper(config, self.update_leds,

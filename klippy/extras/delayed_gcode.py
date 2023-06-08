@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import logging
-
+import locales
 class DelayedGcode:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -39,7 +39,7 @@ class DelayedGcode:
             nextwake = eventtime + self.duration
         self.inside_timer = self.repeat = False
         return nextwake
-    cmd_UPDATE_DELAYED_GCODE_help = "Update the duration of a delayed_gcode"
+    cmd_UPDATE_DELAYED_GCODE_help = _("Update the duration of a delayed_gcode")
     def cmd_UPDATE_DELAYED_GCODE(self, gcmd):
         self.duration = gcmd.get_float('DURATION', minval=0.)
         if self.inside_timer:

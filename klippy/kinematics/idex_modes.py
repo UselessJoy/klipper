@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
-
+import locales
 class DualCarriages:
     def __init__(self, printer, rail_0, rail_1, axis):
         self.printer = printer
@@ -60,7 +60,7 @@ class DualCarriages:
             elif (self.saved_state['active_carriage'] == 'CARRIAGE_1'
                         and self.dc[1].is_active() is False):
                 self.toggle_active_dc_rail(1)
-    cmd_SET_DUAL_CARRIAGE_help = "Set which carriage is active"
+    cmd_SET_DUAL_CARRIAGE_help = _("Set which carriage is active")
     def cmd_SET_DUAL_CARRIAGE(self, gcmd):
         index = gcmd.get_int('CARRIAGE', minval=0, maxval=1)
         if (not(self.dc[0].is_active() == self.dc[1].is_active() == True)

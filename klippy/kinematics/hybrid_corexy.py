@@ -6,7 +6,7 @@
 import logging
 import stepper
 from . import idex_modes
-
+import locales
 # The hybrid-corexy kinematic is also known as Markforged kinematics
 class HybridCoreXYKinematics:
     def __init__(self, toolhead, config):
@@ -108,7 +108,7 @@ class HybridCoreXYKinematics:
                 and (end_pos[i] < self.limits[i][0]
                      or end_pos[i] > self.limits[i][1])):
                 if self.limits[i][0] > self.limits[i][1]:
-                    raise move.move_error("Must home axis first")
+                    raise move.move_error(_("Must home axis first"))
                 raise move.move_error()
     def check_move(self, move):
         limits = self.limits

@@ -6,7 +6,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, time, collections, threading, multiprocessing, os
 from . import bus, motion_report, adxl345
-
+import locales
 MPU9250_ADDR =      0x68
 
 MPU_DEV_IDS = {
@@ -65,11 +65,11 @@ class MPU9250:
               '-x': (0, -SCALE), '-y': (1, -SCALE), '-z': (2, -SCALE)}
         axes_map = config.getlist('axes_map', ('x','y','z'), count=3)
         if any([a not in am for a in axes_map]):
-            raise config.error("Invalid mpu9250 axes_map parameter")
+            raise config.error(_("Invalid mpu9250 axes_map parameter"))
         self.axes_map = [am[a.strip()] for a in axes_map]
         self.data_rate = config.getint('rate', 4000)
         if self.data_rate not in SAMPLE_RATE_DIVS:
-            raise config.error("Invalid rate parameter: %d" % (self.data_rate,))
+            raise config.error(_("Invalid rate parameter: %d") % (self.data_rate,))
         # Measurement storage (accessed from background thread)
         self.lock = threading.Lock()
         self.raw_samples = []
@@ -166,7 +166,7 @@ class MPU9250:
             if fifo <= FIFO_SIZE:
                 break
         else:
-            raise self.printer.command_error("Unable to query mpu9250 fifo")
+            raise self.printer.command_error(_("Unable to query mpu9250 fifo"))
         mcu_clock = self.mcu.clock32_to_clock64(params['clock'])
         sequence = (self.last_sequence & ~0xffff) | params['next_sequence']
         if sequence < self.last_sequence:
@@ -199,9 +199,9 @@ class MPU9250:
         dev_id = self.read_reg(REG_DEVID)
         if dev_id not in MPU_DEV_IDS.keys():
             raise self.printer.command_error(
-                "Invalid mpu id (got %x).\n"
+                _("Invalid mpu id (got %x).\n"
                 "This is generally indicative of connection problems\n"
-                "(e.g. faulty wiring) or a faulty chip."
+                "(e.g. faulty wiring) or a faulty chip.")
                 % (dev_id))
         else:
             logging.info("Found %s with id %x"% (MPU_DEV_IDS[dev_id], dev_id))

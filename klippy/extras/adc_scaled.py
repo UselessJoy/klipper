@@ -3,7 +3,7 @@
 # Copyright (C) 2020  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 SAMPLE_TIME = 0.001
 SAMPLE_COUNT = 8
 REPORT_TIME = 0.300
@@ -45,7 +45,7 @@ class PrinterADCScaled:
         self.inv_smooth_time = 1. / smooth_time
         self.mcu = self.mcu_vref.get_mcu()
         if self.mcu is not self.mcu_vssa.get_mcu():
-            raise config.error("vref and vssa must be on same mcu")
+            raise config.error(_("vref and vssa must be on same mcu"))
         # Register setup_pin
         ppins = self.printer.lookup_object('pins')
         ppins.register_chip(self.name, self)
@@ -61,7 +61,7 @@ class PrinterADCScaled:
         return mcu_adc
     def setup_pin(self, pin_type, pin_params):
         if pin_type != 'adc':
-            raise self.printer.config_error("adc_scaled only supports adc pins")
+            raise self.printer.config_error(_("adc_scaled only supports adc pins"))
         return MCU_scaled_adc(self, pin_params)
     def calc_smooth(self, read_time, read_value, last):
         last_time, last_value = last

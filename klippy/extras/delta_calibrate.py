@@ -6,7 +6,7 @@
 import math, logging, collections
 import mathutil
 from . import probe
-
+import locales
 # A "stable position" is a 3-tuple containing the number of steps
 # taken since hitting the endstop on each delta tower.  Delta
 # calibration uses this coordinate system because it allows a position
@@ -128,7 +128,7 @@ class DeltaCalibrate:
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         if not hasattr(kin, "get_calibration"):
             raise self.printer.config_error(
-                "Delta calibrate is only for delta printers")
+                _("Delta calibrate is only for delta printers"))
     def save_state(self, probe_positions, distances, delta_params):
         # Save main delta parameters
         configfile = self.printer.lookup_object('configfile')
@@ -216,9 +216,9 @@ class DeltaCalibrate:
         # Store results for SAVE_CONFIG
         self.save_state(probe_positions, distances, new_delta_params)
         self.gcode.respond_info(
-            "The SAVE_CONFIG command will update the printer config file\n"
-            "with these parameters and restart the printer.")
-    cmd_DELTA_CALIBRATE_help = "Delta calibration script"
+            _("The SAVE_CONFIG command will update the printer config file\n"
+            "with these parameters and restart the printer."))
+    cmd_DELTA_CALIBRATE_help = _("Delta calibration script")
     def cmd_DELTA_CALIBRATE(self, gcmd):
         self.probe_helper.start_probe(gcmd)
     def add_manual_height(self, height):
@@ -235,14 +235,14 @@ class DeltaCalibrate:
         # Add to list of manual heights
         self.manual_heights.append((height, stable_pos))
         self.gcode.respond_info(
-            "Adding manual height: %.3f,%.3f,%.3f is actually z=%.3f"
+            _("Adding manual height: %.3f,%.3f,%.3f is actually z=%.3f")
             % (kin_pos[0], kin_pos[1], kin_pos[2], height))
     def do_extended_calibration(self):
         # Extract distance positions
         if len(self.delta_analyze_entry) <= 1:
             distances = self.last_distances
         elif len(self.delta_analyze_entry) < 5:
-            raise self.gcode.error("Not all measurements provided")
+            raise self.gcode.error(_("Not all measurements provided"))
         else:
             kin = self.printer.lookup_object('toolhead').get_kinematics()
             delta_params = kin.get_calibration()
@@ -250,10 +250,10 @@ class DeltaCalibrate:
                 self.delta_analyze_entry, delta_params)
         if not self.last_probe_positions:
             raise self.gcode.error(
-                "Must run basic calibration with DELTA_CALIBRATE first")
+                _("Must run basic calibration with DELTA_CALIBRATE first"))
         # Perform analysis
         self.calculate_params(self.last_probe_positions, distances)
-    cmd_DELTA_ANALYZE_help = "Extended delta calibration tool"
+    cmd_DELTA_ANALYZE_help = _("Extended delta calibration tool")
     def cmd_DELTA_ANALYZE(self, gcmd):
         # Check for manual height entry
         mheight = gcmd.get_float('MANUAL_HEIGHT', None)
@@ -270,9 +270,9 @@ class DeltaCalibrate:
             try:
                 parts = list(map(float, data.split(',')))
             except:
-                raise gcmd.error("Unable to parse parameter '%s'" % (name,))
+                raise gcmd.error(_("Unable to parse parameter '%s'") % (name,))
             if len(parts) != count:
-                raise gcmd.error("Parameter '%s' must have %d values"
+                raise gcmd.error(_("Parameter '%s' must have %d values")
                                  % (name, count))
             self.delta_analyze_entry[name] = parts
             logging.info("DELTA_ANALYZE %s = %s", name, parts)
@@ -280,7 +280,7 @@ class DeltaCalibrate:
         action = gcmd.get('CALIBRATE', None)
         if action is not None:
             if action != 'extended':
-                raise gcmd.error("Unknown calibrate action")
+                raise gcmd.error(_("Unknown calibrate action"))
             self.do_extended_calibration()
 
 def load_config(config):

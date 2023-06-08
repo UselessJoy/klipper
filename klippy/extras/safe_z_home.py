@@ -3,7 +3,7 @@
 # Copyright (C) 2019 Florian Heilmann <Florian.Heilmann@gmx.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class SafeZHoming:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -22,7 +22,7 @@ class SafeZHoming:
 
         if config.has_section("homing_override"):
             raise config.error("homing_override and safe_z_homing cannot"
-                               +" be used simultaneously")
+                               " be used simultaneously")
 
     def cmd_G28(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
@@ -70,7 +70,7 @@ class SafeZHoming:
             kin_status = toolhead.get_kinematics().get_status(curtime)
             if ('x' not in kin_status['homed_axes'] or
                 'y' not in kin_status['homed_axes']):
-                raise gcmd.error("Must home X and Y axes first")
+                raise gcmd.error(_("Must home X and Y axes first"))
             # Move to safe XY homing position
             prevpos = toolhead.get_position()
             toolhead.manual_move([self.home_x_pos, self.home_y_pos], self.speed)

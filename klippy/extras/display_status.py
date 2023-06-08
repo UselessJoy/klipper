@@ -6,7 +6,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 M73_TIMEOUT = 5.
-
+import locales
 class DisplayStatus:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -42,7 +42,7 @@ class DisplayStatus:
     def cmd_M117(self, gcmd):
         msg = gcmd.get_raw_command_parameters() or None
         self.message = msg
-    cmd_SET_DISPLAY_TEXT_help = "Set or clear the display message"
+    cmd_SET_DISPLAY_TEXT_help = _("Set or clear the display message")
     def cmd_SET_DISPLAY_TEXT(self, gcmd):
         self.message = gcmd.get("MSG", None)
 

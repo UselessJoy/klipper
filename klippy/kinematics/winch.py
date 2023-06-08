@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import stepper, mathutil
-
+import locales
 class WinchKinematics:
     def __init__(self, toolhead, config):
         # Setup steppers at each anchor

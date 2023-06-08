@@ -3,7 +3,7 @@
 # Copyright (C) 2019  Florian Heilmann <Florian.Heilmann@gmx.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class SamdSERCOM:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -22,7 +22,7 @@ class SamdSERCOM:
 
         clk_pin_params = ppins.lookup_pin(self.clk_pin)
         if self.mcu is not clk_pin_params['chip']:
-            raise ppins.error("%s: SERCOM pins must be on same mcu" % (
+            raise ppins.error(_("%s: SERCOM pins must be on same mcu") % (
                 config.get_name(),))
         self.mcu.add_config_cmd(
             "set_sercom_pin bus=%s sercom_pin_type=clk pin=%s" % (
@@ -31,7 +31,7 @@ class SamdSERCOM:
         if self.rx_pin:
             rx_pin_params = ppins.lookup_pin(self.rx_pin)
             if self.mcu is not rx_pin_params['chip']:
-                raise ppins.error("%s: SERCOM pins must be on same mcu" % (
+                raise ppins.error(_("%s: SERCOM pins must be on same mcu") % (
                     config.get_name(),))
             self.mcu.add_config_cmd(
                 "set_sercom_pin bus=%s sercom_pin_type=rx pin=%s" % (

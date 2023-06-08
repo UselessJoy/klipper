@@ -6,7 +6,10 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
 from . import probe
-
+import locales
+from PIL import Image, ImageOps, ImageDraw, ImageFont
+import os
+import logging
 class ScrewsTiltAdjust:
     def __init__(self, config):
         self.config = config
@@ -25,8 +28,8 @@ class ScrewsTiltAdjust:
             screw_name = config.get(prefix + "_name", screw_name)
             self.screws.append((screw_coord, screw_name))
         if len(self.screws) < 3:
-            raise config.error("screws_tilt_adjust: Must have "
-                               "at least three screws")
+            raise config.error(_("screws_tilt_adjust: Must have "
+                               "at least three screws"))
         self.threads = {'CW-M3': 0, 'CCW-M3': 1, 'CW-M4': 2, 'CCW-M4': 3,
                         'CW-M5': 4, 'CCW-M5': 5}
         self.thread = config.getchoice('screw_thread', self.threads,
@@ -42,9 +45,7 @@ class ScrewsTiltAdjust:
         self.gcode.register_command("SCREWS_TILT_CALCULATE",
                                     self.cmd_SCREWS_TILT_CALCULATE,
                                     desc=self.cmd_SCREWS_TILT_CALCULATE_help)
-    cmd_SCREWS_TILT_CALCULATE_help = "Tool to help adjust bed leveling " \
-                                     "screws by calculating the number " \
-                                     "of turns to level it."
+    cmd_SCREWS_TILT_CALCULATE_help = _("Tool to help adjust bed leveling\nscrews by calculating the number\nof turns to level it.")
 
     def cmd_SCREWS_TILT_CALCULATE(self, gcmd):
         self.max_diff = gcmd.get_float("MAX_DEVIATION", None)
@@ -54,7 +55,7 @@ class ScrewsTiltAdjust:
             direction = direction.upper()
             if direction not in ('CW', 'CCW'):
                 raise gcmd.error(
-                    "Error on '%s': DIRECTION must be either CW or CCW" % (
+                    _("Error on '%s': DIRECTION must be either CW or CCW") % (
                         gcmd.get_commandline(),))
         self.direction = direction
         self.probe_helper.start_probe(gcmd)
@@ -82,8 +83,8 @@ class ScrewsTiltAdjust:
             # First screw is the base position used for comparison
             i_base, z_base = 0, positions[0][2]
         # Provide the user some information on how to read the results
-        self.gcode.respond_info("01:20 means 1 full turn and 20 minutes, "
-                                "CW=clockwise, CCW=counter-clockwise")
+        self.gcode.respond_info(_("01:20 means 1 full turn and 20 minutes, "
+                                "CW=clockwise, CCW=counter-clockwise"))
         for i, screw in enumerate(self.screws):
             z = positions[i][2]
             coord, name = screw
@@ -121,8 +122,9 @@ class ScrewsTiltAdjust:
         if self.max_diff and any((d > self.max_diff) for d in screw_diff):
             self.max_diff_error = True
             raise self.gcode.error(
-                "bed level exceeds configured limits ({}mm)! " \
-                "Adjust screws and restart print.".format(self.max_diff))
+                _("bed level exceeds configured limits ({}mm)! " 
+                "Adjust screws and restart print.").format(self.max_diff))
+        self.printer.send_event("screw_tilt_adjust:end_probe", self.results)
 
 def load_config(config):
     return ScrewsTiltAdjust(config)

@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, ast
 from .display import display
+import locales
 # Time between each led template update
 RENDER_TIME = 0.500
 
@@ -55,18 +56,22 @@ class LEDHelper:
         except self.printer.command_error as e:
             logging.exception("led update transmit error")
     ####      NEW      ####
-    cmd_GET_DEFAULT_NEOPIXEL_COLOR_help = "Get the current default color of neopixel"
+    cmd_GET_DEFAULT_NEOPIXEL_COLOR_help = _("Get the current default color of neopixel")
     def cmd_GET_DEFAULT_NEOPIXEL_COLOR(self, gcmd):
        # configfile = self.printer.lookup_object('configfile')
         #logging.info(configfile.getsection("neopixel"))
         return "Hello"
 
-    cmd_SAVE_NEOPIXEL_DEFAULT_help = "Save default neopixel color"
+    cmd_SAVE_NEOPIXEL_DEFAULT_help = _("Save default neopixel color")
     def cmd_SAVE_NEOPIXEL_DEFAULT(self, gcmd):
-        logging.info("COMMAND SAVE_DEFAULT_COLOR")
+        #logging.info("COMMAND SAVE_DEFAULT_COLOR")
         red = gcmd.get_float('RED', 0., minval=0., maxval=1.)
         green = gcmd.get_float('GREEN', 0., minval=0., maxval=1.)
         blue = gcmd.get_float('BLUE', 0., minval=0., maxval=1.)
+        # configfile = self.printer.lookup_object('configfile')
+        # configfile.set('neopixel ' + gcmd.get("NEOPIXEL"), 'initial_RED', "%.1f" % (red))
+        # configfile.set('neopixel ' + gcmd.get("NEOPIXEL"), 'initial_GREEN', "%.1f" % (green))
+        # configfile.set('neopixel ' + gcmd.get("NEOPIXEL"), 'initial_BLUE', "%.1f" % (blue))
         try:
             cfgname = self.printer.get_start_args()['config_file']
             with open(cfgname, 'r+') as file:
@@ -94,18 +99,18 @@ class LEDHelper:
                         break
                     i+=1
                 if all_colors != 3:
-                    gcmd.respond_info("Unable to load colors")
+                    gcmd.respond_info(_("Unable to load colors"))
                     logging.error("Unable to load colors")
                     return
                 end_lines = lines
             with open(cfgname, 'w') as file:
                 file.writelines(end_lines)
-            gcmd.respond_info("New default color saved successfully")
+            gcmd.respond_info(_("New default color saved successfully"))
         except:
             logging.exception("Unable to open config file")
     ####    END NEW    ####
 
-    cmd_SET_LED_help = "Set the color of an LED"
+    cmd_SET_LED_help = _("Set the color of an LED")
     def cmd_SET_LED(self, gcmd):
         # Parse parameters
         red = gcmd.get_float('RED', 0., minval=0., maxval=1.)
@@ -129,7 +134,6 @@ class LEDHelper:
         else:
             #Send update now (so as not to wake toolhead and reset idle_timeout)
             lookahead_bgfunc(None)
-        self.printer.send_event("led:led_sended")
         
     def get_status(self, eventtime=None):
         return {'color_data': self.led_state}
@@ -204,12 +208,12 @@ class PrinterLED:
         for led_helper in need_transmit.keys():
             led_helper.check_transmit(None)
         return eventtime + RENDER_TIME
-    cmd_SET_LED_TEMPLATE_help = "Assign a display_template to an LED"
+    cmd_SET_LED_TEMPLATE_help = _("Assign a display_template to an LED")
     def cmd_SET_LED_TEMPLATE(self, gcmd):
         led_name = gcmd.get("LED")
         led_helper = self.led_helpers.get(led_name)
         if led_helper is None:
-            raise gcmd.error("Unknown LED '%s'" % (led_name,))
+            raise gcmd.error(_("Unknown LED '%s'") % (led_name,))
         led_count = led_helper.get_led_count()
         index = gcmd.get_int("INDEX", None, minval=1, maxval=led_count)
         template = None
@@ -218,19 +222,19 @@ class PrinterLED:
         if tpl_name:
             template = self.templates.get(tpl_name)
             if template is None:
-                raise gcmd.error("Unknown display_template '%s'" % (tpl_name,))
+                raise gcmd.error(_("Unknown display_template '%s'") % (tpl_name,))
             tparams = template.get_params()
             for p, v in gcmd.get_command_parameters().items():
                 if not p.startswith("PARAM_"):
                     continue
                 p = p.lower()
                 if p not in tparams:
-                    raise gcmd.error("Invalid display_template parameter: %s"
+                    raise gcmd.error(_("Invalid display_template parameter: %s")
                                      % (p,))
                 try:
                     lparams[p] = ast.literal_eval(v)
                 except ValueError as e:
-                    raise gcmd.error("Unable to parse '%s' as a literal" % (v,))
+                    raise gcmd.error(_("Unable to parse '%s' as a literal") % (v,))
         if index is not None:
             self._activate_template(led_helper, index, template, lparams)
         else:
@@ -260,7 +264,7 @@ class PrinterPWMLED:
             mcu_pin.setup_cycle_time(cycle_time, hardware_pwm)
             self.pins.append((i, mcu_pin))
         if not self.pins:
-            raise config.error("No LED pin definitions found in '%s'"
+            raise config.error(_("No LED pin definitions found in '%s'")
                                % (config.get_name(),))
         self.last_print_time = 0.
         # Initialize color data

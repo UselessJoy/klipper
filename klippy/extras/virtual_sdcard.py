@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, logging, io
+import locales
 VALID_GCODE_EXTS = ['gcode', 'g', 'gco']
 
 class VirtualSD:
@@ -15,7 +16,10 @@ class VirtualSD:
         sd = config.get('path')
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))
         self.rebuild_choise = config.get('rebuild')
+        stepper_z = config.getsection('stepper_z')
+        self.max_z = stepper_z.getint('position_max')
         self.current_file = None
+        self.inter = False
         #### By Farinov ####
         self.interrupted_file = None
         self.last_coord = [0.0, 0.0, 0.0]
@@ -103,7 +107,7 @@ class VirtualSD:
                         and os.path.isfile((os.path.join(dname, fname)))]
             except:
                 logging.exception("virtual_sdcard get_file_list")
-                raise self.gcode.error("Unable to get file list")
+                raise self.gcode.error(_("Unable to get file list"))
     def get_status(self, eventtime):
         return {
             'file_path': self.file_path(),
@@ -132,8 +136,11 @@ class VirtualSD:
                 self.reactor.pause(self.reactor.monotonic() + .001)
     def do_resume(self):
         if self.work_timer is not None:
-            raise self.gcode.error("SD busy")
+            raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
+        self.printer.send_event("virtual_sdcard:printing")
+        led_control = self.printer.lookup_object("led_control")
+        led_control.set_start_print_effect()
         self.work_timer = self.reactor.register_timer(
             self.work_handler, self.reactor.NOW)
     def do_cancel(self):
@@ -148,7 +155,7 @@ class VirtualSD:
         self.file_position = self.file_size = 0.
     # G-Code commands
     def cmd_error(self, gcmd):
-        raise gcmd.error("SD write not supported")
+        raise gcmd.error(_("SD write not supported"))
     def _reset_file(self):
         if self.current_file is not None:
             self.do_pause()
@@ -160,12 +167,12 @@ class VirtualSD:
         self.file_position = self.file_size = 0.
         self.print_stats.reset()
         self.printer.send_event("virtual_sdcard:reset_file")
-    cmd_SDCARD_RESET_FILE_help = "Clears a loaded SD File. Stops the print "\
-        "if necessary"
+    cmd_SDCARD_RESET_FILE_help = _("Clears a loaded SD File. Stops the print if necessary")
     ####      NEW      ####
     def was_shutdown_at_printing(self):
         if self.has_interrupted_file():
-            if self.rebuild_choise == 'confirm':
+            if self.rebuild_choise == 'confirm' and not self.inter:
+                self.inter = True
                 self.print_stats.note_interrupt()
                 logging.info("Waiting confirm for continue print")
             elif self.rebuild_choise == 'autoconfirm':
@@ -178,13 +185,12 @@ class VirtualSD:
     def cmd_SDCARD_RESET_FILE(self, gcmd):
         if self.cmd_from_sd:
             raise gcmd.error(
-                "SDCARD_RESET_FILE cannot be run from the sdcard")
+                _("SDCARD_RESET_FILE cannot be run from the sdcard"))
         self._reset_file()
-    cmd_SDCARD_PRINT_FILE_help = "Loads a SD file and starts the print.  May "\
-        "include files in subdirectories."
+    cmd_SDCARD_PRINT_FILE_help = _("Loads a SD file and starts the print. May include files in subdirectories.")
     def cmd_SDCARD_PRINT_FILE(self, gcmd):
         if self.work_timer is not None:
-            raise gcmd.error("SD busy")
+            raise gcmd.error(_("SD busy"))
         self._reset_file()
         filename = gcmd.get("FILENAME")
         if filename[0] == '/':
@@ -194,11 +200,11 @@ class VirtualSD:
     ####      NEW      ####
     def cmd_SDCARD_SAVE_FILE(self, gcmd):
         if self.work_timer is not None:
-            raise gcmd.error("SD busy")
+            raise gcmd.error(_("SD busy"))
         self.save_printing_parameters()
 
     def cmd_SDCARD_RUN_FILE(self, gcmd):
-        gcmd.respond_raw("Restart file")
+        gcmd.respond_raw(_("Restart file"))
         self.load_saved_parameters()
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)
         self.work_timer = self.reactor.register_timer(
@@ -206,7 +212,7 @@ class VirtualSD:
             
     def cmd_SDCARD_REMOVE_FILE(self, gcmd):
         self.load_saved_parameters()
-        gcmd.respond_raw("Remove interrupted file")
+        gcmd.respond_raw(_("Remove interrupted file"))
         self._remove_file()
         self.print_stats.reset()
 
@@ -221,17 +227,17 @@ class VirtualSD:
     def cmd_M20(self, gcmd):
         # List SD card
         files = self.get_file_list()
-        gcmd.respond_raw("Begin file list")
+        gcmd.respond_raw(_("Begin file list"))
         for fname, fsize in files:
             gcmd.respond_raw("%s %d" % (fname, fsize))
-        gcmd.respond_raw("End file list")
+        gcmd.respond_raw(_("End file list"))
     def cmd_M21(self, gcmd):
         # Initialize SD card
-        gcmd.respond_raw("SD card ok")
+        gcmd.respond_raw(_("SD card ok"))
     def cmd_M23(self, gcmd):
         # Select SD file
         if self.work_timer is not None:
-            raise gcmd.error("SD busy")
+            raise gcmd.error(_("SD busy"))
         self._reset_file()
         filename = gcmd.get_raw_command_parameters().strip()
         if filename.startswith('/'):
@@ -254,9 +260,9 @@ class VirtualSD:
             f.seek(0)
         except:
             logging.exception("virtual_sdcard file open")
-            raise gcmd.error("Unable to open file")
-        gcmd.respond_raw("File opened:%s Size:%d" % (filename, fsize))
-        gcmd.respond_raw("File selected")
+            raise gcmd.error(_("Unable to open file"))
+        gcmd.respond_raw(_("File opened:%s Size:%d") % (filename, fsize))
+        gcmd.respond_raw(_("File selected"))
         self.current_file = f
         self.file_position = file_position
         self.file_size = fsize
@@ -270,15 +276,15 @@ class VirtualSD:
     def cmd_M26(self, gcmd):
         # Set SD position
         if self.work_timer is not None:
-            raise gcmd.error("SD busy")
+            raise gcmd.error(_("SD busy"))
         pos = gcmd.get_int('S', minval=0)
         self.file_position = pos
     def cmd_M27(self, gcmd):
         # Report SD print status
         if self.current_file is None:
-            gcmd.respond_raw("Not SD printing.")
+            gcmd.respond_raw(_("Not SD printing."))
             return
-        gcmd.respond_raw("SD printing byte %d/%d"
+        gcmd.respond_raw(_("SD printing byte %d/%d")
                          % (self.file_position, self.file_size))
     def get_file_position(self):
         return self.next_file_position
@@ -314,7 +320,7 @@ class VirtualSD:
                     self.current_file.close()
                     self.current_file = None
                     logging.info("Finished SD card print")
-                    self.gcode.respond_raw("Done printing file")
+                    self.gcode.respond_raw(_("Done printing file"))
                     break
                 lines = data.split('\n')
                 lines[0] = partial_input + lines[0]
@@ -363,6 +369,7 @@ class VirtualSD:
         elif self.current_file is not None:
             self.print_stats.note_pause()
         else:
+            self.printer.send_event("virtual_sdcard:complete")
             self.print_stats.note_complete()
         return self.reactor.NEVER
 
@@ -422,22 +429,16 @@ class VirtualSD:
         partial_input = lines.pop()
         lines.reverse()
         line = lines.pop()
-        self.reactor.pause(self.reactor.NOW)
-        self.gcode.run_script(  
-                                "M104 S200\n"
-                                "M140 S60\n"
-                                "M109 S200\n"
-                                "M190 S60\n"
-                                "G92 E0\n"
-                                "G1 F2100 E-1\n"
-                                "SET_KINEMATIC_POSITION Z=%f\n"
-                                "G0 Z%f\n"
-                                #"FORCE_MOVE STEPPER=stepper_z DISTANCE=%f VELOCITY=15\n"
-                                "G28 X Y\n" % (self.last_coord[0], (300 - self.last_coord[0])/10))
+        #self.reactor.pause(self.reactor.NOW)
+        # self.gcode.run_script(
+        #                         "M104 S150\n"
+        #                         "M140 S50\n"
+        #                         "M109 S150\n"
+        #                         "M190 S50\n")
         while not line.startswith('G28') or not data:
-            if gcode_mutex.test():
-                self.reactor.pause(self.reactor.monotonic() + 0.100)
-                continue
+            # if gcode_mutex.test():
+            #    # self.reactor.pause(self.reactor.monotonic() + 0.100)
+            #     continue
             self.cmd_from_sd = True
             self.gcode.run_script(line)
             next_file_position = file_position + len(line) + 1        
@@ -445,16 +446,17 @@ class VirtualSD:
             file.seek(file_position)
             self.cmd_from_sd = False
             line = lines.pop()
-        self.gcode.run_script(  
-                               # "G0 X15 Y15 F600\n"
-                               # "G1 X15 Y30 E3 F600\n"
-                               # "G1 X30 Y30 E6 F600\n"
-                               # "G1 X30 Y15 E9 F600\n"
-                               # "G1 X15 Y15 E12 F600\n"
+        lead_z = (self.max_z - self.last_coord[0])/10
+        self.gcode.run_script(
                                 "G92 E0\n"
+                                "G1 F2100 E-1\n"
+                                "SET_KINEMATIC_POSITION Z=%f\n"
+                                "G0 Z%f\n"
+                                "G28 X Y\n"
                                 "G0 X%f Y%f Z%f F6000\n"
                                 "G92 E%f\n"
-                                % (self.last_coord[1], self.last_coord[2], self.last_coord[0], self.last_coord[3]))
+                                % (self.last_coord[0], lead_z if self.max_z - self.last_coord < 50 else 15, 
+                                   self.last_coord[1], self.last_coord[2], self.last_coord[0], self.last_coord[3]))
         
         self.work_timer = None
         try:

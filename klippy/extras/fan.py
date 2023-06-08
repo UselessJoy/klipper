@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import pulse_counter
-
+import locales
 FAN_MIN_TIME = 0.100
 
 class Fan:

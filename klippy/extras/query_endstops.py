@@ -3,7 +3,7 @@
 # Copyright (C) 2018-2019  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class QueryEndstops:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -30,7 +30,7 @@ class QueryEndstops:
                                for mcu_endstop, name in self.endstops]
         web_request.send({name: ["open", "TRIGGERED"][not not t]
                           for name, t in self.last_state})
-    cmd_QUERY_ENDSTOPS_help = "Report on the status of each endstop"
+    cmd_QUERY_ENDSTOPS_help = _("Report on the status of each endstop")
     def cmd_QUERY_ENDSTOPS(self, gcmd):
         # Query the endstops
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()

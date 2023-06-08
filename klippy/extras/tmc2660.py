@@ -6,7 +6,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 from . import bus, tmc, tmc2130
-
+import locales
 Registers = {
     "DRVCONF": 0xE, "SGCSCONF": 0xC, "SMARTEN": 0xA,
     "CHOPCONF": 0x8, "DRVCTRL": 0x0

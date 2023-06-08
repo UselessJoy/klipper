@@ -3,7 +3,7 @@
 # Copyright (C) 2017-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class PrinterMultiPin:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -21,10 +21,10 @@ class PrinterMultiPin:
         pin = self.printer.lookup_object('multi_pin ' + pin_name, None)
         if pin is not self:
             if pin is None:
-                raise ppins.error("multi_pin %s not configured" % (pin_name,))
+                raise ppins.error(_("multi_pin %s not configured") % (pin_name,))
             return pin.setup_pin(pin_type, pin_params)
         if self.pin_type is not None:
-            raise ppins.error("Can't setup multi_pin %s twice" % (pin_name,))
+            raise ppins.error(_("Can't setup multi_pin %s twice") % (pin_name,))
         self.pin_type = pin_type
         invert = ""
         if pin_params['invert']:

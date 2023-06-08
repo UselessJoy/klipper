@@ -5,7 +5,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, logging, ast, configparser
-
+import locales
 class SaveVariables:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -29,18 +29,18 @@ class SaveVariables:
                 for name, val in varfile.items('Variables'):
                     allvars[name] = ast.literal_eval(val)
         except:
-            msg = "Unable to parse existing variable file"
+            msg = _("Unable to parse existing variable file")
             logging.exception(msg)
             raise self.printer.command_error(msg)
         self.allVariables = allvars
-    cmd_SAVE_VARIABLE_help = "Save arbitrary variables to disk"
+    cmd_SAVE_VARIABLE_help = _("Save arbitrary variables to disk")
     def cmd_SAVE_VARIABLE(self, gcmd):
         varname = gcmd.get('VARIABLE')
         value = gcmd.get('VALUE')
         try:
             value = ast.literal_eval(value)
         except ValueError as e:
-            raise gcmd.error("Unable to parse '%s' as a literal" % (value,))
+            raise gcmd.error(_("Unable to parse '%s' as a literal") % (value,))
         newvars = dict(self.allVariables)
         newvars[varname] = value
         # Write file
@@ -53,7 +53,7 @@ class SaveVariables:
             varfile.write(f)
             f.close()
         except:
-            msg = "Unable to save variable"
+            msg = _("Unable to save variable")
             logging.exception(msg)
             raise gcmd.error(msg)
         self.loadVariables()

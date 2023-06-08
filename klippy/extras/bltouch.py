@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import probe
-
+import locales
 SIGNAL_PERIOD = 0.020
 MIN_CMD_TIME = 5 * SIGNAL_PERIOD
 
@@ -134,8 +134,8 @@ class BLTouchEndstopWrapper:
                 break
             if retry >= 2:
                 raise self.printer.command_error(
-                    "BLTouch failed to raise probe")
-            msg = "Failed to verify BLTouch probe is raised; retrying."
+                    _("BLTouch failed to raise probe"))
+            msg = _("Failed to verify BLTouch probe is raised; retrying.")
             self.gcode.respond_info(msg)
             self.sync_mcu_print_time()
             self.send_cmd('reset', duration=RETRY_RESET_TIME)
@@ -166,10 +166,10 @@ class BLTouchEndstopWrapper:
                 # The "bltouch connection" test completed successfully
                 self.next_test_time = print_time + TEST_TIME
                 return
-            msg = "BLTouch failed to verify sensor state"
+            msg = _("BLTouch failed to verify sensor state")
             if retry >= 2:
                 raise self.printer.command_error(msg)
-            self.gcode.respond_info(msg + '; retrying.')
+            self.gcode.respond_info(msg + _("; retrying."))
             self.send_cmd('reset', duration=RETRY_RESET_TIME)
     def multi_probe_begin(self):
         if self.stow_on_each_sample:
@@ -208,7 +208,7 @@ class BLTouchEndstopWrapper:
             self.verify_raise_probe()
         self.sync_print_time()
         if hmove.check_no_movement() is not None:
-            raise self.printer.command_error("BLTouch failed to deploy")
+            raise self.printer.command_error(_("BLTouch failed to deploy"))
     def get_position_endstop(self):
         return self.position_endstop
     def set_output_mode(self, mode):
@@ -248,24 +248,24 @@ class BLTouchEndstopWrapper:
         else:
             self.send_cmd('set_OD_output_mode')
         self.send_cmd('pin_up')
-    cmd_BLTOUCH_DEBUG_help = "Send a command to the bltouch for debugging"
+    cmd_BLTOUCH_DEBUG_help = _("Send a command to the bltouch for debugging")
     def cmd_BLTOUCH_DEBUG(self, gcmd):
         cmd = gcmd.get('COMMAND', None)
         if cmd is None or cmd not in Commands:
-            gcmd.respond_info("BLTouch commands: %s" % (
+            gcmd.respond_info(_("BLTouch commands: %s") % (
                 ", ".join(sorted([c for c in Commands if c is not None]))))
             return
-        gcmd.respond_info("Sending BLTOUCH_DEBUG COMMAND=%s" % (cmd,))
+        gcmd.respond_info(_("Sending BLTOUCH_DEBUG COMMAND=%s") % (cmd,))
         self.sync_print_time()
         self.send_cmd(cmd, duration=self.pin_move_time)
         self.sync_print_time()
-    cmd_BLTOUCH_STORE_help = "Store an output mode in the BLTouch EEPROM"
+    cmd_BLTOUCH_STORE_help = _("Store an output mode in the BLTouch EEPROM")
     def cmd_BLTOUCH_STORE(self, gcmd):
         cmd = gcmd.get('MODE', None)
         if cmd is None or cmd not in ['5V', 'OD']:
-            gcmd.respond_info("BLTouch output modes: 5V, OD")
+            gcmd.respond_info(_("BLTouch output modes: 5V, OD"))
             return
-        gcmd.respond_info("Storing BLTouch output mode: %s" % (cmd,))
+        gcmd.respond_info(_("Storing BLTouch output mode: %s") % (cmd,))
         self.sync_print_time()
         self.store_output_mode(cmd)
         self.sync_print_time()

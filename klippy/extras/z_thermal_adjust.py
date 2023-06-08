@@ -8,7 +8,7 @@
 # for thermal expansion of the printer frame.
 
 import threading
-
+import locales
 KELVIN_TO_CELSIUS = -273.15
 
 class ZThermalAdjuster:
@@ -61,7 +61,7 @@ class ZThermalAdjuster:
                                     desc=self.cmd_SET_Z_THERMAL_ADJUST_help)
 
     def handle_connect(self):
-        'Called after all printer objects are instantiated'
+        _("Called after all printer objects are instantiated")
         self.toolhead = self.printer.lookup_object('toolhead')
         gcode_move = self.printer.lookup_object('gcode_move')
 
@@ -85,14 +85,14 @@ class ZThermalAdjuster:
         }
 
     def handle_homing_move_end(self, homing_state, rails):
-        'Set reference temperature after Z homing.'
+        _("Set reference temperature after Z homing.")
         if 2 in homing_state.get_axes():
             self.ref_temperature = self.smoothed_temp
             self.ref_temp_override = False
             self.z_adjust_mm = 0.
 
     def calc_adjust(self, pos):
-        'Z adjustment calculation'
+        _("Z adjustment calculation")
         if pos[2] < self.off_above_z:
             delta_t = self.smoothed_temp - self.ref_temperature
 
@@ -113,7 +113,7 @@ class ZThermalAdjuster:
         return [pos[0], pos[1], new_z, pos[3]]
 
     def calc_unadjust(self, pos):
-        'Remove Z adjustment'
+        _("Remove Z adjustment")
         unadjusted_z = pos[2] - self.z_adjust_mm
         return [pos[0], pos[1], unadjusted_z, pos[3]]
 
@@ -134,7 +134,7 @@ class ZThermalAdjuster:
         self.last_position[:] = newpos
 
     def temperature_callback(self, read_time, temp):
-        'Called everytime the Z adjust thermistor is read'
+        _("Called everytime the Z adjust thermistor is read")
         with self.lock:
             time_diff = read_time - self.last_temp_time
             self.last_temp = temp
@@ -167,14 +167,14 @@ class ZThermalAdjuster:
                 gcode_move = self.printer.lookup_object('gcode_move')
                 gcode_move.reset_last_position()
 
-        state = '1 (enabled)' if self.adjust_enable else '0 (disabled)'
-        override = ' (manual)' if self.ref_temp_override else ''
-        msg = ("enable: %s\n"
+        state = _("1 (enabled)") if self.adjust_enable else _("0 (disabled)")
+        override = _(" (manual)") if self.ref_temp_override else ""
+        msg = (_("enable: %s\n"
                "temp_coeff: %f mm/degC\n"
                "ref_temp: %.2f degC%s\n"
                "-------------------\n"
                "Current Z temp: %.2f degC\n"
-               "Applied Z adjustment: %.4f mm"
+               "Applied Z adjustment: %.4f mm")
                % (state,
                   self.temp_coeff,
                   self.ref_temperature, override,
@@ -183,7 +183,7 @@ class ZThermalAdjuster:
         )
         gcmd.respond_info(msg)
 
-    cmd_SET_Z_THERMAL_ADJUST_help = 'Set/query Z Thermal Adjust parameters.'
+    cmd_SET_Z_THERMAL_ADJUST_help = _("Set/query Z Thermal Adjust parameters.")
 
 def load_config(config):
     return ZThermalAdjuster(config)

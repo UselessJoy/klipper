@@ -7,7 +7,7 @@
 
 import logging
 import json
-
+import locales
 class ExcludeObject:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -192,8 +192,7 @@ class ExcludeObject:
             else:
                 self._normal_move(newpos, speed)
 
-    cmd_EXCLUDE_OBJECT_START_help = "Marks the beginning the current object" \
-                                    " as labeled"
+    cmd_EXCLUDE_OBJECT_START_help = _("Marks the beginning the current object as labeled" )
     def cmd_EXCLUDE_OBJECT_START(self, gcmd):
         name = gcmd.get('NAME').upper()
         if not any(obj["name"] == name for obj in self.objects):
@@ -201,21 +200,21 @@ class ExcludeObject:
         self.current_object = name
         self.was_excluded_at_start = self._test_in_excluded_region()
 
-    cmd_EXCLUDE_OBJECT_END_help = "Marks the end the current object"
+    cmd_EXCLUDE_OBJECT_END_help = _("Marks the end the current object")
     def cmd_EXCLUDE_OBJECT_END(self, gcmd):
         if self.current_object == None and self.next_transform:
-            gcmd.respond_info("EXCLUDE_OBJECT_END called, but no object is"
-                              " currently active")
+            gcmd.respond_info(_("EXCLUDE_OBJECT_END called, but no object is"
+                              " currently active"))
             return
         name = gcmd.get('NAME', default=None)
         if name != None and name.upper() != self.current_object:
-            gcmd.respond_info("EXCLUDE_OBJECT_END NAME=%s does not match the"
-                              " current object NAME=%s" %
+            gcmd.respond_info(_("EXCLUDE_OBJECT_END NAME=%s does not match the"
+                              " current object NAME=%s") %
                               (name.upper(), self.current_object))
 
         self.current_object = None
 
-    cmd_EXCLUDE_OBJECT_help = "Cancel moves inside a specified objects"
+    cmd_EXCLUDE_OBJECT_help = _("Cancel moves inside a specified objects")
     def cmd_EXCLUDE_OBJECT(self, gcmd):
         reset = gcmd.get('RESET', None)
         current = gcmd.get('CURRENT', None)
@@ -234,7 +233,7 @@ class ExcludeObject:
 
         elif current:
             if not self.current_object:
-                gcmd.respond_error('There is no current object to cancel')
+                gcmd.respond_error(_("There is no current object to cancel"))
 
             else:
                 self._exclude_object(self.current_object)
@@ -242,7 +241,7 @@ class ExcludeObject:
         else:
             self._list_excluded_objects(gcmd)
 
-    cmd_EXCLUDE_OBJECT_DEFINE_help = "Provides a summary of an object"
+    cmd_EXCLUDE_OBJECT_DEFINE_help = _("Provides a summary of an object")
     def cmd_EXCLUDE_OBJECT_DEFINE(self, gcmd):
         reset = gcmd.get('RESET', None)
         name = gcmd.get('NAME', '').upper()
@@ -276,12 +275,12 @@ class ExcludeObject:
 
     def _exclude_object(self, name):
         self._register_transform()
-        self.gcode.respond_info('Excluding object {}'.format(name.upper()))
+        self.gcode.respond_info(_("Excluding object {}").format(name.upper()))
         if name not in self.excluded_objects:
             self.excluded_objects = sorted(self.excluded_objects + [name])
 
     def _unexclude_object(self, name):
-        self.gcode.respond_info('Unexcluding object {}'.format(name.upper()))
+        self.gcode.respond_info(_("Unexcluding object {}").format(name.upper()))
         if name in self.excluded_objects:
             excluded_objects = list(self.excluded_objects)
             excluded_objects.remove(name)
@@ -292,11 +291,11 @@ class ExcludeObject:
             object_list = json.dumps(self.objects)
         else:
             object_list = " ".join(obj['name'] for obj in self.objects)
-        gcmd.respond_info('Known objects: {}'.format(object_list))
+        gcmd.respond_info(_("Known objects: {}").format(object_list))
 
     def _list_excluded_objects(self, gcmd):
         object_list = " ".join(self.excluded_objects)
-        gcmd.respond_info('Excluded objects: {}'.format(object_list))
+        gcmd.respond_info(_("Excluded objects: {}").format(object_list))
 
 def load_config(config):
     return ExcludeObject(config)

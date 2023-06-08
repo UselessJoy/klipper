@@ -3,7 +3,7 @@
 # Copyright (C) 2019  Len Trigg <lenbok@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class FirmwareRetraction:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -30,7 +30,7 @@ class FirmwareRetraction:
             "unretract_extra_length": self.unretract_extra_length,
             "unretract_speed": self.unretract_speed,
         }
-    cmd_SET_RETRACTION_help = ("Set firmware retraction parameters")
+    cmd_SET_RETRACTION_help = (_("Set firmware retraction parameters"))
     def cmd_SET_RETRACTION(self, gcmd):
         self.retract_length = gcmd.get_float('RETRACT_LENGTH',
                                              self.retract_length, minval=0.)
@@ -43,7 +43,7 @@ class FirmwareRetraction:
         self.unretract_length = (self.retract_length
                                  + self.unretract_extra_length)
         self.is_retracted = False
-    cmd_GET_RETRACTION_help = ("Report firmware retraction paramters")
+    cmd_GET_RETRACTION_help = (_("Report firmware retraction paramters"))
     def cmd_GET_RETRACTION(self, gcmd):
         gcmd.respond_info("RETRACT_LENGTH=%.5f RETRACT_SPEED=%.5f"
                           " UNRETRACT_EXTRA_LENGTH=%.5f UNRETRACT_SPEED=%.5f"

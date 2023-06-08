@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math
-
+import locales
 HOMING_START_DELAY = 0.001
 ENDSTOP_SAMPLE_TIME = .000015
 ENDSTOP_SAMPLE_COUNT = 4
@@ -93,7 +93,7 @@ class HomingMove:
         try:
             self.toolhead.drip_move(movepos, speed, all_endstop_trigger)
         except self.printer.command_error as e:
-            error = "Error during homing move: %s" % (str(e),)
+            error = _("Error during homing move: %s") % (str(e),)
         # Wait for endstops to trigger
         trigger_times = {}
         move_end_print_time = self.toolhead.get_last_move_time()
@@ -102,9 +102,9 @@ class HomingMove:
             if trigger_time > 0.:
                 trigger_times[name] = trigger_time
             elif trigger_time < 0. and error is None:
-                error = "Communication timeout during homing %s" % (name,)
+                error = _("Communication timeout during homing %s") % (name,)
             elif check_triggered and error is None:
-                error = "No trigger on %s after full movement" % (name,)
+                error = _("No trigger on %s after full movement" )% (name,)
         # Determine stepper halt positions
         self.toolhead.flush_step_generation()
         for sp in self.stepper_positions:
@@ -202,7 +202,7 @@ class Homing:
             hmove.homing_move(homepos, hi.second_homing_speed)
             if hmove.check_no_movement() is not None:
                 raise self.printer.command_error(
-                    "Endstop %s still triggered after retract"
+                    _("Endstop %s still triggered after retract")
                     % (hmove.check_no_movement(),))
         # Signal home operation complete
         self.toolhead.flush_step_generation()
@@ -237,7 +237,7 @@ class PrinterHoming:
         except self.printer.command_error:
             if self.printer.is_shutdown():
                 raise self.printer.command_error(
-                    "Homing failed due to printer shutdown")
+                    _("Homing failed due to printer shutdown"))
             raise
     def probing_move(self, mcu_probe, pos, speed):
         endstops = [(mcu_probe, "probe")]
@@ -247,11 +247,11 @@ class PrinterHoming:
         except self.printer.command_error:
             if self.printer.is_shutdown():
                 raise self.printer.command_error(
-                    "Probing failed due to printer shutdown")
+                    _("Probing failed due to printer shutdown"))
             raise
         if hmove.check_no_movement() is not None:
             raise self.printer.command_error(
-                "Probe triggered prior to movement")
+                _("Probe triggered prior to movement"))
         return epos
     def cmd_G28(self, gcmd):
         # Move to origin
@@ -260,7 +260,7 @@ class PrinterHoming:
             if gcmd.get(axis, None) is not None:
                 axes.append(pos)
         if not axes:
-            axes = [0, 1, 2]
+            axes = [1, 0, 2]
         homing_state = Homing(self.printer)
         homing_state.set_axes(axes)
         kin = self.printer.lookup_object('toolhead').get_kinematics()
@@ -269,7 +269,7 @@ class PrinterHoming:
         except self.printer.command_error:
             if self.printer.is_shutdown():
                 raise self.printer.command_error(
-                    "Homing failed due to printer shutdown")
+                    _("Homing failed due to printer shutdown"))
             self.printer.lookup_object('stepper_enable').motor_off()
             raise
 

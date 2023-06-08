@@ -7,7 +7,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math
-
+import locales
 # Coordinates created by this are converted into G1 commands.
 #
 # supports XY, XZ & YZ planes with remaining axis as helical
@@ -62,7 +62,7 @@ class ArcSupport:
     def _cmd_inner(self, gcmd, clockwise):
         gcodestatus = self.gcode_move.get_status()
         if not gcodestatus['absolute_coordinates']:
-            raise gcmd.error("G2/G3 does not support relative move mode")
+            raise gcmd.error(_("G2/G3 does not support relative move mode"))
         currentPos = gcodestatus['gcode_position']
 
         # Parse parameters
@@ -72,7 +72,7 @@ class ArcSupport:
                               e=None)
 
         if gcmd.get_float("R", None) is not None:
-            raise gcmd.error("G2/G3 does not support R moves")
+            raise gcmd.error(_("G2/G3 does not support R moves"))
 
         # determine the plane coordinates and the helical axis
         asPlanar = [ gcmd.get_float(a, 0.) for i,a in enumerate('IJ') ]
@@ -85,7 +85,7 @@ class ArcSupport:
             axes = (Y_AXIS, Z_AXIS, X_AXIS)
 
         if not (asPlanar[0] or asPlanar[1]):
-            raise gcmd.error("G2/G3 requires IJ, IK or JK parameters")
+            raise gcmd.error(_("G2/G3 requires IJ, IK or JK parameters"))
 
         asE = gcmd.get_float("E", None)
         asF = gcmd.get_float("F", None)

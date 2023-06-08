@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, collections
 import stepper
-
+import locales
 
 ######################################################################
 # Field helpers
@@ -154,7 +154,7 @@ class TMCErrorCheck:
             count += 1
             if count >= 3:
                 fmt = self.fields.pretty_format(reg_name, val)
-                raise self.printer.command_error("TMC '%s' reports error: %s"
+                raise self.printer.command_error(_("TMC '%s' reports error: %s")
                                                  % (self.stepper_name, fmt))
             if try_clear and val & err_mask:
                 try_clear = False
@@ -247,22 +247,22 @@ class TMCCommandHelper:
         # Send registers
         for reg_name, val in self.fields.registers.items():
             self.mcu_tmc.set_register(reg_name, val, print_time)
-    cmd_INIT_TMC_help = "Initialize TMC stepper driver registers"
+    cmd_INIT_TMC_help = _("Initialize TMC stepper driver registers")
     def cmd_INIT_TMC(self, gcmd):
         logging.info("INIT_TMC %s", self.name)
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()
         self._init_registers(print_time)
-    cmd_SET_TMC_FIELD_help = "Set a register field of a TMC driver"
+    cmd_SET_TMC_FIELD_help = _("Set a register field of a TMC driver")
     def cmd_SET_TMC_FIELD(self, gcmd):
         field_name = gcmd.get('FIELD').lower()
         reg_name = self.fields.lookup_register(field_name, None)
         if reg_name is None:
-            raise gcmd.error("Unknown field name '%s'" % (field_name,))
+            raise gcmd.error(_("Unknown field name '%s'") % (field_name,))
         value = gcmd.get_int('VALUE')
         reg_val = self.fields.set_field(field_name, value)
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()
         self.mcu_tmc.set_register(reg_name, reg_val, print_time)
-    cmd_SET_TMC_CURRENT_help = "Set the current of a TMC driver"
+    cmd_SET_TMC_CURRENT_help = _("Set the current of a TMC driver")
     def cmd_SET_TMC_CURRENT(self, gcmd):
         ch = self.current_helper
         prev_cur, prev_hold_cur, req_hold_cur, max_cur = ch.get_current()
@@ -280,9 +280,9 @@ class TMCCommandHelper:
             prev_cur, prev_hold_cur, req_hold_cur, max_cur = ch.get_current()
         # Report values
         if prev_hold_cur is None:
-            gcmd.respond_info("Run Current: %0.2fA" % (prev_cur,))
+            gcmd.respond_info(_("Run Current: %0.2fA") % (prev_cur,))
         else:
-            gcmd.respond_info("Run Current: %0.2fA Hold Current: %0.2fA"
+            gcmd.respond_info(_("Run Current: %0.2fA Hold Current: %0.2fA")
                               % (prev_cur, prev_hold_cur))
     # Stepper phase tracking
     def _get_phases(self):
@@ -399,15 +399,15 @@ class TMCCommandHelper:
         gcode.register_mux_command("DUMP_TMC", "STEPPER", self.name,
                                    self.cmd_DUMP_TMC,
                                    desc=self.cmd_DUMP_TMC_help)
-    cmd_DUMP_TMC_help = "Read and display TMC stepper driver registers"
+    cmd_DUMP_TMC_help = _("Read and display TMC stepper driver registers")
     def cmd_DUMP_TMC(self, gcmd):
         logging.info("DUMP_TMC %s", self.name)
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()
-        gcmd.respond_info("========== Write-only registers ==========")
+        gcmd.respond_info(_("========== Write-only registers =========="))
         for reg_name, val in self.fields.registers.items():
             if reg_name not in self.read_registers:
                 gcmd.respond_info(self.fields.pretty_format(reg_name, val))
-        gcmd.respond_info("========== Queried registers ==========")
+        gcmd.respond_info(_("========== Queried registers =========="))
         for reg_name in self.read_registers:
             val = self.mcu_tmc.get_register(reg_name)
             if self.read_translate is not None:
@@ -446,11 +446,11 @@ class TMCVirtualPinHelper:
         # Validate pin
         ppins = self.printer.lookup_object('pins')
         if pin_type != 'endstop' or pin_params['pin'] != 'virtual_endstop':
-            raise ppins.error("tmc virtual endstop only useful as endstop")
+            raise ppins.error(_("tmc virtual endstop only useful as endstop"))
         if pin_params['invert'] or pin_params['pullup']:
-            raise ppins.error("Can not pullup/invert tmc virtual pin")
+            raise ppins.error(_("Can not pullup/invert tmc virtual pin"))
         if self.diag_pin is None:
-            raise ppins.error("tmc virtual endstop requires diag pin config")
+            raise ppins.error(_("tmc virtual endstop requires diag pin config"))
         # Setup for sensorless homing
         reg = self.fields.lookup_register("en_pwm_mode", None)
         if reg is None:
@@ -528,7 +528,7 @@ def TMCMicrostepHelper(config, mcu_tmc):
     stepper_name = " ".join(config.get_name().split()[1:])
     if not config.has_section(stepper_name):
         raise config.error(
-            "Could not find config section '[%s]' required by tmc driver"
+            _("Could not find config section '[%s]' required by tmc driver")
             % (stepper_name,))
     stepper_config = ms_config = config.getsection(stepper_name)
     if (stepper_config.get('microsteps', None, note_valid=False) is None

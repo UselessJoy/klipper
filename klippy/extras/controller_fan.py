@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import fan
-
+import locales
 PIN_MIN_TIME = 0.100
 
 class ControllerFan:
@@ -37,8 +37,8 @@ class ControllerFan:
             return
         if not all(x in all_steppers for x in self.stepper_names):
             raise self.printer.config_error(
-                "One or more of these steppers are unknown: "
-                 "%s (valid steppers are: %s)"
+                _("One or more of these steppers are unknown: "
+                 "%s (valid steppers are: %s)")
                 % (self.stepper_names, ", ".join(all_steppers)))
     def handle_ready(self):
         reactor = self.printer.get_reactor()

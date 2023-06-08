@@ -3,7 +3,7 @@
 # Copyright (C) 2020  Eric Callahan <arksine.code@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class PrintStats:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -81,8 +81,7 @@ class PrintStats:
             self.init_duration = self.total_duration - \
                 self.prev_pause_duration
         self.print_start_time = None
-    cmd_SET_PRINT_STATS_INFO_help = "Pass slicer info like layer act and " \
-                                    "total to klipper"
+    cmd_SET_PRINT_STATS_INFO_help = _("Pass slicer info like layer act and total to klipper")
     def cmd_SET_PRINT_STATS_INFO(self, gcmd):
         total_layer = gcmd.get_int("TOTAL_LAYER", self.info_total_layer, \
                                    minval=0)

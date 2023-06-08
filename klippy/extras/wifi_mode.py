@@ -1,5 +1,5 @@
 import os, logging
-
+#import locales
 class WifiMode:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -16,7 +16,7 @@ class WifiMode:
 
 
     def _handle_ready(self):
-        self.timer.register_timer(self.set_wifiMode, self.timer.monotonic()+ 0.1)
+        self.timer.register_timer(self.set_wifiMode, self.timer.NOW)
 
     def cmd_CHANGE_WIFI_MODE(self, gcmd):
         self.run_bash_script("changemode.sh")

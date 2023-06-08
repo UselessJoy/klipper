@@ -7,7 +7,7 @@
 import collections
 import chelper
 from . import shaper_defs
-
+import locales
 class InputShaperParams:
     def __init__(self, axis, config):
         self.axis = axis
@@ -16,7 +16,7 @@ class InputShaperParams:
         self.shaper_type = config.get('shaper_type_' + axis, shaper_type)
         if self.shaper_type not in self.shapers:
             raise config.error(
-                    'Unsupported shaper type: %s' % (self.shaper_type,))
+                    _("Unsupported shaper type: %s") % (self.shaper_type,))
         self.damping_ratio = config.getfloat('damping_ratio_' + axis,
                                              shaper_defs.DEFAULT_DAMPING_RATIO,
                                              minval=0., maxval=1.)
@@ -32,7 +32,7 @@ class InputShaperParams:
         if shaper_type is None:
             shaper_type = gcmd.get('SHAPER_TYPE_' + axis, self.shaper_type)
         if shaper_type.lower() not in self.shapers:
-            raise gcmd.error('Unsupported shaper type: %s' % (shaper_type,))
+            raise gcmd.error(_("Unsupported shaper type: %s") % (shaper_type,))
         self.shaper_type = shaper_type.lower()
     def get_shaper(self):
         if not self.shaper_freq:
@@ -139,7 +139,7 @@ class InputShaper:
                     failed.append(shaper)
         if failed:
             error = error or self.printer.command_error
-            raise error("Failed to configure shaper(s) %s with given parameters"
+            raise error(_("Failed to configure shaper(s) %s with given parameters")
                         % (', '.join([s.get_name() for s in failed])))
     def disable_shaping(self):
         for shaper in self.shapers:
@@ -149,7 +149,7 @@ class InputShaper:
         for shaper in self.shapers:
             shaper.enable_shaping()
         self._update_input_shaping()
-    cmd_SET_INPUT_SHAPER_help = "Set cartesian parameters for input shaper"
+    cmd_SET_INPUT_SHAPER_help = _("Set cartesian parameters for input shaper")
     def cmd_SET_INPUT_SHAPER(self, gcmd):
         updated = False
         for shaper in self.shapers:

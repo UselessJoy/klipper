@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import bus
-
+import locales
 LM75_CHIP_ADDR = 0x48
 LM75_I2C_SPEED = 100000
 LM75_REGS = {
@@ -76,7 +76,7 @@ class LM75:
 
         if self.temp < self.min_temp or self.temp > self.max_temp:
             self.printer.invoke_shutdown(
-                "LM75 temperature %0.1f outside range of %0.1f:%.01f"
+                _("LM75 temperature %0.1f outside range of %0.1f:%.01f")
                 % (self.temp, self.min_temp, self.max_temp))
 
         measured_time = self.reactor.monotonic()

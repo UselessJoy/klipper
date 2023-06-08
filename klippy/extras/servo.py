@@ -3,7 +3,7 @@
 # Copyright (C) 2017-2020  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 SERVO_SIGNAL_PERIOD = 0.020
 PIN_MIN_TIME = 0.100
 
@@ -56,7 +56,7 @@ class PrinterServo:
         if width:
             width = max(self.min_width, min(self.max_width, width))
         return width * self.width_to_value
-    cmd_SET_SERVO_help = "Set servo angle"
+    cmd_SET_SERVO_help = _("Set servo angle")
     def cmd_SET_SERVO(self, gcmd):
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()
         width = gcmd.get_float('WIDTH', None)

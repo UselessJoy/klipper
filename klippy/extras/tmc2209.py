@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import tmc2208, tmc2130, tmc, tmc_uart
-
+import locales
 TMC_FREQUENCY=12000000.
 
 Registers = dict(tmc2208.Registers)

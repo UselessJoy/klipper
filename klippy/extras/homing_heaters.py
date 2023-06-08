@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import logging
-
+import locales
 class HomingHeaters:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -28,7 +28,7 @@ class HomingHeaters:
         else:
             if not all(x in all_heaters for x in self.disable_heaters):
                 raise self.printer.config_error(
-                    "One or more of these heaters are unknown: %s"
+                    _("One or more of these heaters are unknown: %s")
                     % (self.disable_heaters,))
         # steppers valid?
         kin = self.printer.lookup_object('toolhead').get_kinematics()
@@ -37,7 +37,7 @@ class HomingHeaters:
             return
         if not all(x in all_steppers for x in self.flaky_steppers):
             raise self.printer.config_error(
-                "One or more of these steppers are unknown: %s"
+                _("One or more of these steppers are unknown: %s")
                 % (self.flaky_steppers,))
     def check_eligible(self, endstops):
         if self.flaky_steppers is None:

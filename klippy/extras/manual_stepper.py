@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import stepper, chelper
 from . import force_move
-
+import locales
 class ManualStepper:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -75,14 +75,14 @@ class ManualStepper:
     def do_homing_move(self, movepos, speed, accel, triggered, check_trigger):
         if not self.can_home:
             raise self.printer.command_error(
-                "No endstop for this manual stepper")
+                _("No endstop for this manual stepper"))
         self.homing_accel = accel
         pos = [movepos, 0., 0., 0.]
         endstops = self.rail.get_endstops()
         phoming = self.printer.lookup_object('homing')
         phoming.manual_home(self, endstops, pos, speed,
                             triggered, check_trigger)
-    cmd_MANUAL_STEPPER_help = "Command a manually configured stepper"
+    cmd_MANUAL_STEPPER_help = _("Command a manually configured stepper")
     def cmd_MANUAL_STEPPER(self, gcmd):
         enable = gcmd.get_int('ENABLE', None)
         if enable is not None:

@@ -10,7 +10,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import math
-
+import locales
 def calc_skew_factor(ac, bd, ad):
     side = math.sqrt(2*ac*ac + 2*bd*bd - 4*ad*ad) / 2.
     return math.tan(math.pi/2 - math.acos(
@@ -75,25 +75,25 @@ class PrinterSkew:
         self.yz_factor = yz_factor
         gcode_move = self.printer.lookup_object('gcode_move')
         gcode_move.reset_last_position()
-    cmd_GET_CURRENT_SKEW_help = "Report current printer skew"
+    cmd_GET_CURRENT_SKEW_help = _("Report current printer skew")
     def cmd_GET_CURRENT_SKEW(self, gcmd):
-        out = "Current Printer Skew:"
+        out = _("Current Printer Skew:")
         planes = ["XY", "XZ", "YZ"]
         factors = [self.xy_factor, self.xz_factor, self.yz_factor]
         for plane, fac in zip(planes, factors):
             out += '\n' + plane
-            out += " Skew: %.6f radians, %.2f degrees" % (
+            out += _(" Skew: %.6f radians, %.2f degrees") % (
                 fac, math.degrees(fac))
         gcmd.respond_info(out)
-    cmd_CALC_MEASURED_SKEW_help = "Calculate skew from measured print"
+    cmd_CALC_MEASURED_SKEW_help = _("Calculate skew from measured print")
     def cmd_CALC_MEASURED_SKEW(self, gcmd):
         ac = gcmd.get_float("AC", above=0.)
         bd = gcmd.get_float("BD", above=0.)
         ad = gcmd.get_float("AD", above=0.)
         factor = calc_skew_factor(ac, bd, ad)
-        gcmd.respond_info("Calculated Skew: %.6f radians, %.2f degrees"
+        gcmd.respond_info(_("Calculated Skew: %.6f radians, %.2f degrees")
                           % (factor, math.degrees(factor)))
-    cmd_SET_SKEW_help = "Set skew based on lengths of measured object"
+    cmd_SET_SKEW_help = _("Set skew based on lengths of measured object")
     def cmd_SET_SKEW(self, gcmd):
         if gcmd.get_int("CLEAR", 0):
             self._update_skew(0., 0., 0.)
@@ -109,18 +109,18 @@ class PrinterSkew:
                         raise Exception
                 except Exception:
                     raise gcmd.error(
-                        "skew_correction: improperly formatted entry for "
-                        "plane [%s]\n%s" % (plane, gcmd.get_commandline()))
+                        _("skew_correction: improperly formatted entry for "
+                        "plane [%s]\n%s") % (plane, gcmd.get_commandline()))
                 factor = plane.lower() + '_factor'
                 setattr(self, factor, calc_skew_factor(*lengths))
-    cmd_SKEW_PROFILE_help = "Profile management for skew_correction"
+    cmd_SKEW_PROFILE_help = _("Profile management for skew_correction")
     def cmd_SKEW_PROFILE(self, gcmd):
         if gcmd.get('LOAD', None) is not None:
             name = gcmd.get('LOAD')
             prof = self.skew_profiles.get(name)
             if prof is None:
                 gcmd.respond_info(
-                    "skew_correction:  Load failed, unknown profile [%s]"
+                    _("skew_correction:  Load failed, unknown profile [%s]")
                     % (name))
                 return
             self._update_skew(prof['xy_skew'], prof['xz_skew'], prof['yz_skew'])
@@ -138,9 +138,9 @@ class PrinterSkew:
                 'yz_skew': self.yz_factor
             }
             gcmd.respond_info(
-                "Skew Correction state has been saved to profile [%s]\n"
+                _("Skew Correction state has been saved to profile [%s]\n"
                 "for the current session.  The SAVE_CONFIG command will\n"
-                "update the printer config file and restart the printer."
+                "update the printer config file and restart the printer.")
                 % (name))
         elif gcmd.get('REMOVE', None) is not None:
             name = gcmd.get('REMOVE')
@@ -149,12 +149,12 @@ class PrinterSkew:
                 configfile.remove_section('skew_correction ' + name)
                 del self.skew_profiles[name]
                 gcmd.respond_info(
-                    "Profile [%s] removed from storage for this session.\n"
+                    _("Profile [%s] removed from storage for this session.\n"
                     "The SAVE_CONFIG command will update the printer\n"
-                    "configuration and restart the printer" % (name))
+                    "configuration and restart the printer") % (name))
             else:
                 gcmd.respond_info(
-                    "skew_correction: No profile named [%s] to remove"
+                    _("skew_correction: No profile named [%s] to remove")
                     % (name))
 
 

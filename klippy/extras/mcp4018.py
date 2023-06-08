@@ -3,7 +3,7 @@
 # Copyright (C) 2019  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class SoftwareI2C:
     def __init__(self, config, addr):
         self.addr = addr << 1
@@ -26,7 +26,7 @@ class SoftwareI2C:
         sda_params = ppins.lookup_pin(config.get('sda_pin'))
         self.sda_oid = self.mcu.create_oid()
         if sda_params['chip'] != self.mcu:
-            raise ppins.error("%s: scl_pin and sda_pin must be on same mcu" % (
+            raise ppins.error(_("%s: scl_pin and sda_pin must be on same mcu") % (
                 config.get_name(),))
         self.mcu.add_config_cmd("config_digital_out oid=%d pin=%s"
                                 " value=%d default_value=%d max_duration=%d" % (
@@ -86,12 +86,12 @@ class mcp4018:
     def set_dac(self, value):
         val = int(value * 127. / self.scale + .5)
         self.i2c.i2c_write([val])
-    cmd_SET_DIGIPOT_help = "Set digipot value"
+    cmd_SET_DIGIPOT_help = _("Set digipot value")
     def cmd_SET_DIGIPOT(self, gcmd):
         wiper = gcmd.get_float('WIPER', minval=0., maxval=self.scale)
         if wiper is not None:
             self.set_dac(wiper)
-            gcmd.respond_info("New value for DIGIPOT = %s, wiper = %.2f"
+            gcmd.respond_info(_("New value for DIGIPOT = %s, wiper = %.2f")
                                % (self.name, wiper))
 def load_config_prefix(config):
     return mcp4018(config)

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import bus
-
+import locales
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 
 PCA9533_PWM0=0b010

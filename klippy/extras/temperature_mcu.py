@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 import mcu
-
+import locales
 SAMPLE_TIME = 0.001
 SAMPLE_COUNT = 8
 REPORT_TIME = 0.300
@@ -94,7 +94,7 @@ class PrinterTemperatureMCU:
                                   minval=min(adc_range), maxval=max(adc_range),
                                   range_check_count=RANGE_CHECK_COUNT)
     def config_unknown(self):
-        raise self.printer.config_error("MCU temperature not supported on %s"
+        raise self.printer.config_error(_("MCU temperature not supported on %s")
                                         % (self.mcu_type,))
     def config_rp2040(self):
         self.slope = 3.3 / -0.001721

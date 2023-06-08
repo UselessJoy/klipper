@@ -65,6 +65,9 @@ class WebRequest:
             raise WebRequestError(_("Invalid Argument Type [%s]") % (item,))
         return value
 
+    def get_boolean(self, item, default=Sentinel):
+        return self.get(item, default, types=(bool,))
+    
     def get_str(self, item, default=Sentinel):
         return self.get(item, default, types=(str,))
 

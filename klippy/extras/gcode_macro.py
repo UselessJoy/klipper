@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import traceback, logging, ast, copy
 import jinja2
-
+import locales
 
 ######################################################################
 # Template handling
@@ -50,7 +50,7 @@ class TemplateWrapper:
         try:
             self.template = env.from_string(script)
         except Exception as e:
-            msg = "Error loading template '%s': %s" % (
+            msg = _("Error loading template '%s': %s") % (
                  name, traceback.format_exception_only(type(e), e)[-1])
             logging.exception(msg)
             raise printer.config_error(msg)
@@ -60,7 +60,7 @@ class TemplateWrapper:
         try:
             return str(self.template.render(context))
         except Exception as e:
-            msg = "Error evaluating '%s': %s" % (
+            msg = _("Error evaluating '%s': %s") % (
                 self.name, traceback.format_exception_only(type(e), e)[-1])
             logging.exception(msg)
             raise self.gcode.error(msg)
@@ -80,7 +80,7 @@ class PrinterGCodeMacro:
             script = config.get(option, default)
         return TemplateWrapper(self.printer, self.env, name, script)
     def _action_emergency_stop(self, msg="action_emergency_stop"):
-        self.printer.invoke_shutdown("Shutdown due to %s" % (msg,))
+        self.printer.invoke_shutdown(_("Shutdown due to %s") % (msg,))
         return ""
     def _action_respond_info(self, msg):
         self.printer.lookup_object('gcode').respond_info(msg)
@@ -115,7 +115,7 @@ class GCodeMacro:
     def __init__(self, config):
         if len(config.get_name().split()) > 2:
             raise config.error(
-                    "Name of section '%s' contains illegal whitespace"
+                    _("Name of section '%s' contains illegal whitespace")
                     % (config.get_name()))
         name = config.get_name().split()[1]
         self.alias = name.upper()
@@ -130,7 +130,7 @@ class GCodeMacro:
             if (self.gcode.is_traditional_gcode(self.alias)
                 != self.gcode.is_traditional_gcode(self.rename_existing)):
                 raise config.error(
-                    "G-Code macro rename of different types ('%s' vs '%s')"
+                    _("G-Code macro rename of different types ('%s' vs '%s')")
                     % (self.alias, self.rename_existing))
             printer.register_event_handler("klippy:connect",
                                            self.handle_connect)
@@ -149,35 +149,35 @@ class GCodeMacro:
                     config.get(option))
             except ValueError as e:
                 raise config.error(
-                    "Option '%s' in section '%s' is not a valid literal" % (
+                    _("Option '%s' in section '%s' is not a valid literal") % (
                         option, config.get_name()))
     def handle_connect(self):
         prev_cmd = self.gcode.register_command(self.alias, None)
         if prev_cmd is None:
             raise self.printer.config_error(
-                "Existing command '%s' not found in gcode_macro rename"
+                _("Existing command '%s' not found in gcode_macro rename")
                 % (self.alias,))
         pdesc = "Renamed builtin of '%s'" % (self.alias,)
         self.gcode.register_command(self.rename_existing, prev_cmd, desc=pdesc)
         self.gcode.register_command(self.alias, self.cmd, desc=self.cmd_desc)
     def get_status(self, eventtime):
         return self.variables
-    cmd_SET_GCODE_VARIABLE_help = "Set the value of a G-Code macro variable"
+    cmd_SET_GCODE_VARIABLE_help = _("Set the value of a G-Code macro variable")
     def cmd_SET_GCODE_VARIABLE(self, gcmd):
         variable = gcmd.get('VARIABLE')
         value = gcmd.get('VALUE')
         if variable not in self.variables:
-            raise gcmd.error("Unknown gcode_macro variable '%s'" % (variable,))
+            raise gcmd.error(_("Unknown gcode_macro variable '%s'") % (variable,))
         try:
             literal = ast.literal_eval(value)
         except ValueError as e:
-            raise gcmd.error("Unable to parse '%s' as a literal" % (value,))
+            raise gcmd.error(_("Unable to parse '%s' as a literal") % (value,))
         v = dict(self.variables)
         v[variable] = literal
         self.variables = v
     def cmd(self, gcmd):
         if self.in_script:
-            raise gcmd.error("Macro %s called recursively" % (self.alias,))
+            raise gcmd.error(_("Macro %s called recursively") % (self.alias,))
         kwparams = dict(self.variables)
         kwparams.update(self.template.create_template_context())
         kwparams['params'] = gcmd.get_command_parameters()

@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import bus
-
+import locales
 class mcp4728:
     def __init__(self, config):
         self.i2c = bus.MCU_I2C_from_config(config, default_addr=0x60)

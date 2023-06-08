@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import bus
-
+import locales
 REPORT_TIME = .8
 BME280_CHIP_ADDR = 0x76
 BME280_REGS = {
@@ -265,7 +265,7 @@ class BME280:
             self.humidity = self._compensate_humidity_bme280(humid_raw)
         if self.temp < self.min_temp or self.temp > self.max_temp:
             self.printer.invoke_shutdown(
-                "BME280 temperature %0.1f outside range of %0.1f:%.01f"
+                _("BME280 temperature %0.1f outside range of %0.1f:%.01f")
                 % (self.temp, self.min_temp, self.max_temp))
         measured_time = self.reactor.monotonic()
         self._callback(self.mcu.estimated_print_time(measured_time), self.temp)
@@ -328,7 +328,7 @@ class BME280:
 
         if self.temp < self.min_temp or self.temp > self.max_temp:
             self.printer.invoke_shutdown(
-                "BME680 temperature %0.1f outside range of %0.1f:%.01f"
+                _("BME680 temperature %0.1f outside range of %0.1f:%.01f")
                 % (self.temp, self.min_temp, self.max_temp))
         measured_time = self.reactor.monotonic()
         self._callback(self.mcu.estimated_print_time(measured_time), self.temp)

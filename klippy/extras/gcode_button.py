@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
-
+import locales
 class GCodeButton:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -28,7 +28,7 @@ class GCodeButton:
                                         self.cmd_QUERY_BUTTON,
                                         desc=self.cmd_QUERY_BUTTON_help)
 
-    cmd_QUERY_BUTTON_help = "Report on the state of a button"
+    cmd_QUERY_BUTTON_help = _("Report on the state of a button")
     def cmd_QUERY_BUTTON(self, gcmd):
         gcmd.respond_info(self.name + ": " + self.get_status()['state'])
 

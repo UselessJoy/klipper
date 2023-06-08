@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 import stepper, chelper
-
+import locales
 class ExtruderStepper:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -61,7 +61,7 @@ class ExtruderStepper:
             return
         extruder = self.printer.lookup_object(extruder_name, None)
         if extruder is None or not isinstance(extruder, PrinterExtruder):
-            raise self.printer.command_error("'%s' is not a valid extruder."
+            raise self.printer.command_error(_("'%s' is not a valid extruder.")
                                              % (extruder_name,))
         self.stepper.set_position([extruder.last_position, 0., 0.])
         self.stepper.set_trapq(extruder.get_trapq())
@@ -80,14 +80,14 @@ class ExtruderStepper:
         espa(self.sk_extruder, pressure_advance, new_smooth_time)
         self.pressure_advance = pressure_advance
         self.pressure_advance_smooth_time = smooth_time
-    cmd_SET_PRESSURE_ADVANCE_help = "Set pressure advance parameters"
+    cmd_SET_PRESSURE_ADVANCE_help = _("Set pressure advance parameters")
     def cmd_default_SET_PRESSURE_ADVANCE(self, gcmd):
         extruder = self.printer.lookup_object('toolhead').get_extruder()
         if extruder.extruder_stepper is None:
-            raise gcmd.error("Active extruder does not have a stepper")
+            raise gcmd.error(_("Active extruder does not have a stepper"))
         strapq = extruder.extruder_stepper.stepper.get_trapq()
         if strapq is not extruder.get_trapq():
-            raise gcmd.error("Unable to infer active extruder stepper")
+            raise gcmd.error(_("Unable to infer active extruder stepper"))
         extruder.extruder_stepper.cmd_SET_PRESSURE_ADVANCE(gcmd)
     def cmd_SET_PRESSURE_ADVANCE(self, gcmd):
         pressure_advance = gcmd.get_float('ADVANCE', self.pressure_advance,
@@ -101,12 +101,12 @@ class ExtruderStepper:
                % (pressure_advance, smooth_time))
         self.printer.set_rollover_info(self.name, "%s: %s" % (self.name, msg))
         gcmd.respond_info(msg, log=False)
-    cmd_SET_E_ROTATION_DISTANCE_help = "Set extruder rotation distance"
+    cmd_SET_E_ROTATION_DISTANCE_help = _("Set extruder rotation distance")
     def cmd_SET_E_ROTATION_DISTANCE(self, gcmd):
         rotation_dist = gcmd.get_float('DISTANCE', None)
         if rotation_dist is not None:
             if not rotation_dist:
-                raise gcmd.error("Rotation distance can not be zero")
+                raise gcmd.error(_("Rotation distance can not be zero"))
             invert_dir, orig_invert_dir = self.stepper.get_dir_inverted()
             next_invert_dir = orig_invert_dir
             if rotation_dist < 0.:
@@ -121,15 +121,15 @@ class ExtruderStepper:
         invert_dir, orig_invert_dir = self.stepper.get_dir_inverted()
         if invert_dir != orig_invert_dir:
             rotation_dist = -rotation_dist
-        gcmd.respond_info("Extruder '%s' rotation distance set to %0.6f"
+        gcmd.respond_info(_("Extruder '%s' rotation distance set to %0.6f")
                           % (self.name, rotation_dist))
-    cmd_SYNC_EXTRUDER_MOTION_help = "Set extruder stepper motion queue"
+    cmd_SYNC_EXTRUDER_MOTION_help = _("Set extruder stepper motion queue")
     def cmd_SYNC_EXTRUDER_MOTION(self, gcmd):
         ename = gcmd.get('MOTION_QUEUE')
         self.sync_to_extruder(ename)
-        gcmd.respond_info("Extruder '%s' now syncing with '%s'"
+        gcmd.respond_info(_("Extruder '%s' now syncing with '%s'")
                           % (self.name, ename))
-    cmd_SET_E_STEP_DISTANCE_help = "Set extruder step distance"
+    cmd_SET_E_STEP_DISTANCE_help = _("Set extruder step distance")
     def cmd_SET_E_STEP_DISTANCE(self, gcmd):
         step_dist = gcmd.get_float('DISTANCE', None, above=0.)
         if step_dist is not None:
@@ -139,13 +139,13 @@ class ExtruderStepper:
             self.stepper.set_rotation_distance(step_dist * steps_per_rotation)
         else:
             step_dist = self.stepper.get_step_dist()
-        gcmd.respond_info("Extruder '%s' step distance set to %0.6f"
+        gcmd.respond_info(_("Extruder '%s' step distance set to %0.6f")
                           % (self.name, step_dist))
-    cmd_SYNC_STEPPER_TO_EXTRUDER_help = "Set extruder stepper"
+    cmd_SYNC_STEPPER_TO_EXTRUDER_help = _("Set extruder stepper")
     def cmd_SYNC_STEPPER_TO_EXTRUDER(self, gcmd):
         ename = gcmd.get('EXTRUDER')
         self.sync_to_extruder(ename)
-        gcmd.respond_info("Extruder '%s' now syncing with '%s'"
+        gcmd.respond_info(_("Extruder '%s' now syncing with '%s'")
                           % (self.name, ename))
 
 # Tracking for hotend heater, extrusion motion queue, and extruder stepper
@@ -227,15 +227,15 @@ class PrinterExtruder:
         axis_r = move.axes_r[3]
         if not self.heater.can_extrude:
             raise self.printer.command_error(
-                "Extrude below minimum temp\n"
-                "See the 'min_extrude_temp' config option for details")
+                _("Extrude below minimum temp\n"
+                "See the 'min_extrude_temp' config option for details"))
         if (not move.axes_d[0] and not move.axes_d[1]) or axis_r < 0.:
             # Extrude only move (or retraction move) - limit accel and velocity
             if abs(move.axes_d[3]) > self.max_e_dist:
                 raise self.printer.command_error(
-                    "Extrude only move too long (%.3fmm vs %.3fmm)\n"
+                    _("Extrude only move too long (%.3fmm vs %.3fmm)\n"
                     "See the 'max_extrude_only_distance' config"
-                    " option for details" % (move.axes_d[3], self.max_e_dist))
+                    " option for details") % (move.axes_d[3], self.max_e_dist))
             inv_extrude_r = 1. / abs(axis_r)
             move.limit_speed(self.max_e_velocity * inv_extrude_r,
                              self.max_e_accel * inv_extrude_r)
@@ -247,8 +247,8 @@ class PrinterExtruder:
             logging.debug("Overextrude: %s vs %s (area=%.3f dist=%.3f)",
                           axis_r, self.max_extrude_ratio, area, move.move_d)
             raise self.printer.command_error(
-                "Move exceeds maximum extrusion (%.3fmm^2 vs %.3fmm^2)\n"
-                "See the 'max_extrude_cross_section' config option for details"
+                _("Move exceeds maximum extrusion (%.3fmm^2 vs %.3fmm^2)\n"
+                "See the 'max_extrude_cross_section' config option for details")
                 % (area, self.max_extrude_ratio * self.filament_area))
     def calc_junction(self, prev_move, move):
         diff_r = move.axes_r[3] - prev_move.axes_r[3]
@@ -287,7 +287,7 @@ class PrinterExtruder:
             if extruder is None:
                 if temp <= 0.:
                     return
-                raise gcmd.error("Extruder not configured")
+                raise gcmd.error(_("Extruder not configured"))
         else:
             extruder = self.printer.lookup_object('toolhead').get_extruder()
         pheaters = self.printer.lookup_object('heaters')
@@ -296,13 +296,13 @@ class PrinterExtruder:
         # Set Extruder Temperature and Wait
         self.printer.send_event("extruder:heating")
         self.cmd_M104(gcmd, wait=True)
-    cmd_ACTIVATE_EXTRUDER_help = "Change the active extruder"
+    cmd_ACTIVATE_EXTRUDER_help = _("Change the active extruder")
     def cmd_ACTIVATE_EXTRUDER(self, gcmd):
         toolhead = self.printer.lookup_object('toolhead')
         if toolhead.get_extruder() is self:
-            gcmd.respond_info("Extruder %s already active" % (self.name,))
+            gcmd.respond_info(_("Extruder %s already active") % (self.name,))
             return
-        gcmd.respond_info("Activating extruder %s" % (self.name,))
+        gcmd.respond_info(_("Activating extruder %s") % (self.name,))
         toolhead.flush_step_generation()
         toolhead.set_extruder(self, self.last_position)
         self.printer.send_event("extruder:activate_extruder")
@@ -322,9 +322,9 @@ class DummyExtruder:
     def get_name(self):
         return ""
     def get_heater(self):
-        raise self.printer.command_error("Extruder not configured")
+        raise self.printer.command_error(_("Extruder not configured"))
     def get_trapq(self):
-        raise self.printer.command_error("Extruder not configured")
+        raise self.printer.command_error(_("Extruder not configured"))
 
 def add_printer_objects(config):
     printer = config.get_printer()

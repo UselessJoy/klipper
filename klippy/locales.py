@@ -12,7 +12,7 @@ el.install()
 
 def set_locale():
     locale = 'ru'
-    el = gettext.translation('Klipper', localedir=lang_path, languages=[locale], fallback=False)
+    el = gettext.translation('Klipper', localedir=lang_path, languages=[locale], fallback=True)
     el.install()
       #  def create_translations(self):
        #     self.lang_list = [d for d in os.listdir(self.lang_path) if not os.path.isfile(os.path.join(self.lang_path, d))]

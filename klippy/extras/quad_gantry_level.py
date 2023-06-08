@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import probe, z_tilt
-
+import locales
 # Leveling code for XY rails that are controlled by Z steppers as in:
 #
 # Z stepper1 ----> O                             O <---- Z stepper2
@@ -26,27 +26,27 @@ class QuadGantryLevel:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.retry_helper = z_tilt.RetryHelper(config,
-            "Possibly Z motor numbering is wrong")
+            _("Possibly Z motor numbering is wrong"))
         self.max_adjust = config.getfloat("max_adjust", 4, above=0)
         self.horizontal_move_z = config.getfloat("horizontal_move_z", 5.0)
         self.probe_helper = probe.ProbePointsHelper(config, self.probe_finalize)
         if len(self.probe_helper.probe_points) != 4:
             raise config.error(
-                "Need exactly 4 probe points for quad_gantry_level")
+                _("Need exactly 4 probe points for quad_gantry_level"))
         self.z_status = z_tilt.ZAdjustStatus(self.printer)
         self.z_helper = z_tilt.ZAdjustHelper(config, 4)
         self.gantry_corners = config.getlists('gantry_corners', parser=float,
                                               seps=(',', '\n'), count=2)
         if len(self.gantry_corners) < 2:
             raise config.error(
-                "quad_gantry_level requires at least two gantry_corners")
+                _("quad_gantry_level requires at least two gantry_corners"))
         # Register QUAD_GANTRY_LEVEL command
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command(
             'QUAD_GANTRY_LEVEL', self.cmd_QUAD_GANTRY_LEVEL,
             desc=self.cmd_QUAD_GANTRY_LEVEL_help)
     cmd_QUAD_GANTRY_LEVEL_help = (
-        "Conform a moving, twistable gantry to the shape of a stationary bed")
+        _("Conform a moving, twistable gantry to the shape of a stationary bed"))
     def cmd_QUAD_GANTRY_LEVEL(self, gcmd):
         self.z_status.reset()
         self.retry_helper.start(gcmd)
@@ -55,7 +55,7 @@ class QuadGantryLevel:
         # Mirror our perspective so the adjustments make sense
         # from the perspective of the gantry
         z_positions = [self.horizontal_move_z - p[2] for p in positions]
-        points_message = "Gantry-relative probe points:\n%s\n" % (
+        points_message = _("Gantry-relative probe points:\n%s\n") % (
             " ".join(["%s: %.6f" % (z_id, z_positions[z_id])
                 for z_id in range(len(z_positions))]))
         self.gcode.respond_info(points_message)
@@ -92,10 +92,10 @@ class QuadGantryLevel:
 
         ainfo = zip(["z","z1","z2","z3"], z_height[0:4])
         apos = " ".join(["%s: %06f" % (x) for x in ainfo])
-        self.gcode.respond_info("Actuator Positions:\n" + apos)
+        self.gcode.respond_info(_("Actuator Positions:\n") + apos)
 
         z_ave = sum(z_height) / len(z_height)
-        self.gcode.respond_info("Average: %0.6f" % z_ave)
+        self.gcode.respond_info(_("Average: %0.6f") % z_ave)
         z_adjust = []
         for z in z_height:
             z_adjust.append(z_ave - z)

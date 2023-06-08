@@ -1,5 +1,6 @@
 import os
 ##### BY FARINOV #####
+import locales
 class FlashUsb:
     def __init__(self, config):
         self.printer = config.get_printer()

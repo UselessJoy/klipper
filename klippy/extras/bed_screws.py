@@ -3,7 +3,7 @@
 # Copyright (C) 2019-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-
+import locales
 class BedScrews:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -25,7 +25,7 @@ class BedScrews:
                 fine_coord = config.getfloatlist(pfa, count=2)
                 fine_adjust.append((fine_coord, screw_name))
         if len(screws) < 3:
-            raise config.error("bed_screws: Must have at least three screws")
+            raise config.error(_("bed_screws: Must have at least three screws"))
         self.number_of_screws = len(screws)
         self.states = {'adjust': screws, 'fine': fine_adjust}
         self.speed = config.getfloat('speed', 50., above=0.)
@@ -54,8 +54,8 @@ class BedScrews:
         self.current_screw = screw
         # Register commands
         self.gcode.respond_info(
-            "Adjust %s. Then run ACCEPT, ADJUSTED, or ABORT\n"
-            "Use ADJUSTED if a significant screw adjustment is made" % (name,))
+            _("Adjust %s. Then run ACCEPT, ADJUSTED, or ABORT\n"
+            "Use ADJUSTED if a significant screw adjustment is made") % (name,))
         self.gcode.register_command('ACCEPT', self.cmd_ACCEPT,
                                     desc=self.cmd_ACCEPT_help)
         self.gcode.register_command('ADJUSTED', self.cmd_ADJUSTED,
@@ -73,15 +73,15 @@ class BedScrews:
             'current_screw': self.current_screw,
             'accepted_screws': self.accepted_screws
         }
-    cmd_BED_SCREWS_ADJUST_help = "Tool to help adjust bed leveling screws"
+    cmd_BED_SCREWS_ADJUST_help = _("Tool to help adjust bed leveling screws")
     def cmd_BED_SCREWS_ADJUST(self, gcmd):
         if self.state is not None:
-            raise gcmd.error("Already in bed_screws helper; use ABORT to exit")
+            raise gcmd.error(_("Already in bed_screws helper; use ABORT to exit"))
         # reset accepted screws
         self.accepted_screws = 0
         self.move((None, None, self.horizontal_move_z), self.speed)
         self.move_to_screw('adjust', 0)
-    cmd_ACCEPT_help = "Accept bed screw position"
+    cmd_ACCEPT_help = _("Accept bed screw position")
     def cmd_ACCEPT(self, gcmd):
         self.unregister_commands()
         self.accepted_screws = self.accepted_screws + 1
@@ -103,13 +103,13 @@ class BedScrews:
         # Done
         self.reset()
         self.move((None, None, self.horizontal_move_z), self.lift_speed)
-        gcmd.respond_info("Bed screws tool completed successfully")
-    cmd_ADJUSTED_help = "Accept bed screw position after notable adjustment"
+        gcmd.respond_info(_("Bed screws tool completed successfully"))
+    cmd_ADJUSTED_help = _("Accept bed screw position after notable adjustment")
     def cmd_ADJUSTED(self, gcmd):
         self.unregister_commands()
         self.accepted_screws = -1
         self.cmd_ACCEPT(gcmd)
-    cmd_ABORT_help = "Abort bed screws tool"
+    cmd_ABORT_help = _("Abort bed screws tool")
     def cmd_ABORT(self, gcmd):
         self.unregister_commands()
         self.reset()

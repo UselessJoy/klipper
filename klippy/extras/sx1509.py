@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import pins
 from . import bus
-
+import locales
 # Word registers
 REG_RESET = 0x7D
 REG_CLOCK = 0x1E
@@ -60,7 +60,7 @@ class SX1509(object):
             return SX1509_digital_out(self, pin_params)
         elif pin_type == 'pwm' and pin_params['pin'][0:4] == "PIN_":
             return SX1509_pwm(self, pin_params)
-        raise pins.error("Wrong pin or incompatible type: %s with type %s! " % (
+        raise pins.error(_("Wrong pin or incompatible type: %s with type %s! ") % (
             pin_params['pin'][0:4], pin_type))
     def get_mcu(self):
         return self._mcu
@@ -111,14 +111,14 @@ class SX1509_digital_out(object):
         self._sx1509.clear_bits_in_register(REG_DIR, self._bitmask)
     def _build_config(self):
         if self._max_duration:
-            raise pins.error("SX1509 pins are not suitable for heaters")
+            raise pins.error(_("SX1509 pins are not suitable for heaters"))
     def get_mcu(self):
         return self._mcu
     def setup_max_duration(self, max_duration):
         self._max_duration = max_duration
     def setup_start_value(self, start_value, shutdown_value, is_static=False):
         if is_static and start_value != shutdown_value:
-            raise pins.error("Static pin can not have shutdown value")
+            raise pins.error(_("Static pin can not have shutdown value"))
         self._start_value = (not not start_value) ^ self._invert
         self._shutdown_value = self._invert
         self._is_static = is_static
@@ -163,9 +163,9 @@ class SX1509_pwm(object):
         self._sx1509.clear_bits_in_register(REG_DATA, self._bitmask)
     def _build_config(self):
         if not self._hardware_pwm:
-            raise pins.error("SX1509_pwm must have hardware_pwm enabled")
+            raise pins.error(_("SX1509_pwm must have hardware_pwm enabled"))
         if self._max_duration:
-            raise pins.error("SX1509 pins are not suitable for heaters")
+            raise pins.error(_("SX1509 pins are not suitable for heaters"))
         # Send initial value
         self._sx1509.set_register(self._i_on_reg,
                                   ~int(255 * self._start_value) & 0xFF)
@@ -184,7 +184,7 @@ class SX1509_pwm(object):
         self._hardware_pwm = hardware_pwm
     def setup_start_value(self, start_value, shutdown_value, is_static=False):
         if is_static and start_value != shutdown_value:
-            raise pins.error("Static pin can not have shutdown value")
+            raise pins.error(_("Static pin can not have shutdown value"))
         if self._invert:
             start_value = 1. - start_value
             shutdown_value = 1. - shutdown_value

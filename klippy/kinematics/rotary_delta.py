@@ -106,7 +106,7 @@ class RotaryDeltaKinematics:
             # Normal XY move
             return
         if self.need_home:
-            raise move.move_error("Must home first")
+            raise move.move_error(_("Must home first"))
         end_z = end_pos[2]
         limit_xy2 = self.max_xy2
         if end_z > self.limit_z:

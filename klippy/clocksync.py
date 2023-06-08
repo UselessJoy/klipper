@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math
-
+import locales 
 RTT_AGE = .000010 / (60. * 60.)
 DECAY = 1. / 30.
 TRANSMIT_EXTRA = .001

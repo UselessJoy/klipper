@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import bus
-
+import locales
 class ad5206:
     def __init__(self, config):
         self.spi = bus.MCU_SPI_from_config(

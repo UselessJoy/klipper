@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import logging
-
+import locales
 class SDCardLoop:
     def __init__(self, config):
         printer = config.get_printer()
@@ -21,19 +21,19 @@ class SDCardLoop:
             "SDCARD_LOOP_DESIST", self.cmd_SDCARD_LOOP_DESIST,
             desc=self.cmd_SDCARD_LOOP_DESIST_help)
         self.loop_stack = []
-    cmd_SDCARD_LOOP_BEGIN_help = "Begins a looped section in the SD file."
+    cmd_SDCARD_LOOP_BEGIN_help = _("Begins a looped section in the SD file.")
     def cmd_SDCARD_LOOP_BEGIN(self, gcmd):
         count = gcmd.get_int("COUNT", minval=0)
         if not self.loop_begin(count):
-            raise gcmd.error("Only permitted in SD file.")
-    cmd_SDCARD_LOOP_END_help = "Ends a looped section in the SD file."
+            raise gcmd.error(_("Only permitted in SD file."))
+    cmd_SDCARD_LOOP_END_help = _("Ends a looped section in the SD file.")
     def cmd_SDCARD_LOOP_END(self, gcmd):
         if not self.loop_end():
-            raise gcmd.error("Only permitted in SD file.")
-    cmd_SDCARD_LOOP_DESIST_help = "Stops iterating the current loop stack."
+            raise gcmd.error(_("Only permitted in SD file."))
+    cmd_SDCARD_LOOP_DESIST_help = _("Stops iterating the current loop stack.")
     def cmd_SDCARD_LOOP_DESIST(self, gcmd):
         if not self.loop_desist():
-            raise gcmd.error("Only permitted outside of a SD file.")
+            raise gcmd.error(_("Only permitted outside of a SD file."))
     def loop_begin(self, count):
         if not self.sdcard.is_cmd_from_sd():
             # Can only run inside of an SD file

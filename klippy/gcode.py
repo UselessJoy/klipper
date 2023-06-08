@@ -62,7 +62,16 @@ class GCodeCommand:
                                  % (self._commandline, name))
             return default
         try:
-            value = parser(value)
+            if isinstance(parser, bool):
+                value = value.lower()
+                if value in ('yes', '1', 'true'):
+                    value = True
+                elif value in ('no', '0', 'false'):
+                    value = False
+                else:
+                    raise self.error("invalid truth value %r" % (value))
+            else:
+                value = parser(value)
         except:
             raise self.error(_("Error on '%s': unable to parse %s")
                              % (self._commandline, value))
@@ -85,6 +94,8 @@ class GCodeCommand:
                   above=None, below=None):
         return self.get(name, default, parser=float, minval=minval,
                         maxval=maxval, above=above, below=below)
+    def get_boolean(self, name, default=sentinel, minval=None, maxval=None):
+        return self.get(name, default, parser=bool, minval=minval, maxval=maxval)
 
 # Parse and dispatch G-Code commands
 class GCodeDispatch:

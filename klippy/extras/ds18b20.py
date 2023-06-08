@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 import mcu
-
+import locales
 DS18_REPORT_TIME = 3.0
 # Temperature can be sampled at any time but conversion time is ~750ms, so
 # setting the time too low will not make the reports come faster.

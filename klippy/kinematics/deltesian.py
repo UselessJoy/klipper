@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 import stepper
-
+import locales
 # Slow moves once the ratio of tower to XY movement exceeds SLOW_RATIO
 SLOW_RATIO = 3.
 
@@ -156,7 +156,7 @@ class DeltesianKinematics:
             limits[2][1] = self._pillars_z_max(epos[0])
         for i in (i for i, v in enumerate(move.axes_d[:3]) if v):
             if not self.homed_axis[i]:
-                raise move.move_error("Must home axis first")
+                raise move.move_error(_("Must home axis first"))
             # Move out of range - verify not a homing move
             if epos[i] < limits[i][0] or epos[i] > limits[i][1]:
                 if not homing_move:

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math
 import stepper
-
+import locales
 class CoreXZKinematics:
     def __init__(self, toolhead, config):
         # Setup axis rails
@@ -71,7 +71,7 @@ class CoreXZKinematics:
                 and (end_pos[i] < self.limits[i][0]
                      or end_pos[i] > self.limits[i][1])):
                 if self.limits[i][0] > self.limits[i][1]:
-                    raise move.move_error("Must home axis first")
+                    raise move.move_error(_("Must home axis first"))
                 raise move.move_error()
     def check_move(self, move):
         limits = self.limits

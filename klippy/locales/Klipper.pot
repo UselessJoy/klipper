@@ -168,9 +168,6 @@ msgid "Read %f: %s"
 msgstr ""
 #========================END GCODE MODULE=======================#
 
-#========================CLOCKSYNC MODULE=======================#
-#======================END CLOCKSYNC MODULE=====================#
-
 #=======================CONFIGFILE MODULE=======================#
 #, python-format
 msgid "Option '%s' in section '%s' must be specified"
@@ -248,9 +245,6 @@ msgstr ""
 msgid "Unable to write config file during SAVE_CONFIG"
 msgstr ""
 #=====================END CONFIGFILE MODULE=====================#
-
-#=========================CONSOLE MODULE========================#
-#=======================END CONSOLE MODULE======================#
 
 #========================MATHUTIL MODULE========================#
 msgid "Working on calibration..."
@@ -406,9 +400,6 @@ msgid "Unable to parse firmware constant %s: %s"
 msgstr ""
 #======================END MSGPROTO MODULE======================#
 
-#========================PARSEDUMP MODULE=======================#
-#======================END PARSEDUMP MODULE=====================#
-
 #===========================PINS MODULE=========================#
 #, python-format
 msgid "Pin %s reserved for %s - can't reserve for %s"
@@ -454,12 +445,6 @@ msgstr ""
 msgid "Duplicate chip name '%s'"
 msgstr ""
 #=========================END PINS MODULE=======================#
-
-#=======================QUEUELOGGER MODULE======================#
-#=====================END QUEUELOGGER MODULE====================#
-
-#=========================REACTOR MODULE========================#
-#=======================END REACTOR MODULE======================#
 
 #========================SERIALHDL MODULE=======================#
 msgid "Invalid CAN uuid"
@@ -519,9 +504,6 @@ msgstr ""
 msgid "Invalid M204 command \"%s\""
 msgstr ""
 #======================END TOOLHEAD MODULE======================#
-
-#===========================UTIL MODULE=========================#
-#=========================END UTIL MODULE=======================#
 
 #========================WEBHOOKS MODULE========================#
 msgid "Not a top-level dictionary"
@@ -586,3 +568,2236 @@ msgstr ""
 msgid "Invalid argument"
 msgstr ""
 #======================END WEBHOOKS MODULE======================#
+
+#========================CARTESIAN MODULE=======================#
+msgid "Must home axis first"
+msgstr ""
+
+msgid "Set which carriage is active"
+msgstr ""
+#======================END CARTESIAN MODULE=====================#
+
+#==========================EXTRUDER MODULE======================#
+#, python-format
+msgid "'%s' is not a valid extruder."
+msgstr ""
+
+msgid "Set pressure advance parameters"
+msgstr ""
+
+msgid "Active extruder does not have a stepper"
+msgstr ""
+
+msgid "Unable to infer active extruder stepper"
+msgstr ""
+
+msgid "Set extruder rotation distance"
+msgstr ""
+
+msgid "Rotation distance can not be zero"
+msgstr ""
+
+#, python-format
+msgid "Extruder '%s' rotation distance set to %0.6f"
+msgstr ""
+
+msgid "Set extruder stepper motion queue"
+msgstr ""
+
+#, python-format
+msgid "Extruder '%s' now syncing with '%s'"
+msgstr ""
+
+msgid "Set extruder step distance"
+msgstr ""
+
+#, python-format
+msgid "Extruder '%s' step distance set to %0.6f"
+msgstr ""
+
+msgid "Set extruder stepper"
+msgstr ""
+
+msgid "Extrude below minimum temp\n
+                See the 'min_extrude_temp' config option for details"
+msgstr ""
+
+#, python-format
+msgid "Extrude only move too long (%.3fmm vs %.3fmm)\n
+                    See the 'max_extrude_only_distance' config
+                     option for details"
+msgstr ""
+
+#, python-format
+msgid "Move exceeds maximum extrusion (%.3fmm^2 vs %.3fmm^2)\n
+                See the 'max_extrude_cross_section' config option for details"
+msgstr ""
+
+msgid "Extruder not configured"
+msgstr ""
+
+msgid "Change the active extruder"
+msgstr ""
+
+#, python-format
+msgid "Extruder %s already active"
+msgstr ""
+
+#, python-format
+msgid "Activating extruder %s"
+msgstr ""
+
+msgid "Extrude when no extruder present"
+msgstr ""
+
+#========================END EXTRUDER MODULE====================#
+
+#========================IDEX_MODES MODULE======================#
+msgid "Set which carriage is active"
+msgstr ""
+#======================END IDEX_MODES MODULE====================#
+
+#========================ADC_SCALED MODULE======================#
+msgid "vref and vssa must be on same mcu"
+msgstr ""
+
+msgid "adc_scaled only supports adc pins"
+msgstr ""
+#======================END ADC_SCALED MODULE====================#
+
+#======================ADC_TEMPERATURE MODULE===================#
+msgid "duplicate value"
+msgstr ""
+
+msgid "need at least two samples"
+msgstr ""
+
+#, python-format
+msgid "adc_temperature %s in heater %s"
+msgstr ""
+#====================END ADC_TEMPERATURE MODULE=================#
+
+#==========================ADXL345 MODULE=======================#
+#, python-format
+msgid "SAVE_CONFIG command will update %s configuration with offset = %s parameter"
+msgstr ""
+
+#, python-format
+msgid "SAVE_CONFIG command will also update %s configuration with axes_transform =\n%s"
+msgstr ""
+
+msgid "Measuring freefall acceleration"
+msgstr ""
+
+msgid "No accelerometer measurements found"
+msgstr ""
+
+#, python-format
+msgid "Writing raw debug accelerometer data to %s file"
+msgstr ""
+
+#, python-format
+msgid "WARNING: detected %d accelerometer reading errors. This 
+                    may be caused by electromagnetic interference on the 
+                    cables or problems with the sensor. This may severerly 
+                    impact the calibration and resonance testing results."
+msgstr ""
+
+#, python-format
+msgid "WARNING: detected %d accelerometer queue overflows. This 
+                    may happen if the accelerometer is connected to a slow 
+                    board that cannot read data fast enough, or in case of 
+                    communication errors. This may severerly impact the 
+                    calibration and resonance testing results."
+msgstr ""
+
+#, python-format
+msgid "WARNING: large acceleration reading detected (%.1f 
+                    mm/sec^2). This generally indicates communication 
+                    errors with the accelerometer (e.g. because of 
+                    electromagnetic interference on the cables or 
+                    problems with the sensor). This may severerly impact 
+                    the calibration and resonance testing results."
+msgstr ""
+
+#, python-format
+msgid "WARNING: strong periodic noise detected at %.1f Hz. This 
+                    could be a loud unbalanced fan or some other devices 
+                    working nearby. Please turn off fans (e.g. hotend fan) 
+                    and other sources of vibrations for accelerometer 
+                    calibration and resonance testing for best results."
+msgstr ""
+
+#, python-format
+msgid "%s is defunct: measured invalid freefall accel 
+                             %.3f (mm/sec^2) vs ~ %.3f (mm/sec^2)"
+msgstr ""
+
+#, python-format
+msgid "Accelerometer noise: %s (coefficients of variance)"
+msgstr ""
+
+#, python-format
+msgid "Detected freefall acceleration %.2f mm/sec^2 
+                          in the direction: %s"
+msgstr ""
+
+#, python-format
+msgid "Calibrating %s axis"
+msgstr ""
+
+msgid "No accelerometer measurements found"
+msgstr ""
+
+#, python-format
+msgid "Writing raw debug accelerometer data to %s file"
+msgstr ""
+
+#, python-format
+msgid "%s measured spurious acceleration on %s axis: 
+                        %.3f vs %.3f (mm/sec^2)"
+msgstr ""
+
+#, python-format
+msgid "Detected %s direction: %s"
+msgstr ""
+
+#, python-format
+msgid "%s is not kinematically connected to the 
+                              movement of %s axis"
+msgstr ""
+
+#, python-format
+msgid "%s is not kinematically connected to either of X or 
+                    Y printer axis, impossible to calibrate automatically. 
+                    Please manually set axes_map parameter."
+msgstr ""
+
+#, python-format
+msgid "Detected angle between X and Y axes is %.2f degrees"
+msgstr ""
+
+msgid "Computing axes transform"
+msgstr ""
+
+msgid "Start/stop accelerometer"
+msgstr ""
+
+msgid "adxl345 measurements started"
+msgstr ""
+
+msgid "Invalid adxl345 NAME parameter"
+msgstr ""
+
+#, python-format
+msgid "Writing raw accelerometer data to %s file"
+msgstr ""
+
+msgid "Query accelerometer for the current values"
+msgstr ""
+
+msgid "No adxl345 measurements found"
+msgstr ""
+
+#, python-format
+msgid "adxl345 values (x, y, z): %.6f, %.6f, %.6f"
+msgstr ""
+
+msgid "Automatically calibrate accelerometer"
+msgstr ""
+
+msgid "Invalid OUTPUT parameter"
+msgstr ""
+
+msgid "Query adxl345 register (for debugging)"
+msgstr ""
+
+#, python-format
+msgid "ADXL345 REG[0x%x] = 0x%x"
+msgstr ""
+
+msgid "Set adxl345 register (for debugging)"
+msgstr ""
+
+msgid "Invalid adxl345 axes_map parameter"
+msgstr ""
+
+#, python-format
+msgid "Invalid rate parameter: %d"
+msgstr ""
+
+#, python-format
+msgid "Failed to set ADXL345 register [0x%x] to 0x%x: got 0x%x. 
+                    This is generally indicative of connection problems 
+                    (e.g. faulty wiring) or a faulty adxl345 chip."
+msgstr ""
+
+msgid "Unable to query adxl345 fifo"
+msgstr ""
+
+#, python-format
+msgid "Invalid adxl345 id (got %x vs %x).\n
+                This is generally indicative of connection problems\n
+                (e.g. faulty wiring) or a faulty adxl345 chip."
+msgstr ""
+#========================END ADXL345 MODULE=====================#
+
+#===========================ANGLE MODULE========================#
+#, python-format
+msgid "Angle calibration requires numpy module"
+msgstr ""
+
+#, python-format
+msgid "Unable to find TMC driver for %s"
+msgstr ""
+
+#, python-format
+msgid "Driver phase not known for %s"
+msgstr ""
+
+msgid "Failed calibration - incomplete sensor data"
+msgstr ""
+
+msgid "Calibrate angle sensor to stepper motor"
+msgstr ""
+
+msgid "Failed calibration - sensor not updating for each step"
+msgstr ""
+
+#, python-format
+msgid "angle: stddev=%.3f (%.3f forward / %.3f reverse)
+                           in %d queries"
+msgstr ""
+
+msgid "Unable to query tle5012b chip"
+msgstr ""
+
+msgid "Unable to write to tle5012b chip"
+msgstr ""
+
+msgid "Query low-level angle sensor register"
+msgstr ""
+
+msgid "Set low-level angle sensor register"
+msgstr ""
+#=========================END ANGLE MODULE======================#
+
+#===================END BACKGROUD_PROCESS MODULE================#
+msgid "Wait for calculations.."
+msgstr ""
+
+#, python-format
+msgid "Error in remote calculation: %s"
+msgstr ""
+#===================END BACKGROUD_PROCESS MODULE================#
+
+#=========================BED_MESH MODULE=======================#
+#, python-format
+msgid "bed_mesh: malformed '%s' value: %s"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section bed_mesh must have a minimum of %s"
+msgstr ""
+
+#, python-format
+msgid "angle: stddev=%.3f (%.3f forward / %.3f reverse)
+                           in %d queries"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse parameter '%s'"
+msgstr ""
+
+#, python-format
+msgid "Parameter '%s' must have a minimum of %d"
+msgstr ""
+
+#, python-format
+msgid "Parameter '%s' must have a maximum of %d"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: ERROR, fade_target lies outside of mesh z 
+                        range\nmin: %.4f, max: %.4f, fade_target: %.4f"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh:  Mesh extends outside of the fade range, 
+                    please see the fade_start and fade_end options in
+                    example-extras.cfg. fade distance: %.2f mesh min: %.4f
+                    mesh max: %.4f"
+msgstr ""
+
+msgid "Mesh Leveling: Error splitting move "
+msgstr ""
+
+msgid "Retrieve interpolated grid of probed z-points"
+msgstr ""
+
+msgid "Bed has not been probed"
+msgstr ""
+
+msgid "Serialize mesh and output to terminal"
+msgstr ""
+
+msgid "Clear the Mesh so no z-adjustment is made"
+msgstr ""
+
+msgid "Add X/Y offsets to the mesh lookup"
+msgstr ""
+
+msgid "No mesh loaded to offset"
+msgstr ""
+
+msgid "bed_mesh: min/max points too close together"
+msgstr ""
+
+msgid "bed_mesh: generated points\nIndex
+                    |  Tool Adjusted  |   Probe"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: relative_reference_index %d is (%.2f, %.2f)"
+msgstr ""
+
+msgid "bed_mesh: faulty region points"
+msgstr ""
+
+#, python-format
+msgid "%d (%.2f, %.2f), substituted points: %s"
+msgstr ""
+
+msgid "bed_mesh: probe_count must be odd for round beds"
+msgstr ""
+
+msgid "bed_mesh: invalid min/max points"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: Existing faulty_region_%d %s overlaps 
+                            added faulty_region_%d %s"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: Added faulty_region_%d %s overlaps 
+                            existing faulty_region_%d %s"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: cannot exceed a probe_count of 6 when using 
+                lagrange interpolation. Configured Probe Count: %d, %d"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: invalid probe_count option when using bicubic 
+                    interpolation.  Combination of 3 points on one axis with 
+                    more than 6 on another is not permitted. 
+                    Configured Probe Count: %d, %d"
+msgstr ""
+
+msgid "Generating new points..."
+msgstr ""
+
+msgid "Perform Mesh Bed Leveling"
+msgstr ""
+
+msgid "Value for parameter 'PROFILE' must be specified"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: point mismatch, orig = (%.2f, %.2f)
+                        , probed = (%.2f, %.2f)"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: Invalid y-axis table length\n
+                 Probed table length: %d Probed Table:\n%s"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: incorrect number of points sampled on X\n"
+msgstr ""
+
+#, python-format
+msgid "Probed Table:\n"
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: invalid x-axis table length\n
+                        Probed table length: %d Probed Table:\n%s"
+msgstr ""
+
+msgid "Mesh Bed Leveling Complete"
+msgstr ""
+
+msgid "bed_mesh: Slice distance is negative 
+                or greater than entire move length"
+msgstr ""
+
+#, python-format
+msgid "Mesh Leveling Probed Z positions:\n"
+msgstr ""
+
+msgid "bed_mesh: bed has not been probed"
+msgstr ""
+
+#, python-format
+msgid "Mesh X,Y: %d,%d\n"
+msgstr ""
+
+#, python-format
+msgid "Search Height: %d\n"
+msgstr ""
+
+#, python-format
+msgid "Mesh Offsets: X=%.4f, Y=%.4f\n"
+msgstr ""
+
+#, python-format
+msgid "Mesh Average: %.2f\n"
+msgstr ""
+
+#, python-format
+msgid "Mesh Range: min=%.4f max=%.4f\n"
+msgstr ""
+
+#, python-format
+msgid "Interpolation Algorithm: %s\n"
+msgstr ""
+
+msgid "Measured points:\n"
+msgstr ""
+
+msgid "bed_mesh: Z Mesh not generated"
+msgstr ""
+
+msgid "bed_mesh: Error finding x control points"
+msgstr ""
+
+msgid "bed_mesh: Error finding y control points"
+msgstr ""
+
+#, python-format
+msgid "The following incompatible profiles have been detected\n
+                and are scheduled for removal:\n%s\n
+                The SAVE_CONFIG command will update the printer config\n
+                file and restart the printer"
+msgstr ""
+
+#, python-format
+msgid "Unable to save to profile [%s], the bed has not been probed"
+msgstr ""
+
+#, python-format
+msgid "Bed Mesh state has been saved to profile [%s]\n
+            for the current session.  The SAVE_CONFIG command will\n
+            update the printer config file and restart the printer."
+msgstr ""
+
+#, python-format
+msgid "bed_mesh: Unknown profile [%s]"
+msgstr ""
+
+#, python-format
+msgid "Profile [%s] removed from storage for this session.\n
+                The SAVE_CONFIG command will update the printer\n
+                configuration and restart the printer"
+msgstr ""
+
+#, python-format
+msgid "No profile named [%s] to remove"
+msgstr ""
+
+msgid "Bed Mesh Persistent Storage management"
+msgstr ""
+
+#, python-format
+msgid "Value for parameter '%s' must be specified"
+msgstr ""
+
+#, python-format
+msgid "Profile 'default' is reserved, please choose
+                         another profile name."
+msgstr ""
+
+#, python-format
+msgid "Invalid syntax '%s'"
+msgstr ""
+#=======================END BED_MESH MODULE=====================#
+
+#========================BED_SCREWS MODULE======================#
+#, python-format
+msgid "bed_screws: Must have at least three screws"
+msgstr ""
+
+#, python-format
+msgid "Adjust %s. Then run ACCEPT, ADJUSTED, or ABORT\n
+            Use ADJUSTED if a significant screw adjustment is made"
+msgstr ""
+
+msgid "Tool to help adjust bed leveling screws"
+msgstr ""
+
+msgid "Already in bed_screws helper; use ABORT to exit"
+msgstr ""
+
+msgid "Accept bed screw position"
+msgstr ""
+
+msgid "Bed screws tool completed successfully"
+msgstr ""
+
+msgid "Accept bed screw position after notable adjustment"
+msgstr ""
+
+msgid "Abort bed screws tool"
+msgstr ""
+#======================END BED_SCREWS MODULE====================#
+
+#=========================BED_TILT MODULE=======================#
+msgid "Bed tilt calibration script"
+msgstr ""
+
+#, python-format
+msgid "%s\nThe above parameters have been applied to the current\n
+            session. The SAVE_CONFIG command will update the printer\n
+            config file and restart the printer."
+msgstr ""
+#=======================END BED_TILT MODULE=====================#
+
+#==========================BLTOUCH MODULE=======================#
+msgid "BLTouch failed to raise probe"
+msgstr ""
+
+msgid "Failed to verify BLTouch probe is raised; retrying."
+msgstr ""
+
+msgid "BLTouch failed to verify sensor state"
+msgstr ""
+
+msgid "; retrying."
+msgstr ""
+
+msgid "BLTouch failed to deploy"
+msgstr ""
+
+msgid "Send a command to the bltouch for debugging"
+msgstr ""
+
+#, python-format
+msgid "Sending BLTOUCH_DEBUG COMMAND=%s"
+msgstr ""
+
+#, python-format
+msgid "BLTouch commands: %s"
+msgstr ""
+
+msgid "Store an output mode in the BLTouch EEPROM"
+msgstr ""
+
+msgid "BLTouch output modes: 5V, OD"
+msgstr ""
+
+#, python-format
+msgid "Storing BLTouch output mode: %s"
+msgstr ""
+#========================END BLTOUCH MODULE=====================#
+
+#==========================BME280 MODULE========================#
+#, python-format
+msgid "BME280 temperature %0.1f outside range of %0.1f:%.01f"
+msgstr ""
+#========================END BME280 MODULE======================#
+
+#============================BUS MODULE=========================#
+#, python-format
+msgid "Must specify %s on mcu '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unknown %s '%s'"
+msgstr ""
+
+#, python-format
+msgid "%s: spi pins must be on same mcu"
+msgstr ""
+#==========================END BUS MODULE=======================#
+
+#==========================BUTTONS MODULE=======================#
+msgid "button pins must be on same mcu"
+msgstr ""
+
+#, python-format
+msgid "%d steps per detent not supported"
+msgstr ""
+#========================END BUTTONS MODULE=====================#
+
+#========================CANBUS_IDS MODULE======================#
+msgid "Duplicate canbus_uuid"
+msgstr ""
+
+#, python-format
+msgid "Unknown canbus_uuid %s"
+msgstr ""
+#======================END CANBUS_IDS MODULE====================#
+
+#=======================CONTROLLER_FAN MODULE===================#
+#, python-format
+msgid "One or more of these steppers are unknown: 
+                 %s (valid steppers are: %s)"
+msgstr ""
+#=====================END CONTROLLER_FAN MODULE=================#
+
+#=======================DELAYED_GCODE MODULE====================#
+msgid "Update the duration of a delayed_gcode"
+msgstr ""
+#=====================END DELAYED_GCODE MODULE==================#
+
+#======================DELTA_CALIBRATE MODULE===================#
+msgid "Delta calibrate is only for delta printers"
+msgstr ""
+
+#, python-format
+msgid "The SAVE_CONFIG command will update the printer config file\n
+            with these parameters and restart the printer."
+msgstr ""
+
+msgid "Delta calibration script"
+msgstr ""
+
+#, python-format
+msgid "Adding manual height: %.3f,%.3f,%.3f is actually z=%.3f"
+msgstr ""
+
+msgid "Not all measurements provided"
+msgstr ""
+
+msgid "Must run basic calibration with DELTA_CALIBRATE first"
+msgstr ""
+
+msgid "Extended delta calibration tool"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse parameter '%s'"
+msgstr ""
+
+#, python-format
+msgid "Parameter '%s' must have %d values"
+msgstr ""
+
+#, python-format
+msgid "Unknown calibrate action"
+msgstr ""
+#====================END DELTA_CALIBRATE MODULE=================#
+
+#======================DISPLAY_STATUS MODULE====================#
+msgid "Set or clear the display message"
+msgstr ""
+#=====================END DISPLAY_STATUS MODULE=================#
+
+#==========================DOTSTAR MODULE=======================#
+msgid "Dotstar pins must be on same mcu"
+msgstr ""
+#========================END DOTSTAR MODULE=====================#
+
+#=======================ENDSTOP_PHASE MODULE====================#
+#, python-format
+msgid "Stepper %s phase unknown"
+msgstr ""
+
+#, python-format
+msgid "Invalid trigger_phase '%s'"
+msgstr ""
+
+#, python-format
+msgid "Endstop for %s is not accurate enough for
+                                stepper phase adjustment"
+msgstr ""
+
+#, python-format
+msgid "Endstop %s incorrect phase (got %d vs %d)" 
+msgstr ""
+
+msgid "Calibrate stepper phase"
+msgstr ""
+
+#, python-format
+msgid "Stats not available for stepper %s"
+msgstr ""
+
+#, python-format
+msgid "The SAVE_CONFIG command will update the printer config\n
+            file with these parameters and restart the printer."
+msgstr ""
+
+#, python-format
+msgid "%s: trigger_phase=%d/%d (range %d to %d)"
+msgstr ""
+
+msgid "No steppers found. (Be sure to home at least once.)"
+msgstr ""
+#=====================END ENDSTOP_PHASE MODULE==================#
+
+#======================EXCLUDE_OBJECT MODULE====================#
+msgid "Marks the beginning the current object as labeled"
+msgstr ""
+
+msgid "Marks the end the current object"
+msgstr ""
+
+msgid "EXCLUDE_OBJECT_END called, but no object is
+                               currently active"
+msgstr ""
+
+msgid "EXCLUDE_OBJECT_END NAME=%s does not match the
+                               current object NAME=%s"
+msgstr ""
+
+msgid "Cancel moves inside a specified objects"
+msgstr ""
+
+msgid "There is no current object to cancel"
+msgstr ""
+
+msgid "Provides a summary of an object"
+msgstr ""
+
+#, python-format
+msgid "Excluding object {}"
+msgstr ""
+
+#, python-format
+msgid "Unexcluding object {}"
+msgstr ""
+
+#, python-format
+msgid "Known objects: {}"
+msgstr ""
+
+#, python-format
+msgid "Excluded objects: {}"
+msgstr ""
+#====================END EXCLUDE_OBJECT MODULE==================#
+
+#========================FAN_GENERIC MODULE=====================#
+msgid "Sets the speed of a fan"
+msgstr ""
+#======================END FAN_GENERIC MODULE===================#
+
+#==================FILAMENT_SWITCH_SENSOR MODULE================#
+msgid "Query the status of the Filament Sensor"
+msgstr ""
+
+#, python-format
+msgid "Filament Sensor %s: filament detected"
+msgstr ""
+
+#, python-format
+msgid "Filament Sensor %s: filament not detected"
+msgstr ""
+
+#, python-format
+msgid "Sets the filament sensor on/off"
+msgstr ""
+#================END FILAMENT_SWITCH_SENSOR MODULE==============#
+
+#===================FIRMWARE_RETRACTION MODULE==================#
+msgid "Set firmware retraction parameters"
+msgstr ""
+
+#, python-format
+msgid "Report firmware retraction paramters"
+msgstr ""
+#=================END FIRMWARE_RETRACTION MODULE================#
+
+#========================FORCE_MOVE MODULE======================#
+#, python-format
+msgid "Unknown stepper %s"
+msgstr ""
+
+msgid "Oscillate a given stepper to help id it"
+msgstr ""
+
+msgid "Manually move a stepper; invalidates kinematics"
+msgstr ""
+
+msgid "Force a low-level kinematic position"
+msgstr ""
+#======================END FORCE_MOVE MODULE====================#
+
+#========================GCODE_ARCS MODULE======================#
+#, python-format
+msgid "G2/G3 does not support relative move mode"
+msgstr ""
+
+#, python-format
+msgid "G2/G3 does not support R moves"
+msgstr ""
+
+#, python-format
+msgid "G2/G3 requires IJ, IK or JK parameters"
+msgstr ""
+#======================END GCODE_ARCS MODULE====================#
+
+#=======================GCODE_BUTTON MODULE=====================#
+msgid "Report on the state of a button"
+msgstr ""
+#=====================END GCODE_BUTTON MODULE===================#
+
+#========================GCODE_MACRO MODULE=====================#
+#, python-format
+msgid "Error loading template '%s': %s"
+msgstr ""
+
+#, python-format
+msgid "Error evaluating '%s': %s"
+msgstr ""
+
+#, python-format
+msgid "Shutdown due to %s"
+msgstr ""
+
+#, python-format
+msgid "Name of section '%s' contains illegal whitespace"
+msgstr ""
+
+#, python-format
+msgid "G-Code macro rename of different types ('%s' vs '%s')"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' is not a valid literal"
+msgstr ""
+
+#, python-format
+msgid "Option '%s' in section '%s' is not a valid literal"
+msgstr ""
+
+msgid "Set the value of a G-Code macro variable"
+msgstr ""
+
+#, python-format
+msgid "Unknown gcode_macro variable '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse '%s' as a literal"
+msgstr ""
+
+#, python-format
+msgid "Macro %s called recursively"
+msgstr ""
+#======================END GCODE_MACRO MODULE===================#
+
+#========================GCODE_MOVE MODULE======================#
+msgid "G-Code move transform already specified"
+msgstr ""
+
+#, python-format
+msgid "Invalid speed in '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse move '%s'"
+msgstr ""
+
+msgid "Machine does not support G20 (inches) command"
+msgstr ""
+
+msgid "Set a virtual offset to g-code positions"
+msgstr ""
+
+msgid "Save G-Code coordinate state"
+msgstr ""
+
+msgid "Restore a previously saved G-Code state"
+msgstr ""
+
+#, python-format
+msgid "Unknown g-code state: %s"
+msgstr ""
+
+msgid "Return information on the current location of the toolhead"
+msgstr ""
+
+msgid "Printer not ready"
+msgstr ""
+#======================END GCODE_MOVE MODULE====================#
+
+#================HALL_FILAMENT_WIDTH_SENSOR MODULE==============#
+#, python-format
+msgid "Filament width:%.3f"
+msgstr ""
+
+msgid "Filament dia (measured mm): "
+msgstr ""
+
+msgid "Filament width measurements cleared!"
+msgstr ""
+
+msgid "Filament width sensor Turned On"
+msgstr ""
+
+msgid "Filament width sensor is already On"
+msgstr ""
+
+msgid "Filament width sensor Turned Off"
+msgstr ""
+
+msgid "Filament width sensor is already Off"
+msgstr ""
+
+msgid "Filament width logging Turned On"
+msgstr ""
+
+msgid "Filament width logging Turned Off"
+msgstr ""
+#==============END HALL_FILAMENT_WIDTH_SENSOR MODULE============#
+
+#==========================HEATERS MODULE=======================#
+#, python-format
+msgid "Requested temperature (%.1f) out of range (%.1f:%.1f)"
+msgstr ""
+
+msgid "Sets a heater temperature"
+msgstr ""
+
+#, python-format
+msgid "Cannot load config '%s'"
+msgstr ""
+
+#, python-format
+msgid "Heater %s already registered"
+msgstr ""
+
+#, python-format
+msgid "Unknown heater '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unknown temperature sensor '%s'"
+msgstr ""
+
+#, python-format
+msgid "G-Code sensor id %s already registered" 
+msgstr ""
+
+msgid "Turn off all heaters"
+msgstr ""
+
+msgid "Wait for a temperature on a sensor"
+msgstr ""
+
+msgid "Error on 'TEMPERATURE_WAIT': missing MINIMUM or MAXIMUM."
+msgstr ""
+#========================END HEATERS MODULE=====================#
+
+#======================HOMING_HEATERS MODULE====================#
+#, python-format
+msgid "One or more of these heaters are unknown: %s"
+msgstr ""
+
+#, python-format
+msgid "One or more of these steppers are unknown: %s"
+msgstr ""
+#====================END HOMING_HEATERS MODULE==================#
+
+#===========================HOMING MODULE=======================#
+#, python-format
+msgid "Error during homing move: %s"
+msgstr ""
+
+#, python-format
+msgid "Communication timeout during homing %s"
+msgstr ""
+
+#, python-format
+msgid "No trigger on %s after full movement"
+msgstr ""
+
+#, python-format
+msgid "Endstop %s still triggered after retract"
+msgstr ""
+
+msgid "Homing failed due to printer shutdown"
+msgstr ""
+
+msgid "Probing failed due to printer shutdown"
+msgstr ""
+
+msgid "Probe triggered prior to movement"
+msgstr ""
+#=========================END HOMING MODULE=====================#
+
+#===========================HTU21D MODULE=======================#
+#, python-format
+msgid "Invalid HTU21D Resolution. Valid are %s"
+msgstr ""
+
+#, python-format
+msgid "HTU21D temperature %0.1f outside range of %0.1f:%.01f"
+msgstr ""
+#=========================END HTU21D MODULE=====================#
+
+#=======================IDLE_TIMEOUT MODULE=====================#
+#, python-format
+msgid "Set the idle timeout in seconds"
+msgstr ""
+
+#, python-format
+msgid "idle_timeout: Timeout set to %.2f s"
+msgstr ""
+#=====================END IDLE_TIMEOUT MODULE===================#
+
+#=======================INPUT_SHAPER MODULE=====================#
+#, python-format
+msgid "Unsupported shaper type: %s"
+msgstr ""
+
+#, python-format
+msgid "Unsupported shaper type: %s"
+msgstr ""
+
+#, python-format
+msgid "Failed to configure shaper(s) %s with given parameters"
+msgstr ""
+
+msgid "Set cartesian parameters for input shaper"
+msgstr ""
+#=====================END INPUT_SHAPER MODULE===================#
+
+#========================LED_EFFECT MODULE======================#
+msgid "Stops all led_effects"
+msgstr ""
+
+#, python-format
+msgid "Unknown LED '%s'"
+msgstr ""
+
+msgid "Starts or Stops the specified led_effect"
+msgstr ""
+
+#, python-format
+msgid "LED Effect '%s' in section '%s' is not a valid effect layer"
+msgstr ""
+
+#, python-format
+msgid "Blending mode '%s' in section 
+                     '%s' is not a valid blending mode"
+msgstr ""
+
+#, python-format
+msgid "Color %s has too many elements."
+msgstr ""
+
+#, python-format
+msgid "Error parsing palette in '%s' for layer \"%s\": %s"
+msgstr ""
+#======================END LED_EFFECT MODULE====================#
+
+#============================LED MODULE=========================#
+msgid "Get the current default color of neopixel"
+msgstr ""
+
+msgid "Save default neopixel color"
+msgstr ""
+
+msgid "Unable to load colors"
+msgstr ""
+
+msgid "New default color saved successfully"
+msgstr ""
+
+msgid "Set the color of an LED"
+msgstr ""
+
+#, python-format
+msgid "Unknown LED '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unknown display_template '%s'"
+msgstr ""
+
+#, python-format
+msgid "Invalid display_template parameter: %s"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse '%s' as a literal"
+msgstr ""
+
+#, python-format
+msgid "No LED pin definitions found in '%s'"
+msgstr ""
+#==========================END LED MODULE=======================#
+
+#============================LM75 MODULE========================#
+#, python-format
+msgid "LM75 temperature %0.1f outside range of %0.1f:%.01f"
+msgstr ""
+#==========================END LM75 MODULE======================#
+
+#=======================MANUAL_PROBE MODULE=====================#
+msgid "Start manual probe helper script"
+msgstr ""
+
+#, python-format
+msgid "stepper_z: position_endstop: %.3f\n
+            The SAVE_CONFIG command will update the printer config file\n
+            with the above and restart the printer."
+msgstr ""
+
+msgid "Calibrate a Z endstop"
+msgstr ""
+
+msgid "Nothing to do: Z Offset is 0"
+msgstr ""
+
+#, python-format
+msgid "stepper_a: position_endstop: %.3f\n
+                stepper_b: position_endstop: %.3f\n
+                stepper_c: position_endstop: %.3f\n
+                The SAVE_CONFIG command will update the printer config file\n
+                with the above and restart the printer."
+msgstr ""
+
+msgid "Adjust the z endstop_position"
+msgstr ""
+
+msgid "Already in a manual Z probe. Use ABORT to abort it."
+msgstr ""
+
+msgid "Starting manual Z probe. Use TESTZ to adjust position.\n
+            Finish with ACCEPT or ABORT command."
+msgstr ""
+
+msgid "WARNING: No change in position (reached stepper resolution)"
+msgstr ""
+
+#, python-format
+msgid "Z position: %s --> %.3f <-- %s"
+msgstr ""
+
+msgid "Accept the current Z position"
+msgstr ""
+
+msgid "Manual probe failed! Use TESTZ commands to position the\n
+                nozzle prior to running ACCEPT."
+msgstr ""
+
+msgid "Abort manual Z probing tool"
+msgstr ""
+
+msgid "Move to new Z height"
+msgstr ""
+#=====================END MANUAL_PROBE MODULE===================#
+
+#======================MANUAL_STEPPER MODULE====================#
+msgid "No endstop for this manual stepper"
+msgstr ""
+
+msgid "Command a manually configured stepper"
+msgstr ""
+#====================END MANUAL_STEPPER MODULE==================#
+
+#==========================MCP4018 MODULE=======================#
+#, python-format
+msgid "%s: scl_pin and sda_pin must be on same mcu"
+msgstr ""
+
+msgid "Set digipot value"
+msgstr ""
+
+#, python-format
+msgid "New value for DIGIPOT = %s, wiper = %.2f"
+msgstr ""
+#========================END MCP4018 MODULE=====================#
+
+#==========================MCP4451 MODULE=======================#
+msgid "mcp4451 address must be between 44 and 47"
+msgstr ""
+#=========================END MCP4451 MODULE====================#
+
+#==========================MPU9250 MODULE=======================#
+msgid "Invalid mpu9250 axes_map parameter"
+msgstr ""
+
+#, python-format
+msgid "Invalid rate parameter: %d"
+msgstr ""
+
+msgid "Unable to query mpu9250 fifo"
+msgstr ""
+
+#, python-format
+msgid "Invalid mpu id (got %x).\n
+                This is generally indicative of connection problems\n
+                (e.g. faulty wiring) or a faulty chip."
+msgstr ""
+#========================END MPU9250 MODULE=====================#
+
+#=========================MULTI_PIN MODULE======================#
+#, python-format
+msgid "multi_pin %s not configured"
+msgstr ""
+
+#, python-format
+msgid "Can't setup multi_pin %s twice"
+msgstr ""
+#=======================END MULTI_PIN MODULE====================#
+
+#==========================NEOPIXEL MODULE======================#
+msgid "color_order does not match chain_count"
+msgstr ""
+
+#, python-format
+msgid "Invalid color_order '%s'"
+msgstr ""
+
+msgid "neopixel chain too long"
+msgstr ""
+#========================END NEOPIXEL MODULE====================#
+
+#========================OUTPUT_PIN MODULE======================#
+msgid "Set the value of an output pin"
+msgstr ""
+
+msgid "Invalid pin value"
+msgstr ""
+#======================END OUTPUT_PIN MODULE====================#
+
+#==========================PALETTE2 MODULE======================#
+msgid "Palette 2 is not connected, connect first"
+msgstr ""
+
+msgid "Palette 2 requires [virtual_sdcard] to work,
+                 please add it to your config!"
+msgstr ""
+
+msgid "Palette 2 requires [pause_resume] to work,
+                 please add it to your config!"
+msgstr ""
+
+msgid "Invalid serial port specific for Palette 2"
+msgstr ""
+
+msgid "Connect to the Palette 2"
+msgstr ""
+
+msgid "Palette 2 serial port is already active, disconnect first"
+msgstr ""
+
+msgid "Unable to connect to the Palette 2"
+msgstr ""
+
+msgid "Disconnect from the Palette 2"
+msgstr ""
+
+msgid "Clear the input and output of the Palette 2"
+msgstr ""
+
+msgid "Cut the outgoing filament"
+msgstr ""
+
+msgid "Automatically load filament through the extruder"
+msgstr ""
+
+msgid "Cannot auto load when the Palette 2 is not ready"
+msgstr ""
+
+msgid "No response from Palette 2"
+msgstr ""
+
+msgid "Initialize the print, and check connection with the Palette 2"
+msgstr ""
+
+msgid "Cannot initialize print, palette 2 is not connected"
+msgstr ""
+
+msgid "Palette 2 waiting on user to complete setup"
+msgstr ""
+
+msgid "Reset print information""
+msgstr ""
+
+msgid "Incorrect number of arguments for splice command"
+msgstr ""
+
+msgid "Incorrectly formatted splice command"
+msgstr ""
+
+msgid "Palette 2 firmware version is too old, 
+                    update to at least 9.0.9"
+msgstr ""
+
+msgid "Unable to auto load filament, extruder is below minimum temp"
+msgstr ""
+#========================END PALETTE2 MODULE====================#
+
+#=======================PAUSE_RESUME MODULE=====================#
+msgid "Pauses the current print"
+msgstr ""
+
+msgid "Print already paused"
+msgstr ""
+
+msgid "Resumes the print from a pause"
+msgstr ""
+
+msgid "Print is not paused, resume aborted"
+msgstr ""
+
+msgid "Clears the current paused state without resuming the print"
+msgstr ""
+
+msgid "Cancel the current print"
+msgstr ""
+
+msgid "action:paused"
+msgstr ""
+
+msgid "action:resumed"
+msgstr ""
+
+msgid "action:cancel"
+msgstr ""
+#=====================END PAUSE_RESUME MODULE===================#
+
+#==========================PCA9632 MODULE=======================#
+#, python-format
+msgid "Invalid color_order '%s'"
+msgstr ""
+#========================END PCA9632 MODULE=====================#
+
+#=======================PID_CALIBRATE MODULE====================#
+msgid "Run PID calibration test"
+msgstr ""
+
+msgid "pid_calibrate interrupted"
+msgstr ""
+
+#, python-format
+msgid "PID parameters: pid_Kp=%.3f pid_Ki=%.3f pid_Kd=%.3f\n
+            The SAVE_CONFIG command will update the printer config file\n
+            with these parameters and restart the printer."
+msgstr ""
+#=====================END PID_CALIBRATE MODULE==================#
+
+#========================PRINT_STATS MODULE=====================#
+#, python-format
+msgid "Pass slicer info like layer act and total to klipper"
+msgstr ""
+#======================END PRINT_STATS MODULE===================#
+
+#===========================PROBE MODULE========================#
+msgid "If the probe did not move far enough to trigger, then
+consider reducing the Z axis minimum position so the probe
+can travel further (the Z minimum position can be negative)."
+msgstr ""
+
+msgid "Probe virtual endstop only useful as endstop pin"
+msgstr ""
+
+msgid "Can not pullup/invert probe virtual endstop"
+msgstr ""
+
+msgid "Must home before probe"
+msgstr ""
+
+msgid "Timeout during endstop homing"
+msgstr ""
+
+#, python-format
+msgid "probe at %.3f,%.3f is z=%.6f"
+msgstr ""
+
+msgid "Probe samples exceed samples_tolerance"
+msgstr ""
+
+msgid "Probe samples exceed tolerance. Retrying..."
+msgstr ""
+
+msgid "Probe Z-height at current XY position"
+msgstr ""
+
+#, python-format
+msgid "Result is z=%.6f"
+msgstr ""
+
+msgid "Return the status of the z-probe"
+msgstr ""
+
+#, python-format
+msgid "probe: %s"
+msgstr ""
+
+#, python-format
+msgid "Probe Z-height accuracy at current XY position"
+msgstr ""
+
+#, python-format
+msgid "PROBE_ACCURACY at X:%.3f Y:%.3f Z:%.3f
+                           (samples=%d retract=%.3f
+                           speed=%.1f lift_speed=%.1f)\n"
+msgstr ""
+
+#, python-format
+msgid "probe accuracy results: maximum %.6f, minimum %.6f, range %.6f, 
+            average %.6f, median %.6f, standard deviation %.6f"
+msgstr ""
+
+#, python-format
+msgid "%s: z_offset: %.3f\n
+            The SAVE_CONFIG command will update the printer config file\n
+            with the above and restart the printer."
+msgstr ""
+
+msgid "Calibrate the probe's z_offset"
+msgstr ""
+
+msgid "Nothing to do: Z Offset is 0"
+msgstr ""
+
+#, python-format
+msgid "%s: z_offset: %.3f\n
+                The SAVE_CONFIG command will update the printer config file\n
+                with the above and restart the printer."
+msgstr ""
+
+msgid "Adjust the probe's z_offset"
+msgstr ""
+
+msgid "Toolhead moved during probe activate_gcode script"
+msgstr ""
+
+msgid "Toolhead moved during probe deactivate_gcode script"
+msgstr ""
+
+#, python-format
+msgid "Need at least %d probe points for %s"
+msgstr ""
+
+msgid "horizontal_move_z can't be less than
+                              probe's z_offset"
+msgstr ""
+#=========================END PROBE MODULE======================#
+
+#=====================QUAD_GANTRY_LEVEL MODULE==================#
+msgid "Possibly Z motor numbering is wrong"
+msgstr ""
+
+msgid "Need exactly 4 probe points for quad_gantry_level"
+msgstr ""
+
+msgid "quad_gantry_level requires at least two gantry_corners"
+msgstr ""
+
+msgid "Conform a moving, twistable gantry to the shape of a stationary bed"
+msgstr ""
+
+#, python-format
+msgid "Gantry-relative probe points:\n%s\n"
+msgstr ""
+
+msgid "Actuator Positions:\n"
+msgstr ""
+
+#, python-format
+msgid "Average: %0.6f"
+msgstr ""
+
+#, python-format
+msgid "Aborting quad_gantry_level
+                                    required adjustment %0.6f
+                                    is greater than max_adjust %0.6f"
+msgstr ""
+#===================END QUAD_GANTRY_LEVEL MODULE================#
+
+#=========================QUERY_ADC MODULE======================#
+msgid "Report the last value of an analog pin"
+msgstr ""
+
+#, python-format
+msgid "Available ADC objects: %s"
+msgstr ""
+
+#, python-format
+msgid "ADC object \"%s\" has value %.6f (timestamp %.3f)"
+msgstr ""
+
+#, python-format
+msgid "\n resistance %.3f (with %.0f pullup)"
+msgstr ""
+#=======================END QUERY_ADC MODULE====================#
+
+#======================QUERY_ENDSTOPS MODULE====================#
+msgid "Report on the status of each endstop"
+msgstr ""
+#====================END QUERY_ENDSTOPS MODULE==================#
+
+#=========================REPLICATE MODULE======================#
+msgid "Pin type not supported on replicape"
+msgstr ""
+
+msgid "pca9685 does not support hardware_pwm parameter"
+msgstr ""
+
+msgid "Static pin can not have shutdown value"
+msgstr ""
+
+msgid "Replicape virtual enable pin must be digital_out"
+msgstr ""
+
+msgid "Replicape virtual enable pin can not be inverted"
+msgstr ""
+
+msgid "Replicape unable to determine pwmchip"
+msgstr ""
+
+#, python-format
+msgid "Unknown replicape pin %s"
+msgstr ""
+#=======================END REPLICATE MODULE====================#
+
+#=====================RESONANCE_TESTER MODULE===================#
+#, python-format
+msgid "Invalid format of axis '%s'"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse axis direction '%s'"
+msgstr ""
+
+msgid "Disabled [input_shaper] for resonance testing"
+msgstr ""
+
+#, python-format
+msgid "Testing frequency %.0f Hz"
+msgstr ""
+
+#, python-format
+msgid "Testing frequency %.0f Hz"
+msgstr ""
+
+msgid "Re-enabled [input_shaper]"
+msgstr ""
+
+#, python-format
+msgid "Autocalibrating %s"
+msgstr ""
+
+#, python-format
+msgid "Probing point (%.3f, %.3f, %.3f)"
+msgstr ""
+
+#, python-format
+msgid "Testing axis %s"
+msgstr ""
+
+#, python-format
+msgid "Writing raw accelerometer data to %s file"
+msgstr ""
+
+#, python-format
+msgid "%s-axis accelerometer measured no data"
+msgstr ""
+
+msgid "Runs the resonance test for a specifed axis"
+msgstr ""
+
+#, python-format
+msgid "Unsupported output '%s', only 'resonances'
+                                  and 'raw_data' are supported"
+msgstr ""
+
+#, python-format
+msgid "No output specified, at least one of 'resonances'
+                              or 'raw_data' must be set in OUTPUT parameter"
+msgstr ""
+
+msgid "Invalid NAME parameter"
+msgstr ""
+
+#, python-format
+msgid "Resonances data written to %s file"
+msgstr ""
+
+msgid "Simular to TEST_RESONANCES but suggest input shaper config"
+msgstr ""
+
+#, python-format
+msgid "Unsupported axis '%s'"
+msgstr ""
+
+#, python-format
+msgid "Calculating the best input shaper parameters for %s axis"
+msgstr ""
+
+#, python-format
+msgid "Shaper calibration data written to %s file"
+msgstr ""
+
+#, python-format
+msgid "The SAVE_CONFIG command will update the printer config file\n
+            with these parameters and restart the printer."
+msgstr ""
+
+#, python-format
+msgid "Measures noise of all enabled accelerometer chips"
+msgstr ""
+
+#, python-format
+msgid "%s-axis accelerometer measured no data"
+msgstr ""
+
+#, python-format
+msgid "Axes noise for %s-axis accelerometer: 
+                              %.6f (x), %.6f (y), %.6f (z)"
+msgstr ""
+
+#===================END RESONANCE_TESTER MODULE=================#
+
+#==========================RESPOND MODULE=======================#
+msgid "Echo the message prepended with a prefix"
+msgstr ""
+
+#, python-format
+msgid "RESPOND TYPE '%s' is invalid. Must be one
+                     of 'echo', 'command', or 'error'"
+msgstr ""
+#========================END RESPOND MODULE=====================#
+
+#========================SAFE_Z_HOME MODULE=====================#
+msgid "homing_override and safe_z_homing cannot
+                                be used simultaneously"
+msgstr ""
+
+msgid "Must home X and Y axes first"
+msgstr ""
+#======================END SAFE_Z_HOME MODULE===================#
+
+#========================SAMD_SERCOM MODULE=====================#
+#, python-format
+msgid "%s: SERCOM pins must be on same mcu"
+msgstr ""
+#======================END SAMD_SERCOM MODULE===================#
+
+#======================SAVE_VARIABLES MODULE====================#
+msgid "Unable to parse existing variable file"
+msgstr ""
+
+msgid "Save arbitrary variables to disk"
+msgstr ""
+
+#, python-format
+msgid "Unable to parse '%s' as a literal"
+msgstr ""
+
+msgid "Unable to save variable"
+msgstr ""
+#====================END SAVE_VARIABLES MODULE==================#
+
+#====================SCREWS_TILT_ADJUST MODULE==================#
+msgid "screws_tilt_adjust: Must have 
+                               at least three screws"
+msgstr ""
+
+msgid "Tool to help adjust bed leveling\n
+                        screws by calculating the number\n
+                        of turns to level it."
+msgstr ""
+
+#, python-format
+msgid "Error on '%s': DIRECTION must be either CW or CCW"
+msgstr ""
+
+#, python-format
+msgid "01:20 means 1 full turn and 20 minutes, 
+                                CW=clockwise, CCW=counter-clockwise"
+msgstr ""
+
+#, python-format
+msgid "bed level exceeds configured limits ({}mm)! 
+                Adjust screws and restart print."
+msgstr ""
+#==================END SCREWS_TILT_ADJUST MODULE================#
+
+#========================SDCARD_LOOP MODULE=====================#
+msgid "Begins a looped section in the SD file."
+msgstr ""
+
+msgid "Only permitted in SD file."
+msgstr ""
+
+msgid "Ends a looped section in the SD file."
+msgstr ""
+
+msgid "Stops iterating the current loop stack."
+msgstr ""
+
+msgid "Only permitted outside of a SD file."
+msgstr ""
+#======================END SDCARD_LOOP MODULE===================#
+
+#===========================SERVO MODULE========================#
+msgid "Set servo angle"
+msgstr ""
+#=========================END SERVO MODULE======================#
+
+#=====================SHAPER_CALIBRATE MODULE===================#
+#, python-format
+msgid "Failed to import `numpy` module, make sure it was 
+                    installed via `~/klippy-env/bin/pip install` (refer to 
+                    docs/Measuring_Resonances.md for more details)."
+msgstr ""
+
+#, python-format
+msgid "Internal error processing accelerometer data %s"
+msgstr ""
+
+#, python-format
+msgid "Error writing to file '%s': %s"
+msgstr ""
+
+#, python-format
+msgid "Fitted shaper '%s' frequency = %.1f Hz 
+                       (vibrations = %.1f%%, smoothing ~= %.3f)"
+msgstr ""
+
+#, python-format
+msgid "To avoid too much smoothing with '%s', suggested 
+                       max_accel <= %.0f mm/sec^2"
+msgstr ""
+#===================END SHAPER_CALIBRATE MODULE=================#
+
+#======================SKEW_CORRECTION MODULE===================#
+msgid "Report current printer skew"
+msgstr ""
+
+msgid "Current Printer Skew:"
+msgstr ""
+
+#, python-format
+msgid " Skew: %.6f radians, %.2f degrees"
+msgstr ""
+
+msgid "Calculate skew from measured print"
+msgstr ""
+
+#, python-format
+msgid "Calculated Skew: %.6f radians, %.2f degrees"
+msgstr ""
+
+msgid "Set skew based on lengths of measured object"
+msgstr ""
+
+#, python-format
+msgid "skew_correction: improperly formatted entry for 
+                        plane [%s]\n%s"
+msgstr ""
+
+msgid "skew_correction:  Load failed, unknown profile [%s]"
+msgstr ""
+
+#, python-format
+msgid "Skew Correction state has been saved to profile [%s]\n
+                for the current session.  The SAVE_CONFIG command will\n
+                update the printer config file and restart the printer."
+msgstr ""
+
+#, python-format
+msgid "Profile [%s] removed from storage for this session.\n
+                    The SAVE_CONFIG command will update the printer\n
+                    configuration and restart the printer"
+msgstr ""
+
+#, python-format
+msgid "skew_correction: No profile named [%s] to remove"
+msgstr ""
+#====================END SKEW_CORRECTION MODULE=================#
+
+#======================SMART_EFFECTOR MODULE====================#
+msgid "Set SmartEffector parameters"
+msgstr ""
+
+#, python-format
+msgid "sensitivity: %d"
+msgstr ""
+
+msgid "control_pin must be set in [smart_effector] 
+                                 for sensitivity programming"
+msgstr ""
+
+#, python-format
+msgid "probing accelartion: %.3f"
+msgstr ""
+
+msgid "probing acceleration control disabled"
+msgstr ""
+
+#, python-format
+msgid "probe recovery time: %.3f"
+msgstr ""
+
+msgid "probe recovery time disabled"
+msgstr ""
+
+#, python-format
+msgid "SmartEffector:\n"
+msgstr ""
+
+msgid "Reset SmartEffector settings (sensitivity)"
+msgstr ""
+
+msgid "SmartEffector sensitivity was reset"
+msgstr ""
+#====================END SMART_EFFECTOR MODULE==================#
+
+#=======================STEPPER_ENABLE MODULE====================#
+msgid "Enable/disable individual stepper by name"
+msgstr ""
+
+#, python-format
+msgid "SET_STEPPER_ENABLE: Invalid stepper \"%s\""
+msgstr ""
+
+#, python-format
+msgid "Unknown stepper '%s'" 
+msgstr ""
+#=====================END STEPPER_ENABLE MODULE==================#
+
+#===========================SX1509 MODULE========================#
+#, python-format
+msgid "Wrong pin or incompatible type: %s with type %s! "
+msgstr ""
+
+msgid "SX1509 pins are not suitable for heaters"
+msgstr ""
+
+msgid "Static pin can not have shutdown value"
+msgstr ""
+
+msgid "SX1509_pwm must have hardware_pwm enabled"
+msgstr ""
+
+msgid "SX1509 pins are not suitable for heaters"
+msgstr ""
+
+msgid "Static pin can not have shutdown value"
+msgstr ""
+#=========================END SX1509 MODULE======================#
+
+#======================TEMPERATURE_FAN MODULE====================#
+msgid "Sets a temperature fan target and fan speed limits"
+msgstr ""
+
+#, python-format
+msgid "Requested min speed (%.1f) is greater than max speed (%.1f)"
+msgstr ""
+
+#, python-format
+msgid "Requested temperature (%.1f) out of range (%.1f:%.1f)"
+msgstr ""
+
+#, python-format
+msgid "Requested min speed (%.1f) out of range (0.0 : 1.0)"
+msgstr ""
+
+#, python-format
+msgid "Requested max speed (%.1f) out of range (0.0 : 1.0)"
+msgstr ""
+#====================END TEMPERATURE_FAN MODULE==================#
+
+#======================TEMPERATURE_HOST MODULE===================#
+#, python-format
+msgid "Unable to open temperature file '%s'"
+msgstr ""
+
+#, python-format
+msgid "HOST temperature %0.1f below minimum temperature of %0.1f."
+msgstr ""
+
+#, python-format
+msgid "HOST temperature %0.1f above maximum temperature of %0.1f."
+msgstr ""
+#====================END TEMPERATURE_HOST MODULE=================#
+
+#======================TEMPERATURE_MCU MODULE====================#
+#, python-format
+msgid "MCU temperature not supported on %s"
+msgstr ""
+#====================END TEMPERATURE_MCU MODULE==================#
+
+#=========================TMC_UART MODULE========================#
+msgid "TMC mux pins must be on the same mcu"
+msgstr ""
+
+msgid "Shared TMC uarts must use the same pins"
+msgstr ""
+
+msgid "Shared TMC uarts need unique address or select_pins polarity"
+msgstr ""
+
+msgid "TMC uart rx and tx pins must be on the same mcu"
+msgstr ""
+
+#, python-format
+msgid "Unable to read tmc uart '%s' register %s"
+msgstr ""
+
+#, python-format
+msgid "Unable to write tmc uart '%s' register %s"
+msgstr ""
+#========================END TMC_UART MODULE=====================#
+
+#=============================TMC MODULE=========================#
+#, python-format
+msgid "TMC '%s' reports error: %s"
+msgstr ""
+
+msgid "Initialize TMC stepper driver registers"
+msgstr ""
+
+msgid "Set a register field of a TMC driver"
+msgstr ""
+
+#, python-format
+msgid "Unknown field name '%s'"
+msgstr ""
+
+msgid "Set the current of a TMC driver"
+msgstr ""
+
+#, python-format
+msgid "Run Current: %0.2fA"
+msgstr ""
+
+#, python-format
+msgid "Run Current: %0.2fA Hold Current: %0.2fA"
+msgstr ""
+
+msgid "Read and display TMC stepper driver registers"
+msgstr ""
+
+msgid "========== Write-only registers =========="
+msgstr ""
+
+msgid "========== Queried registers =========="
+msgstr ""
+
+msgid "tmc virtual endstop only useful as endstop"
+msgstr ""
+
+msgid "Can not pullup/invert tmc virtual pin"
+msgstr ""
+
+msgid "tmc virtual endstop requires diag pin config"
+msgstr ""
+
+#, python-format
+msgid "Could not find config section '[%s]' required by tmc driver"
+msgstr ""
+#===========================END TMC MODULE=======================#
+
+#===========================TMC2130 MODULE=======================#
+msgid "TMC SPI chain must have same length"
+msgstr ""
+
+msgid "TMC SPI chain can not have duplicate position"
+msgstr ""
+
+#, python-format
+msgid "Unable to write tmc spi '%s' register %s"
+msgstr ""
+#=========================END TMC2130 MODULE=====================#
+
+#===========================TMC2660 MODULE=======================#
+msgid "driver_HEND + driver_HSTRT must be <= 15"
+msgstr ""
+#=========================END TMC2660 MODULE=====================#
+
+#==============TSL1401CL_FILAMENT_WIDTH_SENSOR MODULE============#
+msgid "Filament dia (measured mm): "
+msgstr ""
+
+msgid "Filament NOT present"
+msgstr ""
+
+msgid "Filament width measurements cleared!"
+msgstr ""
+
+#, python-format
+msgid "Filament width sensor Turned On"
+msgstr ""
+
+#, python-format
+msgid "Filament width sensor is already On"
+msgstr ""
+
+#, python-format
+msgid "Filament width sensor Turned Off"
+msgstr ""
+
+#, python-format
+msgid "Filament width sensor is already Off"
+msgstr ""
+#=============END TSL1401CL_FILAMENT_WIDTH_SENSOR MODULE=========#
+
+#========================TUNING_TOWER MODULE=====================#
+msgid "Tool to adjust a parameter at each Z height"
+msgstr ""
+
+msgid "Cannot specify both FACTOR and STEP_DELTA/STEP_HEIGHT"
+msgstr ""
+
+msgid "Must specify both STEP_DELTA and STEP_HEIGHT"
+msgstr ""
+
+msgid "Starting tuning test ("
+msgstr ""
+
+msgid "Ending tuning test mode"
+msgstr ""
+#======================END TUNING_TOWER MODULE===================#
+
+#=======================VERIFY_HEATER MODULE=====================#
+msgid "See the 'verify_heater' section in docs/Config_Reference.md
+ for the parameters that control this check."
+msgstr ""
+
+#, python-format
+msgid "Heater %s not heating at expected rate"
+msgstr ""
+#=====================END VERIFY_HEATER MODULE===================#
+
+#=======================VIRTUAL_SDCARD MODULE====================#
+msgid "Unable to get file list"
+msgstr ""
+
+msgid "SD busy"
+msgstr ""
+
+msgid "SD write not supported"
+msgstr ""
+
+msgid "Clears a loaded SD File. Stops the print if necessary"
+msgstr ""
+
+msgid "SDCARD_RESET_FILE cannot be run from the sdcard"
+msgstr ""
+
+msgid "Loads a SD file and starts the print. May 
+        include files in subdirectories."
+msgstr ""
+
+msgid "Restart file"
+msgstr ""
+
+msgid "Remove interrupted file"
+msgstr ""
+
+msgid "Begin file list"
+msgstr ""
+
+msgid "End file list"
+msgstr ""
+
+msgid "SD card ok"
+msgstr ""
+
+msgid "Unable to open file"
+msgstr ""
+
+#, python-format
+msgid "File opened:%s Size:%d"
+msgstr ""
+
+msgid "File selected"
+msgstr ""
+
+msgid "Not SD printing."
+msgstr ""
+
+#, python-format
+msgid "SD printing byte %d/%d"
+msgstr ""
+
+msgid "Done printing file"
+msgstr ""
+
+msgid "begin gcode not ended"
+msgstr ""
+#=====================END VIRTUAL_SDCARD MODULE==================#
+
+#======================Z_THERMAL_ADJUST MODULE===================#
+msgid "Called after all printer objects are instantiated"
+msgstr ""
+
+msgid "Set reference temperature after Z homing."
+msgstr ""
+
+msgid "Z adjustment calculation"
+msgstr ""
+
+msgid "Remove Z adjustment"
+msgstr ""
+
+#, python-format
+msgid "Called everytime the Z adjust thermistor is read"
+msgstr ""
+
+#, python-format
+msgid "enable: %s\n
+               temp_coeff: %f mm/degC\n
+               ref_temp: %.2f degC%s\n
+               -------------------\n
+               Current Z temp: %.2f degC\n
+               Applied Z adjustment: %.4f mm"
+msgstr ""
+
+msgid "Set/query Z Thermal Adjust parameters."
+msgstr ""
+
+#, python-format
+msgid "1 (enabled)"
+msgstr ""
+
+#, python-format
+msgid "0 (disabled)"
+msgstr ""
+
+#, python-format
+msgid " (manual)"
+msgstr ""
+#====================END Z_THERMAL_ADJUST MODULE=================#
+
+#===========================Z_TILT MODULE========================#
+#, python-format
+msgid "%s z_positions needs exactly %d items"
+msgstr ""
+
+#, python-format
+msgid "%s requires multiple z steppers"
+msgstr ""
+
+#, python-format
+msgid "Making the following Z adjustments:\n%s"
+msgstr ""
+
+#, python-format
+msgid "Retries: %d/%d %s: %0.6f tolerance: %0.6f"
+msgstr ""
+
+#, python-format
+msgid "Retries aborting: %s is increasing. %s"
+msgstr ""
+
+msgid "Too many retries"
+msgstr ""
+
+msgid "Adjust the Z tilt"
+msgstr ""
+#=========================END Z_TILT MODULE======================#

@@ -5,14 +5,14 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging
 from . import heaters
-
+import locales
 class PIDCalibrate:
     def __init__(self, config):
         self.printer = config.get_printer()
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command('PID_CALIBRATE', self.cmd_PID_CALIBRATE,
                                desc=self.cmd_PID_CALIBRATE_help)
-    cmd_PID_CALIBRATE_help = "Run PID calibration test"
+    cmd_PID_CALIBRATE_help = _("Run PID calibration test")
     def cmd_PID_CALIBRATE(self, gcmd):
         heater_name = gcmd.get('HEATER')
         target = gcmd.get_float('TARGET')
@@ -34,14 +34,14 @@ class PIDCalibrate:
         if write_file:
             calibrate.write_file('/tmp/heattest.txt')
         if calibrate.check_busy(0., 0., 0.):
-            raise gcmd.error("pid_calibrate interrupted")
+            raise gcmd.error(_("pid_calibrate interrupted"))
         # Log and report results
         Kp, Ki, Kd = calibrate.calc_final_pid()
         logging.info("Autotune: final: Kp=%f Ki=%f Kd=%f", Kp, Ki, Kd)
         gcmd.respond_info(
-            "PID parameters: pid_Kp=%.3f pid_Ki=%.3f pid_Kd=%.3f\n"
+            _("PID parameters: pid_Kp=%.3f pid_Ki=%.3f pid_Kd=%.3f\n"
             "The SAVE_CONFIG command will update the printer config file\n"
-            "with these parameters and restart the printer." % (Kp, Ki, Kd))
+            "with these parameters and restart the printer.") % (Kp, Ki, Kd))
         # Store results for SAVE_CONFIG
         configfile = self.printer.lookup_object('configfile')
         configfile.set(heater_name, 'control', 'pid')

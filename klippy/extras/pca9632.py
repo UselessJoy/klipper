@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from . import bus, mcp4018
-
+import locales
 BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
 
 # Register addresses
@@ -31,7 +31,7 @@ class PCA9632:
             self.i2c = bus.MCU_I2C_from_config(config, default_addr=98)
         color_order = config.get("color_order", "RGBW")
         if sorted(color_order) != sorted("RGBW"):
-            raise config.error("Invalid color_order '%s'" % (color_order,))
+            raise config.error(_("Invalid color_order '%s'") % (color_order,))
         self.color_map = ["RGBW".index(c) for c in color_order]
         self.prev_regs = {}
         pled = printer.load_object(config, "led")

@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math, threading
 from . import bus, motion_report
-
+import locales
 MIN_MSG_TIME = 0.100
 TCODE_ERROR = 0xff
 
@@ -25,7 +25,7 @@ class AngleCalibration:
         try:
             import numpy
         except:
-            raise config.error("Angle calibration requires numpy module")
+            raise config.error(_("Angle calibration requires numpy module"))
         sconfig = config.getsection(self.stepper_name)
         sconfig.getint('microsteps', note_valid=False)
         self.tmc_module = self.mcu_stepper = None
@@ -133,7 +133,7 @@ class AngleCalibration:
             module = self.printer.lookup_object(driver_name, None)
             if module is not None:
                 return module
-        raise self.printer.command_error("Unable to find TMC driver for %s"
+        raise self.printer.command_error(_("Unable to find TMC driver for %s")
                                          % (self.stepper_name,))
     def connect(self):
         self.tmc_module = self.lookup_tmc()
@@ -149,7 +149,7 @@ class AngleCalibration:
     def get_stepper_phase(self):
         mcu_phase_offset, phases = self.tmc_module.get_phase_offset()
         if mcu_phase_offset is None:
-            raise self.printer.command_error("Driver phase not known for %s"
+            raise self.printer.command_error(_("Driver phase not known for %s")
                                              % (self.stepper_name,))
         mcu_pos = self.mcu_stepper.get_mcu_position()
         return (mcu_pos + mcu_phase_offset) % phases
@@ -203,7 +203,7 @@ class AngleCalibration:
                     cal.setdefault(step, []).append(pos)
         if len(cal) != len(times):
             raise self.printer.command_error(
-                "Failed calibration - incomplete sensor data")
+                _("Failed calibration - incomplete sensor data"))
         fcal = { i: cal[i] for i in range(full_steps) }
         rcal = { full_steps-i-1: cal[i+full_steps] for i in range(full_steps) }
         return fcal, rcal
@@ -217,7 +217,7 @@ class AngleCalibration:
             total_count += count
             total_variance += sum([(d - angle_avg)**2 for d in data])
         return angles, math.sqrt(total_variance / total_count), total_count
-    cmd_ANGLE_CALIBRATE_help = "Calibrate angle sensor to stepper motor"
+    cmd_ANGLE_CALIBRATE_help = _("Calibrate angle sensor to stepper motor")
     def cmd_ANGLE_CALIBRATE(self, gcmd):
         # Perform calibration movement and capture
         old_calibration = self.calibration
@@ -233,11 +233,11 @@ class AngleCalibration:
         if (len({a: i for i, a in fangles.items()}) != len(fangles)
             or len({a: i for i, a in rangles.items()}) != len(rangles)):
             raise self.printer.command_error(
-                "Failed calibration - sensor not updating for each step")
+                _("Failed calibration - sensor not updating for each step"))
         merged = { i: fcal[i] + rcal[i] for i in range(full_steps) }
         angles, std, total = self.calc_angles(merged)
-        gcmd.respond_info("angle: stddev=%.3f (%.3f forward / %.3f reverse)"
-                          " in %d queries" % (std, fstd, rstd, total))
+        gcmd.respond_info(_("angle: stddev=%.3f (%.3f forward / %.3f reverse)"
+                          " in %d queries") % (std, fstd, rstd, total))
         # Order data with lowest/highest magnet position first
         anglist = [angles[i] % 0xffff for i in range(full_steps)]
         if angles[0] > angles[1]:
@@ -336,7 +336,7 @@ class HelperTLE5012B:
             crc = self._calc_crc(bytearray(msg[:2]) + resp[2:-2])
             if crc == resp[-1]:
                 return params
-        raise self.printer.command_error("Unable to query tle5012b chip")
+        raise self.printer.command_error(_("Unable to query tle5012b chip"))
     def _read_reg(self, reg):
         cw = 0x8000 | ((reg & 0x3f) << 4) | 0x01
         if reg >= 0x05 and reg <= 0x11:
@@ -355,7 +355,7 @@ class HelperTLE5012B:
             rval = self._read_reg(reg)
             if rval == val:
                 return
-        raise self.printer.command_error("Unable to write to tle5012b chip")
+        raise self.printer.command_error(_("Unable to write to tle5012b chip"))
     def _mask_reg(self, reg, off, on):
         rval = self._read_reg(reg)
         self._write_reg(reg, (rval & ~off) | on)
@@ -393,12 +393,12 @@ class HelperTLE5012B:
         self.last_chip_mcu_clock = mcu_clock
         self.chip_freq = float(1<<5) / self.mcu.seconds_to_clock(1. / 750000.)
         self.update_clock()
-    cmd_ANGLE_DEBUG_READ_help = "Query low-level angle sensor register"
+    cmd_ANGLE_DEBUG_READ_help = _("Query low-level angle sensor register")
     def cmd_ANGLE_DEBUG_READ(self, gcmd):
         reg = gcmd.get("REG", minval=0, maxval=0x30, parser=lambda x: int(x, 0))
         val = self._read_reg(reg)
         gcmd.respond_info("ANGLE REG[0x%02x] = 0x%04x" % (reg, val))
-    cmd_ANGLE_DEBUG_WRITE_help = "Set low-level angle sensor register"
+    cmd_ANGLE_DEBUG_WRITE_help = _("Set low-level angle sensor register")
     def cmd_ANGLE_DEBUG_WRITE(self, gcmd):
         reg = gcmd.get("REG", minval=0, maxval=0x30, parser=lambda x: int(x, 0))
         val = gcmd.get("VAL", minval=0, maxval=0xffff,

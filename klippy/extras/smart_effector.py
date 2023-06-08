@@ -6,7 +6,7 @@
 
 import logging
 from . import probe
-
+import locales
 # SmartEffector communication protocol implemented here originates from
 # https://github.com/Duet3D/SmartEffectorFirmware
 BITS_PER_SECOND = 1000.
@@ -115,7 +115,7 @@ class SmartEffectorEndstopWrapper:
         # with the SmartEffector programming
         toolhead.dwell(end_time - start_time)
         toolhead.wait_moves()
-    cmd_SET_SMART_EFFECTOR_help = 'Set SmartEffector parameters'
+    cmd_SET_SMART_EFFECTOR_help = _("Set SmartEffector parameters")
     def cmd_SET_SMART_EFFECTOR(self, gcmd):
         sensitivity = gcmd.get_int('SENSITIVITY', None, minval=0, maxval=255)
         respond_info = []
@@ -123,29 +123,29 @@ class SmartEffectorEndstopWrapper:
             if self.control_pin is not None:
                 buf = [105, sensitivity, 255 - sensitivity]
                 self._send_command(buf)
-                respond_info.append("sensitivity: %d" % (sensitivity,))
+                respond_info.append(_("sensitivity: %d") % (sensitivity,))
             else:
-                raise gcmd.error("control_pin must be set in [smart_effector] "
-                                 "for sensitivity programming")
+                raise gcmd.error(_("control_pin must be set in [smart_effector] "
+                                 "for sensitivity programming"))
         self.probe_accel = gcmd.get_float('ACCEL', self.probe_accel, minval=0.)
         self.recovery_time = gcmd.get_float('RECOVERY_TIME', self.recovery_time,
                                             minval=0.)
         if self.probe_accel:
             respond_info.append(
-                    "probing accelartion: %.3f" % (self.probe_accel,))
+                    _("probing accelartion: %.3f") % (self.probe_accel,))
         else:
-            respond_info.append("probing acceleration control disabled")
+            respond_info.append(_("probing acceleration control disabled"))
         if self.recovery_time:
             respond_info.append(
-                    "probe recovery time: %.3f" % (self.recovery_time,))
+                    _("probe recovery time: %.3f") % (self.recovery_time,))
         else:
-            respond_info.append("probe recovery time disabled")
-        gcmd.respond_info("SmartEffector:\n" + "\n".join(respond_info))
-    cmd_RESET_SMART_EFFECTOR_help = 'Reset SmartEffector settings (sensitivity)'
+            respond_info.append(_("probe recovery time disabled"))
+        gcmd.respond_info(_("SmartEffector:\n") + "\n".join(respond_info))
+    cmd_RESET_SMART_EFFECTOR_help = _("Reset SmartEffector settings (sensitivity)")
     def cmd_RESET_SMART_EFFECTOR(self, gcmd):
         buf = [131, 131]
         self._send_command(buf)
-        gcmd.respond_info('SmartEffector sensitivity was reset')
+        gcmd.respond_info(_("SmartEffector sensitivity was reset"))
 
 def load_config(config):
     smart_effector = SmartEffectorEndstopWrapper(config)

@@ -9,7 +9,7 @@
 from math import cos, exp, pi
 from random import randint
 import logging
-
+import locales
 ANALOG_SAMPLE_TIME  = 0.001
 ANALOG_SAMPLE_COUNT = 5
 ANALOG_REPORT_TIME  = 0.05
@@ -88,7 +88,7 @@ class ledFrameHandler:
                                     desc=self.cmd_STOP_LED_EFFECTS_help)
         self.shutdown = False
 
-    cmd_STOP_LED_EFFECTS_help = 'Stops all led_effects'
+    cmd_STOP_LED_EFFECTS_help = _("Stops all led_effects")
 
     def _handle_ready(self):
         self.shutdown = False
@@ -283,7 +283,7 @@ class ledFrameHandler:
                     chainName, ledIndices = self.parse_chain(ledParam)
                     chain = self.printer.lookup_object(chainName)
                 except Exception as e:
-                    raise gcmd.error("Unknown LED '%s'" % (ledParam,))
+                    raise gcmd.error(_("Unknown LED '%s'") % (ledParam,))
 
                 if ledIndices == [] and chain in effect.ledChains: 
                     stopEffect = True
@@ -310,7 +310,6 @@ class ledEffect:
         self.printer      = config.get_printer()
         self.gcode        = self.printer.lookup_object('gcode')
         self.handler      = self.printer.load_object(config, 'led_effect')
-        logging.info("hello from ledEffect" + str(self.handler))
         self.frameRate    = 1.0 / config.getfloat('frame_rate', 
                                         default=24, minval=1, maxval=60)
         self.enabled      = False
@@ -372,7 +371,7 @@ class ledEffect:
             query_adc = self.printer.load_object(self.config, 'query_adc')
             query_adc.register_adc(self.name, self.mcu_adc)
 
-    cmd_SET_LED_help = 'Starts or Stops the specified led_effect'
+    cmd_SET_LED_help = _("Starts or Stops the specified led_effect")
 
     def _handle_ready(self):
         self.configChains = self.configLeds.split('\n')
@@ -415,12 +414,11 @@ class ledEffect:
                 in layer.split() if parameter.strip()]
             if not parms[0] in self.availableLayers:
                 raise self.printer\
-                    .config_error("LED Effect '%s' in section '%s' is not a " \
-                        "valid effect layer" % (parms[0], self.name))
+                    .config_error(_("LED Effect '%s' in section '%s' is not a valid effect layer") % (parms[0], self.name))
 
             if not parms[3] in self.blendingModes:
-                raise self.printer.config_error("Blending mode '%s' in section "
-                     "'%s' is not a valid blending mode"\
+                raise self.printer.config_error(_("Blending mode '%s' in section "
+                     "'%s' is not a valid blending mode")
                          % (parms[3], self.name))
 
             layer = self.availableLayers[parms[0]]
@@ -438,12 +436,12 @@ class ledEffect:
                 for i in palette: 
                     if len(i) > COLORS: 
                         raise Exception(
-                            "Color %s has too many elements." % (str(i),))
+                            _("Color %s has too many elements.") % (str(i),))
                 palette=[pad(c) for c in palette]                               # pad to COLORS colors
                 palette=[k for c in palette for k in c]                         # flatten list
             except Exception as e:
                 raise self.printer.config_error(
-                    "Error parsing palette in '%s' for layer \"%s\": %s"\
+                    _("Error parsing palette in '%s' for layer \"%s\": %s")
                         % (self.config.get_name(), parms[0], e,))
             logging.info("super palette - " + str(palette))
             self.layers.insert(0, layer(handler       = self,
@@ -520,12 +518,12 @@ class ledEffect:
        # return 0
     ####    END NEW    ####
     def cmd_SET_LED_EFFECT(self, gcmd):
-        red = gcmd.get_float('RED', 0., minval=0., maxval=1.)
-        green = gcmd.get_float('GREEN', 0., minval=0., maxval=1.)
-        blue = gcmd.get_float('BLUE', 0., minval=0., maxval=1.)
+        red = gcmd.get_float('RED', None, minval=0., maxval=1.)
+        green = gcmd.get_float('GREEN', None, minval=0., maxval=1.)
+        blue = gcmd.get_float('BLUE', None, minval=0., maxval=1.)
         parmFadeTime = gcmd.get_float('FADETIME', 0.0)
         ####      NEW      ####
-        if red or green or blue:
+        if red != None or green !=None or blue != None :
             self.set_color(float(red), float(green), float(blue))
         ####    END NEW    ####
         if gcmd.get_int('STOP', 0) >= 1:

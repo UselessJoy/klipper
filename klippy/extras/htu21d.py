@@ -5,7 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging
 from . import bus
-
+import locales
 ######################################################################
 # NOTE: The implementation requires write support of length 0
 #       before reading on the i2c bus of the mcu.
@@ -89,7 +89,7 @@ class HTU21D:
         self.resolution = config.get('htu21d_resolution','TEMP12_HUM08')
         self.report_time = config.getint('htu21d_report_time',30,minval=5)
         if self.resolution not in HTU21D_RESOLUTIONS:
-            raise config.error("Invalid HTU21D Resolution. Valid are %s"
+            raise config.error(_("Invalid HTU21D Resolution. Valid are %s")
                 % '|'.join(HTU21D_RESOLUTIONS.keys()))
         self.deviceId = config.get('sensor_type')
         self.temp = self.min_temp = self.max_temp = self.humidity = 0.

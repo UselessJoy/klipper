@@ -5,6 +5,7 @@ class Autooff:
     def __init__(self, config):
         self.config = config
         self.printer = config.get_printer()
+        self.off_temp = self.config.getint('off_extruder_temp', 40)
         self.reactor = self.printer.get_reactor()
         self.print_stats = self.printer.load_object(config, 'print_stats')
         self.timer = None
@@ -29,7 +30,7 @@ class Autooff:
     def check_temp(self, eventtime):
         if self.need_autooff:
             temp_ex = self.extruder.get_status(eventtime)['temperature']
-            if temp_ex < 40:
+            if temp_ex < self.off_temp:
                 webhooks = self.printer.lookup_object('webhooks')
                 webhooks.call_remote_method("shutdown_machine")
         else:

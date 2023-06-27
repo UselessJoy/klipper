@@ -135,6 +135,10 @@ class VirtualSD:
             while self.work_timer is not None and not self.cmd_from_sd:
                 self.reactor.pause(self.reactor.monotonic() + .001)
     def do_resume(self):
+        safety_printing_object = self.printer.lookup_object('safety_printing')
+        if safety_printing_object.safety:
+            if safety_printing_object.open:
+                raise self.gcode.error(_("Must close doors and cup first"))
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
@@ -189,6 +193,10 @@ class VirtualSD:
         self._reset_file()
     cmd_SDCARD_PRINT_FILE_help = _("Loads a SD file and starts the print. May include files in subdirectories.")
     def cmd_SDCARD_PRINT_FILE(self, gcmd):
+        safety_printing_object = self.printer.lookup_object('safety_printing')
+        if safety_printing_object.safety:
+            if safety_printing_object.open:
+                raise gcmd.error(_("Must close doors and cup first"))
         if self.work_timer is not None:
             raise gcmd.error(_("SD busy"))
         self._reset_file()
@@ -204,6 +212,10 @@ class VirtualSD:
         self.save_printing_parameters()
 
     def cmd_SDCARD_RUN_FILE(self, gcmd):
+        safety_printing_object = self.printer.lookup_object('safety_printing')
+        if safety_printing_object.safety:
+            if safety_printing_object.open:
+                raise gcmd.error(_("Must close doors and cup first"))
         gcmd.respond_raw(_("Restart file"))
         self.load_saved_parameters()
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)
@@ -211,14 +223,17 @@ class VirtualSD:
             self.rebuild_begin_print, self.reactor.NOW)
             
     def cmd_SDCARD_REMOVE_FILE(self, gcmd):
-        self.load_saved_parameters()
-        gcmd.respond_raw(_("Remove interrupted file"))
+        #self.load_saved_parameters()
         self._remove_file()
+        gcmd.respond_raw(_("Remove interrupted file"))
         self.print_stats.reset()
 
     def _remove_file(self):
         if self.has_interrupted_file():
-            os.system('rm -rf ' + self.sdcard_dirname + '/' + self.interrupted_file)
+            try:
+                os.system('rm -rf ' + self.sdcard_dirname + '/' + self.interrupted_file)
+            except:
+                logging.info("Cannot delete file")
             self.current_file = None
             self.file_position = 0
             self.last_coord = [0.0, 0.0, 0.0]

@@ -1,4 +1,4 @@
-import os
+import os, pathlib
 ##### BY FARINOV #####
 import locales
 class FlashUsb:
@@ -7,10 +7,11 @@ class FlashUsb:
         self.printer.register_event_handler('klippy:ready', self._handle_ready)
         self.flashpath = '/media'
         self.flashname = None
-    #    self.already_exists = False
         self.timer = self.printer.get_reactor()
         self.gcodelist = None
-        self.gcodepath = '/home/orangepi/printer_data/gcodes'
+        configpath = pathlib.Path(self.printer.get_start_args()['config_file']).parent.parent.resolve()
+        self.gcodepath = os.path.join(configpath, "gcodes")
+        #self.gcodepath = '/home/orangepi/printer_data/gcodes'
     
     def _handle_ready(self):
         self.timer.register_timer(self._check_flash_status, self.timer.monotonic()+ 0.1)
@@ -52,15 +53,6 @@ class FlashUsb:
                     if dir == gcodefile:
                         return True
         return False
-   # def write_data(self, filelist, filepath):
-   #     if os.path.isdir(filepath):
-   #         filelist = os.listdir(filepath)
-   #         if len(filelist) != 0:
-   #             for item in filelist:
-   #                 os.system('echo ' + '\"' + str(filepath) +'\" >> /home/orangepi/privet.txt')
-   #                 self.write_data(filelist, str(filepath) + '/' + str(item))
-   #     else:
-   #         os.system('echo ' + '\"' + str(filepath) +'\" >> /home/orangepi/privet.txt')
 
     def _has_flash(self):
         filelist = os.listdir(self.flashpath)
@@ -82,7 +74,6 @@ class FlashUsb:
             if not self._flash_directory_already_exist(self.flashname):
                 self._create_flash_directory()
                 self._load_gcode_files(self.flashpath + '/' + self.flashname, self.flashname)
-        #    self.already_exists = True
         else:
             if self.flashname != None:
                 if self._flash_directory_already_exist(self.flashname):

@@ -643,8 +643,9 @@ msgstr "Недопустимый аргумент"
 
 # ======================END WEBHOOKS MODULE======================#
 # ========================CARTESIAN MODULE=======================#
+#, python-format
 msgid "Must home axis first"
-msgstr "Необходимо сначала отхоумиться"
+msgstr "Нажмите кнопку \"Дом\""
 
 msgid "Set which carriage is active"
 msgstr "Установите, какая каретка активна"

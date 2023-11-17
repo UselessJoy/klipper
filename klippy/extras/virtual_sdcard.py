@@ -427,6 +427,8 @@ class VirtualSD:
         self.current_file = lines[0].rstrip()
         self.file_position = int(lines[1].rstrip())
         self.last_coord = [float(lines[2]), float(lines[3]), float(lines[4]), float(lines[5])]
+        self.gcode.respond_info(str(self.current_file))
+        
         file.close()
 
     def rebuild_begin_print(self, eventtime):
@@ -470,7 +472,7 @@ class VirtualSD:
                                 "G28 X Y\n"
                                 "G0 X%f Y%f Z%f F6000\n"
                                 "G92 E%f\n"
-                                % (self.last_coord[0], lead_z if self.max_z - self.last_coord < 50 else 15, 
+                                % (self.last_coord[0], lead_z if self.max_z - self.last_coord[0] < 50 else 15, 
                                    self.last_coord[1], self.last_coord[2], self.last_coord[0], self.last_coord[3]))
         
         self.work_timer = None

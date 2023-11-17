@@ -289,6 +289,11 @@ class ResonanceTester:
         gcmd.respond_info(
             _("The SAVE_CONFIG command will update the printer config file\n"
             "with these parameters and restart the printer."))
+        # find_csv()
+        # create_to_png()
+        # in_fluidd_find_png_and_offer_download()
+        # os.system("~/klipper/scripts/calibrate_shaper.py /tmp/resonances_y_*.csv -o /tmp/shaper_calibrate_y.png")
+        
     cmd_MEASURE_AXES_NOISE_help = (
         _("Measures noise of all enabled accelerometer chips"))
     def cmd_MEASURE_AXES_NOISE(self, gcmd):

@@ -674,7 +674,7 @@ class ADXLCommandHelper:
         self.tap_dur = config.getfloat('tap_dur', 0.01,
                                        above=DUR_SCALE, maxval=0.1)
         self.register_commands(self.name)
-        if self.name == "adxl345":
+        if self.name == "ADXL":
             self.register_commands(None)
     def register_commands(self, name):
         # Register commands

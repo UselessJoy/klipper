@@ -10,6 +10,8 @@ import locales
 from PIL import Image, ImageOps, ImageDraw, ImageFont
 import os
 import logging
+import locales 
+
 class ScrewsTiltAdjust:
     def __init__(self, config):
         self.config = config
@@ -24,7 +26,7 @@ class ScrewsTiltAdjust:
             if config.get(prefix, None) is None:
                 break
             screw_coord = config.getfloatlist(prefix, count=2)
-            screw_name = "screw at %.3f,%.3f" % screw_coord
+            screw_name = _("screw at %.3f, %.3f") % screw_coord
             screw_name = config.get(prefix + "_name", screw_name)
             self.screws.append((screw_coord, screw_name))
         if len(self.screws) < 3:

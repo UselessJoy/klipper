@@ -4,11 +4,11 @@ import locales
 class SafetyPrinting:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.safety = config.getboolean('safety')
-        self.open = False
-        
-        self.door_endstop = self.printer.load_object(config, 'gcode_button endstop_door')
-        self.cap_endstop = self.printer.load_object(config, 'gcode_button endstop_cap')
+        self.safety_enabled = config.getboolean('safety_enabled')
+        self.is_doors_open = True
+        self.is_hood_open = True
+        self.doors_endstop = self.printer.load_object(config, 'gcode_button endstop_doors')
+        self.hood_endstop = self.printer.load_object(config, 'gcode_button endstop_hood')
         self.virtual_sdcard_object = self.printer.lookup_object('virtual_sdcard')
         self.gcode = self.printer.lookup_object('gcode')
         webhooks = self.printer.lookup_object('webhooks')
@@ -18,40 +18,50 @@ class SafetyPrinting:
         self.timer = self.reactor.register_timer(self.endstop_status, self.reactor.NOW)
 
     def endstop_status(self, eventtime):
-        door_status = self.door_endstop.get_status(eventtime)['state']
-        cap_status = self.cap_endstop.get_status(eventtime)['state']
-        pause_resume_object = self.printer.lookup_object('pause_resume')
-        if door_status == 'RELEASED' or cap_status == 'RELEASED':
-            self.open = True
-        else:
-            self.open = False
-        if self.safety:
-            if self.open:
+        self.is_doors_open = True if self.doors_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
+        self.is_hood_open = True if self.hood_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
+        #pause_resume_object = self.printer.lookup_object('pause_resume')
+        if self.safety_enabled:
+            if self.is_doors_open or self.is_hood_open:
                 if self.virtual_sdcard_object.is_active():#not pause_resume_object.is_paused:
                     self.gcode.run_script("PAUSE")
-            elif pause_resume_object.is_paused:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
-                self.gcode.run_script("RESUME")
+            # elif pause_resume_object.is_paused:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
+            #     self.gcode.run_script("RESUME")
                     
         return eventtime + 1
     
     def _handle_set_safety_printing(self, web_request):
-        self.safety = web_request.get_boolean('safety')
+        self.safety_enabled = web_request.get_boolean('safety_enabled')
         cfgname = self.printer.get_start_args()['config_file']
         with open(cfgname, 'r+') as file:
             lines = file.readlines()
             i = 0
             for line in enumerate(lines):
-                if line[1].lstrip().startswith('safety'):
-                    lines[i] = f' safety = {self.safety}\n'
+                if line[1].lstrip().startswith('safety_enabled'):
+                    lines[i] = f' safety_enabled = {self.safety_enabled}\n'
                 i+=1
             end_lines = lines
         with open(cfgname, 'w') as file:
             file.writelines(end_lines)
     
+    def raise_error_if_open(self):
+        if not self.is_doors_open and not self.is_hood_open:
+            return
+        
+        if self.is_doors_open and self.is_hood_open:
+            raise self.gcode.error(_("Printing is paused. Must close doors and hood"))
+        elif self.is_doors_open:
+            raise self.gcode.error(_("Printing is paused. Must close doors"))
+        else:
+            raise self.gcode.error(_("Printing is paused. Must close hood"))
+    
     
     def get_status(self, eventtime=None):
-        return {'safety': self.safety,
-                'open': self.open}
+        return {
+                'safety_enabled': self.safety_enabled,
+                'is_hood_open': self.is_hood_open,
+                'is_doors_open': self.is_doors_open
+                }
     
 def load_config(config):
     return SafetyPrinting(config)

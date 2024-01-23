@@ -5,10 +5,17 @@ class WifiMode:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.wifiMode = 'Default' 
+        data = None
+        try:
+            data = subprocess.check_output("nmcli device show wlan0 | grep Gelios", universal_newlines=True, shell=True)
+        except:
+            pass
+        if data:
+            self.wifiMode = 'AP'
         self.reactor = self.printer.get_reactor()
         self.timer = None
-        self.printer.register_event_handler("klippy:ready",
-                                            self._handle_ready)
+        # self.printer.register_event_handler("klippy:ready",
+        #                                     self._handle_ready)
         webhooks = self.printer.lookup_object('webhooks')
         webhooks.register_endpoint("wifi_mode/set_wifi_mode",
                                    self._handle_set_wifi_mode)
@@ -28,27 +35,26 @@ class WifiMode:
     
     
     
-    def watch_wifi_mode(self, eventtime):
-        data = None
-        try:
-            data = subprocess.check_output("nmcli device show wlan0 | grep Gelios", universal_newlines=True, shell=True)
-        except:
-            pass
-        if data:
-            self.wifiMode = 'AP'
-        else:
-            self.wifiMode = 'Default'
-        return eventtime + 0.1
+    # def watch_wifi_mode(self, eventtime):
+    #     data = None
+    #     try:
+    #         data = subprocess.check_output("nmcli device show wlan0 | grep Gelios", universal_newlines=True, shell=True)
+    #     except:
+    #         pass
+    #     if data:
+    #         self.wifiMode = 'AP'
+    #     else:
+    #         self.wifiMode = 'Default'
+    #     return eventtime + 0.1
     
-    def _handle_ready(self):
-        self.timer = self.reactor.register_timer(self.watch_wifi_mode, self.reactor.NOW)
-
+    # def _handle_ready(self):
+    #     self.timer = self.reactor.register_timer(self.watch_wifi_mode, self.reactor.NOW)
     
     def _handle_set_wifi_mode(self, web_request):
-        wifi_mode = web_request.get_str('wifi_mode')
-        if wifi_mode == 'AP':
+        self.wifiMode = web_request.get_str('wifi_mode')
+        if self.wifiMode == 'AP':
             os.system("nmcli connection up Gelios")
-        else:
+        elif self.wifiMode == 'Default':
             os.system("nmcli connection down Gelios")   
 
     def get_status(self, eventtime):

@@ -17,7 +17,7 @@ class BedScrews:
             if config.get(prefix, None) is None:
                 break
             screw_coord = config.getfloatlist(prefix, count=2)
-            screw_name = "screw at %.3f,%.3f" % screw_coord
+            screw_name = _("screw at %.3f, %.3f") % screw_coord
             screw_name = config.get(prefix + "_name", screw_name)
             screws.append((screw_coord, screw_name))
             pfa = prefix + "_fine_adjust"

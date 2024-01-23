@@ -37,15 +37,16 @@ class LedControl:
          "error":"STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=ERROR_DEFAULT\n"
         }
         self.gcode.register_command("DISABLE_LED_EFFECTS", self.cmd_DISABLE_LED_EFFECTS)
+        self.gcode.register_command("ENABLE_LED_EFFECTS", self.cmd_ENABLE_LED_EFFECTS)
         self.printer.register_event_handler("klippy:ready",
                                             self._handle_control)
 
     def cmd_DISABLE_LED_EFFECTS(self, gcmd):
-        if self.now_event != "disabled":
-            self.printer.send_event("led_control:disabled")
-        else:
-            self.printer.send_event("led_control:enabled")
+        self.printer.send_event("led_control:disabled")
 
+    def cmd_ENABLE_LED_EFFECTS(self, gcmd):
+        self.printer.send_event("led_control:enabled")
+    
     def _handle_control(self):
         self.extruder = self.printer.lookup_object('extruder')
         self.heater_bed = self.printer.lookup_object('heater_bed')
@@ -53,6 +54,7 @@ class LedControl:
         self.printer.register_event_handler("led:set_led", self._handle_led)
         self.printer.register_event_handler("extruder:heating", self._handle_extruder_heating)
         self.printer.register_event_handler("bed:heating", self._handle_bed_heating)
+        #self.printer.register_event_handler("heaters:stop_heating", self._handle_enabled)
         self.printer.register_event_handler("led_control:disabled", self._handle_disabled)
         self.printer.register_event_handler("led_control:enabled", self._handle_enabled)
         self.timer = self.reactor.register_timer(self._main_control, self.reactor.NOW)
@@ -67,11 +69,19 @@ class LedControl:
         self.now_event = "printing"
         self.gcode.run_script("STOP_LED_EFFECTS\n"
                                         "SET_LED_EFFECT EFFECT=EXTRUDER_LEFT\n"
-                                        "SET_LED_EFFECT EFFECT=LED_CENTER\n"
                                         "SET_LED_EFFECT EFFECT=BED_RIGHT\n")
-        return self.reactor.NEVER
-         
-         
+        return self.reactor.NEVER 
+    
+    
+    def get_status(self, eventtime):
+        return {
+            'led_status': self.now_event
+        }
+    
+    
+    
+    
+           
     def _handle_error(self):
         self._set_event("error")
         
@@ -90,14 +100,17 @@ class LedControl:
         
     def _handle_enabled(self):
         self._set_event("enabled")
+        if self.timer is None: 
+            self.timer = self.reactor.register_timer(self._main_control, self.reactor.NOW)
     
     def _set_event(self, event):
-        self.now_event = event
-        buff = self.get_event()
-        if buff != self.previous_event:
-            self.previous_event = buff
-        self.add_event(event)
-        self.send_event = True
+        if self.now_event != 'disabled' or event == 'enabled':
+            self.now_event = event
+            buff = self.get_event()
+            if buff != self.previous_event:
+                self.previous_event = buff
+            self.add_event(event)
+            self.send_event = True
     
     def add_event(self, event):
         if len(self.events) >= 1:
@@ -113,7 +126,10 @@ class LedControl:
     def _main_control(self, eventtime):
         if self.now_event == "disabled":
             self.set_ledEffect_disabled(eventtime)
-            return eventtime + 0.1
+            if self.timer is not None:
+                self.reactor.unregister_timer(self.timer)
+                self.timer = None
+            return self.reactor.NEVER
         now_print_state = self.print_stats.get_status(eventtime)['state']
         self.target_bed = self.heater_bed.get_status(eventtime)['target']
         self.temp_bed = self.heater_bed.get_status(eventtime)['temperature']
@@ -232,15 +248,15 @@ class LedControl:
     def set_ledEffect_printing(self, eventtime):
         self.last_eventtime = eventtime
         self.gcode.run_script("STOP_LED_EFFECTS\n"
-                                        "SET_LED_EFFECT EFFECT=PRINTING_DEFAULT\n")     
+                                        "SET_LED_EFFECT EFFECT=NEOPIXEL_DEFAULT\n")     
     
     def set_ledEffect_error(self, eventtime):
         self.last_eventtime = eventtime
         self.gcode.run_script("STOP_LED_EFFECTS\n"
-                                        "SET_LED_EFFECT EFFECT=ERROR_DEFAULT\n"
-                                        "SET_PIN PIN=BEEPER_pin VALUE=0.5 CYCLE_TIME=0.0024696\n"
-                                        "G4 P500\n"
-                                        "SET_PIN PIN=BEEPER_pin VALUE=0\n")
+                                        "SET_LED_EFFECT EFFECT=ERROR_DEFAULT\n")
+                                        #"SET_PIN PIN=BEEPER_pin VALUE=0.5 CYCLE_TIME=0.0024696\n"
+                                        #"G4 P500\n"
+                                        #"SET_PIN PIN=BEEPER_pin VALUE=0\n")
    
     def set_ledEffect_set_led(self, eventtime):
         self.last_eventtime = eventtime
@@ -261,7 +277,7 @@ class LedControl:
         self.last_eventtime = eventtime
         self.gcode.run_script("STOP_LED_EFFECTS\n"
                                         "SET_LED_EFFECT EFFECT=EXTRUDER_LEFT\n"
-                                        "SET_LED_EFFECT EFFECT=LED_CENTER\n"
+                                        # "SET_LED_EFFECT EFFECT=LED_CENTER\n"
                                         "SET_LED_EFFECT EFFECT=BED_RIGHT\n") 
     
     def set_ledEffect_state(self, eventtime):

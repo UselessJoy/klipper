@@ -136,9 +136,8 @@ class VirtualSD:
                 self.reactor.pause(self.reactor.monotonic() + .001)
     def do_resume(self):
         safety_printing_object = self.printer.lookup_object('safety_printing')
-        if safety_printing_object.safety:
-            if safety_printing_object.open:
-                raise self.gcode.error(_("Must close doors and cup first"))
+        if safety_printing_object.safety_enabled:
+            safety_printing_object.raise_error_if_open()
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
@@ -194,9 +193,8 @@ class VirtualSD:
     cmd_SDCARD_PRINT_FILE_help = _("Loads a SD file and starts the print. May include files in subdirectories.")
     def cmd_SDCARD_PRINT_FILE(self, gcmd):
         safety_printing_object = self.printer.lookup_object('safety_printing')
-        if safety_printing_object.safety:
-            if safety_printing_object.open:
-                raise gcmd.error(_("Must close doors and cup first"))
+        if safety_printing_object.safety_enabled:
+            safety_printing_object.raise_error_if_open()
         if self.work_timer is not None:
             raise gcmd.error(_("SD busy"))
         self._reset_file()
@@ -213,9 +211,8 @@ class VirtualSD:
 
     def cmd_SDCARD_RUN_FILE(self, gcmd):
         safety_printing_object = self.printer.lookup_object('safety_printing')
-        if safety_printing_object.safety:
-            if safety_printing_object.open:
-                raise gcmd.error(_("Must close doors and cup first"))
+        if safety_printing_object.safety_enabled:
+            safety_printing_object.raise_error_if_open()
         gcmd.respond_raw(_("Restart file"))
         self.load_saved_parameters()
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)

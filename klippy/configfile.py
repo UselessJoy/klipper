@@ -3,16 +3,35 @@
 # Copyright (C) 2016-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+from __future__ import annotations
 import sys, os, glob, re, time, logging, configparser, io
-import locales 
+#from klippy import Printer
+import locales
 error = configparser.Error
 
 class sentinel:
     pass
 
+class ConfigParser(configparser.RawConfigParser):
+    def write(self, filename):
+        if self._defaults:
+            filename.write("[%s]\n" % DEFAULTSECT)
+            for (key, value) in self._defaults.items():
+                filename.write("%s : %s\n" % (key, str(value).replace('\n', '\n\t')))
+            filename.write('\n')
+        for section in self._sections:
+            filename.write("[%s]\n" % section)
+            for (key, value) in self._sections[section].items():
+                if key != "__name__":
+                    sval = str(value).replace('\n', '\n\t').replace('\t(tab)', '#').replace('@', '#')
+                    filename.write("%s: %s\n" %
+                             (key, sval))
+            filename.write('\n')
+
+
 class ConfigWrapper:
     error = configparser.Error
-    def __init__(self, printer, fileconfig, access_tracking, section):
+    def __init__(self, printer, fileconfig : ConfigParser, access_tracking, section):
         self.printer = printer
         self.fileconfig = fileconfig
         self.access_tracking = access_tracking
@@ -135,21 +154,33 @@ AUTOSAVE_HEADER = """
 """
 
 class PrinterConfig:
+    # Поиск новой строки
+    line_r = re.compile('\n')
+    # Поиск комментариев в опции
+    comment_value_option_r = re.compile('@')
+    # Поиск знака комментария отдельно
+    comment_symbol_r = re.compile('[#;]')
+    # Поиск части строки после символа '#', включая сам символ
+    comment_r = re.compile('[#;].*$')
+    # Поиск части строки, соответствующей значению поля (после любого знака, не входящего в список)
+    value_r = re.compile('[^A-Za-z0-9_].*$')
     def __init__(self, printer):
         self.printer = printer
         self.autosave = None
         self.deprecated = {}
         self.status_raw_config = {}
-        self.status_save_pending = {}
+        self.pendingSaveItems = {}
+        self.status_remove_sections = []
         self.status_settings = {}
         self.status_warnings = []
-        self.save_config_pending = False
+        self.modules_required_reboot_on_change = []
+        self.haveUnsavedChanges = False
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command("SAVE_CONFIG", self.cmd_SAVE_CONFIG,
                                desc=self.cmd_SAVE_CONFIG_help)
     def get_printer(self):
         return self.printer
-    def _read_config_file(self, filename):
+    def _read_config_file(self, filename) -> str:
         try:
             f = open(filename, 'r')
             data = f.read()
@@ -158,8 +189,8 @@ class PrinterConfig:
             msg = _("Unable to open config file %s") % (filename,)
             logging.exception(msg)
             raise error(msg)
-        return data.replace('\r\n', '\n')
-    def _find_autosave_data(self, data):
+        return data.replace("\r\n", '\n')
+    def _find_autosave_data(self, data: str) -> tuple[str, str]:
         regular_data = data
         autosave_data = ""
         pos = data.find(AUTOSAVE_HEADER)
@@ -181,11 +212,9 @@ class PrinterConfig:
                 return data, ""
             out.append(line[4:])
         out.append("")
-        return regular_data, "\n".join(out)
-    comment_r = re.compile('[#;].*$')
-    value_r = re.compile('[^A-Za-z0-9_].*$')
-    #data - string, config - ConfigWrapper
-    def _strip_duplicates(self, data, config):
+        return regular_data, '\n'.join(out)
+    
+    def _strip_duplicates(self, data: str, config: ConfigWrapper) -> str:
         fileconfig = config.fileconfig
         # Comment out fields in 'data' that are defined in 'config'
         lines = data.split('\n')
@@ -197,17 +226,17 @@ class PrinterConfig:
                 continue
             if pruned_line[0].isspace():
                 if is_dup_field:
-                    lines[lineno] = '#' + lines[lineno]
+                    lines[lineno] = "#" + lines[lineno]
                 continue
             is_dup_field = False
-            if pruned_line[0] == '[':
+            if pruned_line[0] == "[":
                 section = pruned_line[1:-1].strip()
                 continue
             field = self.value_r.sub('', pruned_line)
             if config.fileconfig.has_option(section, field):
                 is_dup_field = True
-                lines[lineno] = '#' + lines[lineno]    
-        return "\n".join(lines)
+                lines[lineno] = "#" + lines[lineno]    
+        return '\n'.join(lines)
     def _parse_config_buffer(self, buffer, filename, fileconfig):
         if not buffer:
             return
@@ -230,7 +259,7 @@ class PrinterConfig:
             self._parse_config(include_data, include_filename, fileconfig,
                                visited)
         return include_filenames
-    def _parse_config(self, data, filename, fileconfig, visited):
+    def _parse_config(self, data, filename, fileconfig, visited, parse_includes=True):
         path = os.path.abspath(filename)
         if path in visited:
             raise error(_("Recursive include of config file '%s'") % (filename))
@@ -241,13 +270,13 @@ class PrinterConfig:
         buffer = []
         for line in lines:
             # Strip trailing comment
-            pos = line.find('#')
+            pos = line.find("#")
             if pos >= 0:
                 line = line[:pos]
             # Process include or buffer line
             mo = configparser.RawConfigParser.SECTCRE.match(line)
             header = mo and mo.group('header')
-            if header and header.startswith('include '):
+            if header and header.startswith('include ') and parse_includes:
                 self._parse_config_buffer(buffer, filename, fileconfig)
                 include_spec = header[8:].strip()
                 self._resolve_include(filename, include_spec, fileconfig,
@@ -256,31 +285,33 @@ class PrinterConfig:
                 buffer.append(line)
         self._parse_config_buffer(buffer, filename, fileconfig)
         visited.remove(path)
-    def _build_config_wrapper(self, data, filename):
+        
+        
+    def _build_config_wrapper(self, data: str, filename: str, parse_includes=True) -> ConfigWrapper:
         if sys.version_info.major >= 3:
-            fileconfig = configparser.RawConfigParser(
+            fileconfig = ConfigParser(
                 strict=False, inline_comment_prefixes=(';', '#'))
         else:
-            fileconfig = configparser.RawConfigParser()
-        self._parse_config(data, filename, fileconfig, set())
+            fileconfig = ConfigParser()
+        self._parse_config(data, filename, fileconfig, set(), parse_includes)
         return ConfigWrapper(self.printer, fileconfig, {}, 'printer')
-    def _build_config_string(self, config):
+    def _build_config_string(self, config: ConfigWrapper) -> str:
         sfile = io.StringIO()
         config.fileconfig.write(sfile)
         return sfile.getvalue().strip()
-    def read_config(self, filename):
+    def read_config(self, filename: str) -> ConfigWrapper:
         return self._build_config_wrapper(self._read_config_file(filename),
                                           filename)
-    def read_main_config(self):
+    def read_main_config(self, parse_includes=True) -> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']
         data = self._read_config_file(filename)
         regular_data, autosave_data = self._find_autosave_data(data)
-        regular_config = self._build_config_wrapper(regular_data, filename)
+        regular_config = self._build_config_wrapper(regular_data, filename, parse_includes)
         autosave_data = self._strip_duplicates(autosave_data, regular_config)
-        self.autosave = self._build_config_wrapper(autosave_data, filename)
-        cfg = self._build_config_wrapper(regular_data + autosave_data, filename)
+        self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
+        cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
         return cfg
-    def check_unused_options(self, config):
+    def check_unused_options(self, config: ConfigWrapper):
         fileconfig = config.fileconfig
         objects = dict(self.printer.lookup_objects())
         # Determine all the fields that have been accessed
@@ -302,15 +333,15 @@ class PrinterConfig:
                                 % (option, section))
         # Setup get_status()
         self._build_status(config)
-    def log_config(self, config):
+    def log_config(self, config: ConfigWrapper):
         lines = ["===== Config file =====",
                  self._build_config_string(config),
                  "======================="]
-        self.printer.set_rollover_info("config", "\n".join(lines))
+        self.printer.set_rollover_info("config", '\n'.join(lines))
     # Status reporting
     def deprecate(self, section, option, value=None, msg=None):
         self.deprecated[(section, option, value)] = msg
-    def _build_status(self, config):
+    def _build_status(self, config: ConfigWrapper):
         self.status_raw_config.clear()
         for section in config.get_prefix_sections(''):
             self.status_raw_config[section.get_name()] = section_status = {}
@@ -329,122 +360,212 @@ class PrinterConfig:
             res['section'] = section
             res['option'] = option
             self.status_warnings.append(res)
+            
     def get_status(self, eventtime):
         return {'config': self.status_raw_config,
                 'settings': self.status_settings,
                 'warnings': self.status_warnings,
-                'save_config_pending': self.save_config_pending,
-                'save_config_pending_items': self.status_save_pending}
-    # Autosave functions
-    def set(self, section, option, value):
-        if not self.autosave.fileconfig.has_section(section):
-            self.autosave.fileconfig.add_section(section)
+                'save_config_pending': self.haveUnsavedChanges,
+                'save_config_pending_items': self.pendingSaveItems}
+    
+    def update_config(self, setting_sections: dict = {}, removing_sections: list = [], 
+                      save_immediatly = True, need_restart = False, need_backup = False) -> None:
+        """
+        Метод добавляет в словарь измененных/добавляемых секций и список удаляемых секций словарь
+        setting_sections и список removing_sections соответственно и создает новый конфигурационный файл в зависимости от параметра
+        save_immediatly. Параметры need_restart и need_backup указывают на необходимость перезагрузки после сохранения и 
+        создания бэкапа при сохранении соответственно. 
+        """
+        for section in setting_sections:
+            for option in setting_sections[section]:
+                self.set(section, option, setting_sections[section][option], save_immediatly)
+        
+        for section in removing_sections:
+            self.remove_section(section)
+        if save_immediatly:
+            self.save_config(need_restart, need_backup)
+
+    def set(self, section: str, option: str, value, save_immediatly = False) -> None:
+        """
+        Метод устанавливает для указанной опции option в секции section значение value, если указанная секция существует. 
+        Иначе секция добавляется в словарь измененных/добавляемых секций в конфигурации. Если секция находилась в словаре 
+        удаляемых секций, то из него она удаляется.
+        """
+        if section in self.status_remove_sections:
+            self.status_remove_sections.remove(section)
         svalue = str(value)
-        self.autosave.fileconfig.set(section, option, svalue)
-        pending = dict(self.status_save_pending)
+        pending = dict(self.pendingSaveItems)
         if not section in pending or pending[section] is None:
             pending[section] = {}
         else:
             pending[section] = dict(pending[section])
         pending[section][option] = svalue
-        self.status_save_pending = pending
-        self.save_config_pending = True
+        self.pendingSaveItems = pending
+        if not save_immediatly:
+            self.haveUnsavedChanges = True
         logging.info("save_config: set [%s] %s = %s", section, option, svalue)
-    def remove_section(self, section):
-        if self.autosave.fileconfig.has_section(section):
-            self.autosave.fileconfig.remove_section(section)
-            pending = dict(self.status_save_pending)
-            pending[section] = None
-            self.status_save_pending = pending
-            self.save_config_pending = True
-        elif (section in self.status_save_pending and
-              self.status_save_pending[section] is not None):
-            pending = dict(self.status_save_pending)
-            del pending[section]
-            self.status_save_pending = pending
-            self.save_config_pending = True
-    def _disallow_include_conflicts(self, regular_data, cfgname, gcode):
-        config = self._build_config_wrapper(regular_data, cfgname)
-        for section in self.autosave.fileconfig.sections():
-            for option in self.autosave.fileconfig.options(section):
-                if config.fileconfig.has_option(section, option):
-                    msg = (_("SAVE_CONFIG section '%s' option '%s' conflicts "
-                           "with included value") % (section, option))
-                    raise gcode.error(msg)
-    cmd_SAVE_CONFIG_help = _("Overwrite config file and restart")
-    def cmd_SAVE_CONFIG(self, gcmd):
-        if not self.autosave.fileconfig.sections():
+        
+    def remove_section(self, section: str, save_immediatly = False):
+        """
+        Метод добавляет секцию section в список удаляемых секций, если секция существует в файле конфигурации. 
+        Если секция находилась в словаре измененных/новых секций, то из него она удаляется вместе со всеми опциями
+        """
+        pending_save = dict(self.pendingSaveItems)
+        if section in self.pendingSaveItems:
+            del pending_save[section]
+            self.pendingSaveItems = pending_save
             return
+        config = self.read_main_config(parse_includes=False)
+        if (not section in self.status_remove_sections and section in config.fileconfig.sections()):
+            self.status_remove_sections.append(section)
+        if not save_immediatly:
+            self.haveUnsavedChanges = True
+
+    def comments_to_option_value(self, data: str) -> tuple(str, dict[str, list]):
+        """
+        Метод изменяет символы комментария (#;) внутри опций на символ '@', чтобы они обрабатывались как часть значения у опции,
+        и возвращает кортеж с изменнными данными и словарем неизмененных комментариев. Неизменными комментариями являются комметарии перед
+        первой секцией и перед первой опцией в очередной встреченной секции.  
+        Словарь изначально имеет ключ 'before_sections' с пустым множеством в значении. В общем виде 
+        возвращаемый словарь выглядит следующим образом: {'before_sections': ["#before_sections_comment_1", "#before_sections_comment_1"],
+        'section_1_with_comments_before_option': ["#before_option_comment_1", "#before_option_comment_2"], ...}
+        """
+        dataLines = data.split('\n')
+        start_sections_index = 0
+        comments = {'before_sections': []}
+        # Индекс первого вхождения в секцию
+        for line in dataLines:
+            if line[0] == '[':
+                break
+            comments['before_sections'].append(line)
+            start_sections_index +=1
+        logging.info(f"this is comments before sections {str(comments)}")    
+        in_option = False
+        section = ''
+        for i in range(start_sections_index, len(dataLines)):
+            # Исключение комментария в строке
+            filtered_line = self.comment_r.sub('', dataLines[i]).rstrip()
+            # Если это секция
+            if filtered_line.startswith('['):
+                section = filtered_line[1:-1].strip()
+                in_option = False
+                continue
+            # Если это опция
+            if self.value_r.sub('', filtered_line.strip()) != '':
+                in_option = True
+            # Если была найдена первая опция
+            if in_option:
+                # Символ комментария заменить на @
+                dataLines[i] = self.comment_symbol_r.sub('@', dataLines[i])
+                # Если в строке был только комментарий и он не табулирован
+                if not filtered_line and dataLines[i].startswith('@'):
+                    # Добавить табуляцию, чтобы ConfigParser правильно прочитал значение 
+                    dataLines[i] = '\t' + dataLines[i]
+            elif section != '' and self.comment_r.search(dataLines[i]):
+                if section in comments:
+                    comments[section].append(dataLines[i])
+                else:
+                    comments[section] = [dataLines[i]]  
+        return '\n'.join(dataLines), comments
+    
+    # Новый сейв конфиг. Может сохранять данные либо с бэкапом, либо без, аналогично с перезагрузкой
+    # Сейв конфиг делает полный апдейт (изменяет существующие параметры, удаляет их и записывает новые)
+    def save_config(self, need_restart: bool, need_backup: bool) -> None:
+        """
+        Метод записывает в конфигурационный файл новые параметры конфигурации, устанавливаемые в зависимости от списка удаляемых секций и словаря измененных/добавленных секций. 
+        Параметры need_restart и need_backup указывают на необходимость перезагрузки после сохранения и создания бэкапа при сохранении соответственно. 
+        """
         gcode = self.printer.lookup_object('gcode')
-        # Create string containing autosave data
-        # autosave_data = self._build_config_string(self.autosave)
-        # lines = [('#*# ' + l).strip()
-        #          for l in autosave_data.split('\n')]
-        # lines.insert(0, "\n" + AUTOSAVE_HEADER.rstrip())
-        # lines.append("")
-        #autosave_data = '\n'.join(lines)
-        # Read in and validate current config file
+        if len(self.pendingSaveItems.items()) == 0 and not self.status_remove_sections:
+            msg = _("No data changed")
+            logging.exception(msg)
+            raise gcode.error(msg)
+        #Read in and validate current config file
         cfgname = self.printer.get_start_args()['config_file']
         try:
             data = self._read_config_file(cfgname)
-            regular_data, __ = self._find_autosave_data(data)
-            config = self._build_config_wrapper(regular_data, cfgname)
+            data_option_comments, remain_comments = self.comments_to_option_value(data)
+            configWrapper = self._build_config_wrapper(data_option_comments, cfgname, parse_includes=False)
         except error as e:
             msg = _("Unable to parse existing config on SAVE_CONFIG")
             logging.exception(msg)
             raise gcode.error(msg)
-        regular_data, remain = self._overwrite_duplicates(data, self.autosave)
-        autosave_data = self._build_config_string(remain)
-        lines = [(l)#.strip()
-                 for l in autosave_data.split('\n')]
-        lines.insert(0, "\n")
-        lines.append("")
-        autosave_data = '\n'.join(lines)
-        #regular_data = self._strip_duplicates(regular_data, self.autosave)
-        self._disallow_include_conflicts(regular_data, cfgname, gcode)
-        data = regular_data.rstrip() + autosave_data
-        # Determine filenames
-        datestr = time.strftime("-%Y%m%d_%H%M%S")
-        backup_name = cfgname + datestr
-        temp_name = cfgname + "_autosave"
-        if cfgname.endswith(".cfg"):
-            backup_name = cfgname[:-4] + datestr + ".cfg"
-            temp_name = cfgname[:-4] + "_autosave.cfg"
-        # Create new config file with temporary name and swap with main config
-        logging.info("SAVE_CONFIG to '%s' (backup in '%s')",
-                     cfgname, backup_name)
+        newConfigWrapper = self.new_config_wrapper(configWrapper)
+        if need_backup:
+            # Determine filenames
+            datestr = time.strftime("-%Y%m%d_%H%M%S")
+            backup_name = cfgname + datestr
+            temp_name = cfgname + "_autosave"
+            if cfgname.endswith(".cfg"):
+                backup_name = cfgname[:-4] + datestr + ".cfg"
+                temp_name = cfgname[:-4] + "_autosave.cfg"
+            # Create new config file with temporary name and swap with main config
+            logging.info("SAVE_CONFIG to '%s' (backup in '%s')", cfgname, backup_name)
+        else:
+            temp_name = cfgname
+            # Save to main config
+            logging.info("SAVE_CONFIG to '%s'", cfgname)
         try:
-            f = open(temp_name, 'w')
-            f.write(data)
-            f.close()
-            os.rename(cfgname, backup_name)
-            os.rename(temp_name, cfgname)
+            self.write(temp_name, newConfigWrapper, remain_comments)
+            if need_backup:
+                os.rename(cfgname, backup_name)
+                os.rename(temp_name, cfgname)
         except:
             msg = _("Unable to write config file during SAVE_CONFIG")
             logging.exception(msg)
             raise gcode.error(msg)
         # Request a restart
-        gcode.request_restart('restart')
+        if need_restart:
+            gcode.request_restart('restart')
+     
+    def new_config_wrapper(self, old_config: ConfigWrapper) -> ConfigWrapper:
+        newConfigWrapper = old_config
+        newConfigParser = newConfigWrapper.fileconfig
         
-        
-    #data - string, config - ConfigWrapper    
-    def _overwrite_duplicates(self, data, new_config):
-        # Comment out fields in 'data' that are defined in 'config'
-        lines = data.split('\n')
-        section = None
-        for lineno, line in enumerate(lines):
-            pruned_line = self.comment_r.sub('', line).rstrip()
-            if not pruned_line:
-                continue
-            if pruned_line[0] == '[':
-                if new_config.has_section(section):
-                    if new_config.fileconfig.options(section):
-                        raise error(_("Error in overwrite section '%s': section has not overwritten parameters") % (section))
-                    new_config.fileconfig.remove_section(section)
-                section = pruned_line[1:-1].strip()
-                continue
-            field = self.value_r.sub('', pruned_line)
-            if new_config.fileconfig.has_option(section, field):
-                lines[lineno] = field + ": " + new_config.fileconfig.get(section, field)
-                new_config.fileconfig.remove_option(section, field) 
-        return "\n".join(lines), new_config
+        #Lookup for deleting sections
+        for section in self.status_remove_sections:
+            if section in newConfigParser.sections():
+                newConfigParser.remove_section(section)
+                         
+        #Lookup for overwriting and new sections                   
+        for section in self.pendingSaveItems:
+            if not newConfigParser.has_section(section):
+                newConfigParser.add_section(section)
+            for option in self.pendingSaveItems[section]:
+                value = self.pendingSaveItems[section][option]
+                newConfigParser.set(section, option, value)
+                
+        newConfigWrapper.fileconfig = newConfigParser
+        return newConfigWrapper
+    
+    def write(self, filename: str, configWrapper: ConfigWrapper, comments: dict[str, list]):
+        configParser = configWrapper.fileconfig
+        with open(filename, 'w') as configfile:
+            # Запись комментарией перед первой секцией 
+            configfile.write(str('\n'.join(comments['before_sections']) + '\n'))
+            for section in configParser.sections():
+                # Запись секции
+                configfile.write("[%s]\n" % section)
+                if section in comments:
+                    # Запись комментариев перед первой опцией в секции
+                    configfile.write(str('\n'.join(comments[section]) + '\n'))
+                for key, value in configParser.items(section):
+                    # Преобразование комментариев в исходный вид
+                    sval = self.comment_value_option_r.sub('#', 
+                                                           self.line_r.sub('\n\t', str(value)))
+                    configfile.write("%s: %s\n" % (key, sval))
+                # Перед очередной секций добавить пустую строку
+                configfile.write('\n')
+        # Обнулить измененные значения
+        self.pendingSaveItems = {}
+        self.haveUnsavedChanges = False
+    
+    cmd_SAVE_CONFIG_help = _("Overwrite config file and restart")
+    def cmd_SAVE_CONFIG(self, gcmd):
+        need_restart = need_backup = True
+        params: dict = gcmd.get_command_parameters()
+        if 'NO_RESTART' in params:
+            need_restart = False
+        if 'NO_BACKUP' in params:
+            need_backup = False
+        self.save_config(need_restart, need_backup)

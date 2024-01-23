@@ -3,6 +3,7 @@
 # Copyright (C) 2016-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+from __future__ import annotations
 import os, re, logging, collections, shlex
 import locales 
 
@@ -13,7 +14,7 @@ Coord = collections.namedtuple('Coord', ('x', 'y', 'z', 'e'))
 
 class GCodeCommand:
     error = CommandError
-    def __init__(self, gcode, command, commandline, params, need_ack):
+    def __init__(self, gcode: GCodeDispatch, command: str, commandline: str, params: dict, need_ack: bool):
         self._command = command
         self._commandline = commandline
         self._params = params
@@ -25,7 +26,7 @@ class GCodeCommand:
         return self._command
     def get_commandline(self):
         return self._commandline
-    def get_command_parameters(self):
+    def get_command_parameters(self) -> dict:
         return self._params
     def get_raw_command_parameters(self):
         command = self._command
@@ -188,6 +189,7 @@ class GCodeDispatch:
         for line in commands:
             # Ignore comments and leading/trailing spaces
             line = origline = line.strip()
+            logging.info(line)
             cpos = line.find(';')
             if cpos >= 0:
                 line = line[:cpos]
@@ -258,7 +260,9 @@ class GCodeDispatch:
         r'(?P<cmd>[a-zA-Z_][a-zA-Z0-9_]+)(?:\s+|$)'
         r'(?P<args>[^#*;]*?)'
         r'\s*(?:[#*;].*)?$')
-    def _get_extended_params(self, gcmd):
+    def _get_extended_params(self, gcmd: GCodeCommand):
+        logging.info(f"this commandline {gcmd.get_commandline()}")
+        logging.info(f"this parameters {gcmd.get_command_parameters()}")
         m = self.extended_r.match(gcmd.get_commandline())
         if m is None:
             raise self.error(_("Malformed command '%s'")

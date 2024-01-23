@@ -1,5 +1,4 @@
-import gettext, pathlib, os, optparse, configparser, logging, sys
-import logging
+import gettext, pathlib, os, configparser, sys
 klipperpath = pathlib.Path(__file__).parent.resolve()
 lang_path = os.path.join(klipperpath, "locales")
 gettext.translation('Klipper', localedir=lang_path, languages=["en"], fallback=True).install()

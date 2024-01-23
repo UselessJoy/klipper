@@ -8,6 +8,7 @@ class PauseResume:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
+        self.safety = self.printer.load_object(config, 'safety_printing')
         self.recover_velocity = config.getfloat('recover_velocity', 50.)
         self.v_sd = None
         self.is_paused = False
@@ -80,6 +81,8 @@ class PauseResume:
         if not self.is_paused:
             gcmd.respond_info(_("Print is not paused, resume aborted"))
             return
+        if self.safety.safety_enabled:
+            self.safety.raise_error_if_open()
         velocity = gcmd.get_float('VELOCITY', self.recover_velocity)
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=PAUSE_STATE MOVE=1 MOVE_SPEED=%.4f"

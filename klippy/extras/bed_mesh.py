@@ -4,7 +4,12 @@
 # Copyright (C) 2018-2019 Eric Callahan <arksine.code@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+from __future__ import annotations
+from ctypes import Array
 import logging, math, json, collections
+
+from configfile import ConfigWrapper, PrinterConfig
+from gcode import GCodeCommand
 from . import probe
 import locales
 PROFILE_VERSION = 1
@@ -86,7 +91,7 @@ def parse_gcmd_coord(gcmd, name):
 
 class BedMesh:
     FADE_DISABLE = 0x7FFFFFFF
-    def __init__(self, config):
+    def __init__(self, config: ConfigWrapper):
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
@@ -108,6 +113,7 @@ class BedMesh:
         # setup persistent storage
         self.pmgr = ProfileManager(config, self)
         self.save_profile = self.pmgr.save_profile
+        self.add_profile = self.pmgr.add_profile
         # register gcodes
         self.gcode.register_command(
             'BED_MESH_OUTPUT', self.cmd_BED_MESH_OUTPUT,
@@ -129,7 +135,7 @@ class BedMesh:
     def handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
         self.bmc.print_generated_points(logging.info)
-    def set_mesh(self, mesh):
+    def set_mesh(self, mesh: ZMesh | None):
         if mesh is not None and self.fade_end != self.FADE_DISABLE:
             self.log_fade_complete = True
             if self.base_fade_target is None:
@@ -226,7 +232,8 @@ class BedMesh:
             "mesh_max": (0., 0.),
             "probed_matrix": [[]],
             "mesh_matrix": [[]],
-            "profiles": self.pmgr.get_profiles()
+            "profiles": self.pmgr.get_profiles(),
+            "unsaved_profiles": self.pmgr.get_unsaved_profiles()
         }
         if self.z_mesh is not None:
             params = self.z_mesh.get_mesh_params()
@@ -239,7 +246,7 @@ class BedMesh:
             self.status['mesh_max'] = mesh_max
             self.status['probed_matrix'] = probed_matrix
             self.status['mesh_matrix'] = mesh_matrix
-    def get_mesh(self):
+    def get_mesh(self) -> ZMesh:
         return self.z_mesh
     cmd_BED_MESH_OUTPUT_help = _("Retrieve interpolated grid of probed z-points")
     def cmd_BED_MESH_OUTPUT(self, gcmd):
@@ -280,7 +287,7 @@ class BedMesh:
 
 class BedMeshCalibrate:
     ALGOS = ['lagrange', 'bicubic']
-    def __init__(self, config, bedmesh):
+    def __init__(self, config: ConfigWrapper, bedmesh: BedMesh):
         self.printer = config.get_printer()
         self.orig_config = {'radius': None, 'origin': None}
         self.radius = self.origin = None
@@ -288,6 +295,7 @@ class BedMeshCalibrate:
         self.relative_reference_index = config.getint(
             'relative_reference_index', None)
         self.faulty_regions = []
+        self.savePermanently = False
         self.substituted_indices = collections.OrderedDict()
         self.orig_config['rri'] = self.relative_reference_index
         self.bedmesh = bedmesh
@@ -386,7 +394,7 @@ class BedMeshCalibrate:
                 raise error(_("bed_mesh: Unable to generate coordinates"
                             " for faulty region at index: %d") % (i))
             self.substituted_indices[i] = valid_coords
-    def print_generated_points(self, print_func):
+    def print_generated_points(self, print_func: function):
         x_offset = y_offset = 0.
         probe = self.printer.lookup_object('probe', None)
         if probe is not None:
@@ -409,7 +417,7 @@ class BedMeshCalibrate:
                 pt = self.points[i]
                 print_func(_("%d (%.2f, %.2f), substituted points: %s")
                            % (i, pt[0], pt[1], repr(v)))
-    def _init_mesh_config(self, config):
+    def _init_mesh_config(self, config: ConfigWrapper):
         mesh_cfg = self.mesh_config
         orig_cfg = self.orig_config
         self.radius = config.getfloat('mesh_radius', None, above=0.)
@@ -518,7 +526,7 @@ class BedMeshCalibrate:
                     "interpolation. Configured Probe Count: %d, %d" %
                     (self.mesh_config['x_count'], self.mesh_config['y_count']))
                 params['algo'] = 'lagrange'
-    def update_config(self, gcmd):
+    def update_config(self, gcmd: GCodeCommand):
         # reset default configuration
         self.radius = self.orig_config['radius']
         self.origin = self.orig_config['origin']
@@ -598,13 +606,27 @@ class BedMeshCalibrate:
         adj_pts.extend(self.points[last_index:])
         return adj_pts
     cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")
-    def cmd_BED_MESH_CALIBRATE(self, gcmd):
-        self._profile_name = gcmd.get('PROFILE', "default")
-        if not self._profile_name.strip():
-            raise gcmd.error(_("Value for parameter 'PROFILE' must be specified"))
+            
+    def cmd_BED_MESH_CALIBRATE(self, gcmd: GCodeCommand):
+        self._profile_name = gcmd.get('PROFILE', f'unsaved_')
+        if self._profile_name in self.bedmesh.pmgr.get_profiles():
+            raise self.gcode.error(
+                _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name)
+        toolhead = self.printer.lookup_object('toolhead')
+        curtime = self.printer.get_reactor().monotonic()
+        kin_status = toolhead.get_kinematics().get_status(curtime)
+        if 'x' and 'y' not in kin_status['homed_axes']:
+            ho = self.printer.lookup_object('homing')
+            gcode = self.printer.lookup_object('gcode')
+            ho.cmd_G28(gcode.create_gcode_command('G28', 'G28 X Y', {'X': None, 'Y': None}))
+            
+        logging.info(f"profile name {self._profile_name}")
+        self.savePermanently: bool = gcmd.get_boolean('SAVE_PERMANENTLY', False)
+        logging.info(f"save perm {self.savePermanently}")
         self.bedmesh.set_mesh(None)
         self.update_config(gcmd)
         self.probe_helper.start_probe(gcmd)
+        
     def probe_finalize(self, offsets, positions):
         x_offset, y_offset, z_offset = offsets
         positions = [[round(p[0], 2), round(p[1], 2), p[2]]
@@ -722,7 +744,8 @@ class BedMeshCalibrate:
             raise self.gcode.error(str(e))
         self.bedmesh.set_mesh(z_mesh)
         self.gcode.respond_info(_("Mesh Bed Leveling Complete"))
-        self.bedmesh.save_profile(self._profile_name)
+        self.bedmesh.add_profile(self._profile_name, self.savePermanently)
+        
     def _dump_points(self, probed_pts, corrected_pts, offsets):
         # logs generated points with offset applied, points received
         # from the finalize callback, and the list of corrected points
@@ -744,7 +767,7 @@ class BedMeshCalibrate:
 
 
 class MoveSplitter:
-    def __init__(self, config, gcode):
+    def __init__(self, config: ConfigWrapper, gcode: GCodeCommand):
         self.split_delta_z = config.getfloat(
             'split_delta_z', .025, minval=0.01)
         self.move_check_distance = config.getfloat(
@@ -808,7 +831,7 @@ class MoveSplitter:
 
 
 class ZMesh:
-    def __init__(self, params):
+    def __init__(self, params: dict):
         self.probed_matrix = self.mesh_matrix = None
         self.mesh_params = params
         self.avg_z = 0.
@@ -868,7 +891,7 @@ class ZMesh:
             print_func(msg)
         else:
             print_func(_("bed_mesh: bed has not been probed"))
-    def print_mesh(self, print_func, move_z=None):
+    def print_mesh(self, print_func: function, move_z=None):
         matrix = self.get_mesh_matrix()
         if matrix is not None:
             msg = _("Mesh X,Y: %d,%d\n") % (self.mesh_x_count, self.mesh_y_count)
@@ -889,7 +912,7 @@ class ZMesh:
             print_func(msg)
         else:
             print_func(_("bed_mesh: Z Mesh not generated"))
-    def build_mesh(self, z_matrix):
+    def build_mesh(self, z_matrix: Array):
         self.probed_matrix = z_matrix
         self._sample(z_matrix)
         self.avg_z = (sum([sum(x) for x in self.mesh_matrix]) /
@@ -903,11 +926,11 @@ class ZMesh:
         for i, o in enumerate(offsets):
             if o is not None:
                 self.mesh_offsets[i] = o
-    def get_x_coordinate(self, index):
+    def get_x_coordinate(self, index: int):
         return self.mesh_x_min + self.mesh_x_dist * index
-    def get_y_coordinate(self, index):
+    def get_y_coordinate(self, index: int):
         return self.mesh_y_min + self.mesh_y_dist * index
-    def calc_z(self, x, y):
+    def calc_z(self, x: float, y: float):
         if self.mesh_matrix is not None:
             tbl = self.mesh_matrix
             tx, xidx = self._get_linear_index(x + self.mesh_offsets[0], 0)
@@ -925,7 +948,7 @@ class ZMesh:
             return mesh_min, mesh_max
         else:
             return 0., 0.
-    def _get_linear_index(self, coord, axis):
+    def _get_linear_index(self, coord: float, axis: int):
         if axis == 0:
             # X-axis
             mesh_min = self.mesh_x_min
@@ -943,9 +966,9 @@ class ZMesh:
         idx = constrain(idx, 0, mesh_cnt - 2)
         t = (coord - cfunc(idx)) / mesh_dist
         return constrain(t, 0., 1.), idx
-    def _sample_direct(self, z_matrix):
+    def _sample_direct(self, z_matrix: Array):
         self.mesh_matrix = z_matrix
-    def _sample_lagrange(self, z_matrix):
+    def _sample_lagrange(self, z_matrix: Array):
         x_mult = self.x_mult
         y_mult = self.y_mult
         self.mesh_matrix = \
@@ -998,7 +1021,7 @@ class ZMesh:
                 z = self.mesh_matrix[i*self.y_mult][vec]
             total += z * n / d
         return total
-    def _sample_bicubic(self, z_matrix):
+    def _sample_bicubic(self, z_matrix: Array):
         # should work for any number of probe points above 3x3
         x_mult = self.x_mult
         y_mult = self.y_mult
@@ -1098,12 +1121,14 @@ class ZMesh:
 
 
 class ProfileManager:
-    def __init__(self, config, bedmesh):
+    def __init__(self, config: ConfigWrapper, bedmesh: BedMesh):
         self.name = config.get_name()
         self.printer = config.get_printer()
+        self.config = config
         self.gcode = self.printer.lookup_object('gcode')
         self.bedmesh = bedmesh
         self.profiles = {}
+        self.unsaved_profiles = []
         self.current_profile = ""
         self.incompatible_profiles = []
         # Fetch stored profiles from Config
@@ -1137,31 +1162,66 @@ class ProfileManager:
             'BED_MESH_PROFILE', self.cmd_BED_MESH_PROFILE,
             desc=self.cmd_BED_MESH_PROFILE_help)
     def get_profiles(self):
-        return self.profiles
+        return self.profiles     
+    
+    def get_unsaved_profiles(self):
+        return self.unsaved_profiles
+    
     def get_current_profile(self):
         return self.current_profile
     def _check_incompatible_profiles(self):
         if self.incompatible_profiles:
-            configfile = self.printer.lookup_object('configfile')
-            for profile in self.incompatible_profiles:
-                configfile.remove_section('bed_mesh ' + profile)
+            configfile: PrinterConfig = self.printer.lookup_object('configfile')
+            configfile.update_config(removing_sections=self.incompatible_profiles, save_immediatly=False)
+            # for profile in self.incompatible_profiles:
+            #     configfile.remove_section('bed_mesh ' + profile)
             self.gcode.respond_info(
                 _("The following incompatible profiles have been detected\n"
                 "and are scheduled for removal:\n%s\n"
                 "The SAVE_CONFIG command will update the printer config\n"
                 "file and restart the printer") %
                 (('\n').join(self.incompatible_profiles)))
-    def save_profile(self, prof_name):
+            
+    def add_profile(self, prof_name, savePermanently):
         z_mesh = self.bedmesh.get_mesh()
         if z_mesh is None:
             self.gcode.respond_info(
                 _("Unable to save to profile [%s], the bed has not been probed")
                 % (prof_name))
             return
+        if prof_name in self.profiles:
+            raise self.gcode.error(
+                _("bed_mesh (add_profile): Profile name already exist [%s]") % prof_name)
         probed_matrix = z_mesh.get_probed_matrix()
         mesh_params = z_mesh.get_mesh_params()
-        configfile = self.printer.lookup_object('configfile')
-        cfg_name = self.name + " " + prof_name
+        profiles = dict(self.profiles)
+        profiles[prof_name] = profile = {}
+        profile['points'] = probed_matrix
+        profile['mesh_params'] = collections.OrderedDict(mesh_params)
+        unsaved = list(self.unsaved_profiles)
+        unsaved.append(prof_name)
+        self.unsaved_profiles = unsaved
+        self.profiles = profiles
+        self.current_profile = prof_name
+        if savePermanently:
+            self.save_profile(prof_name)
+        else:
+            self.bedmesh.update_status()
+    
+    def save_profile(self, prof_name):
+        profile = self.profiles.get(prof_name, None)
+        if profile is None:
+            raise self.gcode.error(
+                _("bed_mesh: Unknown profile [%s]") % prof_name)
+        probed_matrix = profile['points']
+        mesh_params = profile['mesh_params']
+        z_mesh = ZMesh(mesh_params)
+        try:
+            z_mesh.build_mesh(probed_matrix)
+        except BedMeshError as e:
+            raise self.gcode.error(str(e))
+        configfile:PrinterConfig = self.printer.lookup_object('configfile')
+        mesh_section = self.name + " " + prof_name
         # set params
         z_values = ""
         for line in probed_matrix:
@@ -1169,25 +1229,21 @@ class ProfileManager:
             for p in line:
                 z_values += "%.6f, " % p
             z_values = z_values[:-2]
-        configfile.set(cfg_name, 'version', PROFILE_VERSION)
-        configfile.set(cfg_name, 'points', z_values)
+        mesh_options = {'version': PROFILE_VERSION, 'points': z_values}
         for key, value in mesh_params.items():
-            configfile.set(cfg_name, key, value)
-        # save copy in local storage
-        # ensure any self.profiles returned as status remains immutable
-        profiles = dict(self.profiles)
-        profiles[prof_name] = profile = {}
-        profile['points'] = probed_matrix
-        profile['mesh_params'] = collections.OrderedDict(mesh_params)
-        self.profiles = profiles
-        self.current_profile = prof_name
-        self.bedmesh.update_status()
+                mesh_options[key] = value
+        saving_mesh = {mesh_section: mesh_options}
+        configfile.update_config(setting_sections=saving_mesh, save_immediatly=True)
         self.gcode.respond_info(
-            _("Bed Mesh state has been saved to profile [%s]\n"
-            "for the current session.  The SAVE_CONFIG command will\n"
-            "update the printer config file and restart the printer.")
+            _("Bed Mesh state has been saved to profile [%s].\n")
             % (prof_name))
-    def load_profile(self, prof_name):
+        if prof_name in self.unsaved_profiles: 
+            unsaved = list(self.unsaved_profiles)
+            unsaved.remove(prof_name)
+            self.unsaved_profiles = unsaved
+        self.bedmesh.update_status()
+
+    def load_profile(self, prof_name: str):
         profile = self.profiles.get(prof_name, None)
         if profile is None:
             raise self.gcode.error(
@@ -1201,41 +1257,50 @@ class ProfileManager:
             raise self.gcode.error(str(e))
         self.current_profile = prof_name
         self.bedmesh.set_mesh(z_mesh)
+        
     def remove_profile(self, prof_name):
+        logging.info(f"profiles if {self.profiles}")
         if prof_name in self.profiles:
-            configfile = self.printer.lookup_object('configfile')
-            configfile.remove_section('bed_mesh ' + prof_name)
             profiles = dict(self.profiles)
             del profiles[prof_name]
             self.profiles = profiles
+            if prof_name not in self.unsaved_profiles:
+                configfile:PrinterConfig = self.printer.lookup_object('configfile')
+                configfile.update_config(removing_sections=['bed_mesh ' + prof_name], save_immediatly=True)
+            else:
+                unsaved = list(self.unsaved_profiles)
+                unsaved.remove(prof_name)
+                self.unsaved_profiles = unsaved
             self.bedmesh.update_status()
             self.gcode.respond_info(
-                _("Profile [%s] removed from storage for this session.\n"
-                "The SAVE_CONFIG command will update the printer\n"
-                "configuration and restart the printer") % (prof_name))
+                "Profile [%s] removed \n" % (prof_name))
+        if prof_name == self.current_profile:
+            self.bedmesh.set_mesh(None)
+            self.current_profile = ""
         else:
             self.gcode.respond_info(
-                _("No profile named [%s] to remove") % (prof_name))
+                "No profile named [%s] to remove" % (prof_name))
+            
     cmd_BED_MESH_PROFILE_help = _("Bed Mesh Persistent Storage management")
-    def cmd_BED_MESH_PROFILE(self, gcmd):
+    def cmd_BED_MESH_PROFILE(self, gcmd: GCodeCommand):
         options = collections.OrderedDict({
             'LOAD': self.load_profile,
             'SAVE': self.save_profile,
             'REMOVE': self.remove_profile
         })
-        for key in options:
-            name = gcmd.get(key, None)
-            if name is not None:
-                if not name.strip():
+        for option_func in options:
+            profileName: str | None = gcmd.get(option_func, None)
+            if profileName is not None:
+                if not profileName.strip():
                     raise gcmd.error(
-                        _("Value for parameter '%s' must be specified") % (key)
+                        _("Value for parameter '%s' must be specified") % (option_func)
                     )
-                if name == "default" and key == 'SAVE':
+                if profileName == "default" and option_func == 'SAVE':
                     gcmd.respond_info(
                         _("Profile 'default' is reserved, please choose"
                         " another profile name."))
                 else:
-                    options[key](name)
+                        options[option_func](profileName)
                 return
         gcmd.respond_info("Invalid syntax '%s'" % (gcmd.get_commandline(),))
 

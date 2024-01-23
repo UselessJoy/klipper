@@ -4,3 +4,5 @@ out
 .config
 .config.old
 klippy/.version
+.vscode/settings.json
+klippy/interfaces/printer.py

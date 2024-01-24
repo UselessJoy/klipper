@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Klipper\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2022-11-30 18:17-0300\n"
-"PO-Revision-Date: 2023-05-12 14:40+0300\n"
+"PO-Revision-Date: 2024-01-24 14:16+0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "Language: ru\n"
@@ -1263,7 +1263,8 @@ msgstr "Недопустимый синтаксис '%s'"
 # ========================BED_SCREWS MODULE======================#
 #, python-format
 msgid "screw at %.3f, %.3f"
-msgstr "Винт с координатами %.3f, %.3f"
+msgstr "Точка пробы %.3f, %.3f"
+
 #, python-format
 msgid "bed_screws: Must have at least three screws"
 msgstr "bed_screws: Должно быть не менее трех винтов"

@@ -645,7 +645,7 @@ msgstr "Недопустимый аргумент"
 # ========================CARTESIAN MODULE=======================#
 #, python-format
 msgid "Must home axis first"
-msgstr "Неизвестны начальные координаты. Нажмите кнопку \"Дом\""
+msgstr "Неизвестны начальные координаты. Нажмите кнопку Дом"
 
 msgid "Set which carriage is active"
 msgstr "Установите, какая каретка активна"

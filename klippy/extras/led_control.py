@@ -54,7 +54,7 @@ class LedControl:
         self.printer.register_event_handler("led:set_led", self._handle_led)
         self.printer.register_event_handler("extruder:heating", self._handle_extruder_heating)
         self.printer.register_event_handler("bed:heating", self._handle_bed_heating)
-        #self.printer.register_event_handler("heaters:stop_heating", self._handle_enabled)
+        self.printer.register_event_handler("heaters:stop_heating", self._handle_enabled)
         self.printer.register_event_handler("led_control:disabled", self._handle_disabled)
         self.printer.register_event_handler("led_control:enabled", self._handle_enabled)
         self.timer = self.reactor.register_timer(self._main_control, self.reactor.NOW)
@@ -97,6 +97,10 @@ class LedControl:
         
     def _handle_disabled(self):
         self._set_event("disabled")
+        if self.timer is not None: 
+            self.timer = self.reactor.register_timer(self._main_control, self.reactor.NOW)
+            self.reactor.unregister_timer(self.timer)
+            self.timer = None
         
     def _handle_enabled(self):
         self._set_event("enabled")

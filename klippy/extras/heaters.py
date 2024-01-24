@@ -312,6 +312,7 @@ class PrinterHeaters:
             heater.set_temp(0.)
     cmd_TURN_OFF_HEATERS_help = _("Turn off all heaters")
     def cmd_TURN_OFF_HEATERS(self, gcmd):
+        self.printer.send_event("heaters:stop_heating")
         self.turn_off_all_heaters()
        # self.printer.send_event("heaters:stop_heating")
     # G-Code M105 temperature reporting

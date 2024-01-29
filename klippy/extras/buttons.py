@@ -70,17 +70,27 @@ class MCU_buttons:
         # Send ack to MCU
         self.ack_cmd.send([self.oid, new_count])
         self.ack_count += new_count
-        # Call self.handle_button() with this event in main thread
-        for nb in new_buttons:
-            self.reactor.register_async_callback(
-                (lambda e, s=self, b=nb: s.handle_button(e, b)))
-    def handle_button(self, eventtime, button):
-        button ^= self.invert
-        changed = button ^ self.last_button
-        for mask, shift, callback in self.callbacks:
-            if changed & mask:
-                callback(eventtime, (button & mask) >> shift)
-        self.last_button = button
+        # Invoke callbacks with this event in main thread
+        btime = params['#receive_time']
+        for button in new_buttons:
+            button ^= self.invert
+            changed = button ^ self.last_button
+            self.last_button = button
+            for mask, shift, callback in self.callbacks:
+                if changed & mask:
+                    state = (button & mask) >> shift
+                    self.reactor.register_async_callback(
+                        (lambda et, c=callback, bt=btime, s=state: c(bt, s)))
+            
+    # def handle_button(self, eventtime, button):
+    #     button ^= self.invert
+    #     changed = button ^ self.last_button
+    #     for mask, shift, callback in self.callbacks:
+    #         if changed & mask:
+    #             callback(eventtime, (button & mask) >> shift)
+    #     self.last_button = button
+
+
 
 
 ######################################################################

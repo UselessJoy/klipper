@@ -276,7 +276,6 @@ class PrinterExtruder:
         return self.extruder_stepper.find_past_position(print_time)
     def cmd_M104(self, gcmd, wait=False):
         # Set Extruder Temperature
-        self.printer.send_event("extruder:heating")
         temp = gcmd.get_float('S', 0.)
         index = gcmd.get_int('T', None, minval=0)
         if index is not None:
@@ -294,7 +293,6 @@ class PrinterExtruder:
         pheaters.set_temperature(extruder.get_heater(), temp, wait)
     def cmd_M109(self, gcmd):
         # Set Extruder Temperature and Wait
-        self.printer.send_event("extruder:heating")
         self.cmd_M104(gcmd, wait=True)
     cmd_ACTIVATE_EXTRUDER_help = _("Change the active extruder")
     def cmd_ACTIVATE_EXTRUDER(self, gcmd):

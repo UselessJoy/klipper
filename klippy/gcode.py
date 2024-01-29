@@ -261,8 +261,6 @@ class GCodeDispatch:
         r'(?P<args>[^#*;]*?)'
         r'\s*(?:[#*;].*)?$')
     def _get_extended_params(self, gcmd: GCodeCommand):
-        logging.info(f"this commandline {gcmd.get_commandline()}")
-        logging.info(f"this parameters {gcmd.get_command_parameters()}")
         m = self.extended_r.match(gcmd.get_commandline())
         if m is None:
             raise self.error(_("Malformed command '%s'")

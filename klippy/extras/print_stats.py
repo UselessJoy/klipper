@@ -39,6 +39,7 @@ class PrintStats:
         self.last_epos = gc_status['position'].e
         self.state = "printing"
         self.error_message = ""
+        self.printer.send_event(f"print_stats:{self.state}")
     ####      NEW       ####
     def note_interrupt(self):
         curtime = self.reactor.monotonic()
@@ -54,6 +55,7 @@ class PrintStats:
         self.last_epos = gc_status['position'].e
         self.state = "interrupt"
         self.error_message = ""
+        self.printer.send_event(f"print_stats:{self.state}")
     ####    END NEW     ####
     def note_pause(self):
         if self.last_pause_time is None:
@@ -63,6 +65,7 @@ class PrintStats:
             self._update_filament_usage(curtime)
         if self.state != "error":
             self.state = "paused"
+        self.printer.send_event(f"print_stats:{self.state}")
     def note_complete(self):
         self._note_finish("complete")
     def note_error(self, message):
@@ -81,6 +84,7 @@ class PrintStats:
             self.init_duration = self.total_duration - \
                 self.prev_pause_duration
         self.print_start_time = None
+        self.printer.send_event(f"print_stats:{self.state}")
     cmd_SET_PRINT_STATS_INFO_help = _("Pass slicer info like layer act and total to klipper")
     def cmd_SET_PRINT_STATS_INFO(self, gcmd):
         total_layer = gcmd.get_int("TOTAL_LAYER", self.info_total_layer, \

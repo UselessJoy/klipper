@@ -139,10 +139,6 @@ class Heater:
     cmd_SET_HEATER_TEMPERATURE_help = _("Sets a heater temperature")
     def cmd_SET_HEATER_TEMPERATURE(self, gcmd):
         temp = gcmd.get_float('TARGET', 0.)
-        if self.name == "extruder":
-            self.printer.send_event("extruder:heating")
-        elif self.name == "heater_bed":
-            self.printer.send_event("bed:heating")
         pheaters = self.printer.lookup_object('heaters')
         pheaters.set_temperature(self, temp)
 
@@ -219,8 +215,8 @@ class ControlPID:
             self.prev_temp_integ = temp_integ
     def check_busy(self, eventtime, smoothed_temp, target_temp):
         temp_diff = target_temp - smoothed_temp
-        return (abs(temp_diff) > PID_SETTLE_DELTA
-                or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE)
+        return ((abs(temp_diff) > PID_SETTLE_DELTA
+                or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE) and target_temp != 0)
 
 
 ######################################################################
@@ -308,13 +304,12 @@ class PrinterHeaters:
         self.is_waiting = False
         
     def turn_off_all_heaters(self, print_time=0.):
+        self.printer.send_event("heaters:stop_heating")
         for heater in self.heaters.values():
             heater.set_temp(0.)
     cmd_TURN_OFF_HEATERS_help = _("Turn off all heaters")
     def cmd_TURN_OFF_HEATERS(self, gcmd):
-        self.printer.send_event("heaters:stop_heating")
         self.turn_off_all_heaters()
-       # self.printer.send_event("heaters:stop_heating")
     # G-Code M105 temperature reporting
     def _handle_ready(self):
         self.has_started = True
@@ -349,6 +344,10 @@ class PrinterHeaters:
             eventtime = reactor.pause(eventtime + 1.)
         self.is_waiting = False
     def set_temperature(self, heater, temp, wait=False):
+        if heater.name.startswith("extruder"):
+            self.printer.send_event("extruder:heating", temp)
+        elif heater.name.startswith("heater_bed"):
+            self.printer.send_event("heater_bed:heating", temp)
         self.is_waiting = wait
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt: None))

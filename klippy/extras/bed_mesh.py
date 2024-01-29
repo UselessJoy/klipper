@@ -608,8 +608,20 @@ class BedMeshCalibrate:
     cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")
             
     def cmd_BED_MESH_CALIBRATE(self, gcmd: GCodeCommand):
-        self._profile_name = gcmd.get('PROFILE', f'unsaved_')
-        if self._profile_name in self.bedmesh.pmgr.get_profiles():
+        try:
+            self._profile_name = gcmd.get('PROFILE')#, f'profile_{len_def}')
+        except:
+            profs = self.bedmesh.pmgr.get_profiles()
+            len_def = 0
+            reserved = []
+            for prof in profs:
+                if prof.startswith("profile_"):
+                    reserved.append[prof]
+            len_def = len(reserved)
+            while f"profile_{len_def}" in reserved:
+                len_def = len_def + 1
+            self._profile_name = f"profile_{len_def}"
+        if self._profile_name in profs:
             raise self.gcode.error(
                 _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name)
         toolhead = self.printer.lookup_object('toolhead')
@@ -618,7 +630,7 @@ class BedMeshCalibrate:
         if 'x' and 'y' not in kin_status['homed_axes']:
             ho = self.printer.lookup_object('homing')
             gcode = self.printer.lookup_object('gcode')
-            ho.cmd_G28(gcode.create_gcode_command('G28', 'G28 X Y', {'X': None, 'Y': None}))
+            ho.cmd_G28(gcode.create_gcode_command('G28', 'G28 X Y Z', {'X': None, 'Y' : None, 'Z': None}))
             
         logging.info(f"profile name {self._profile_name}")
         self.savePermanently: bool = gcmd.get_boolean('SAVE_PERMANENTLY', False)

@@ -16,6 +16,9 @@ class SafetyPrinting:
                                    self._handle_set_safety_printing)
         self.reactor = self.printer.get_reactor()
         self.timer = self.reactor.register_timer(self.endstop_status, self.reactor.NOW)
+        self.luft_timer = None
+        self.last_evettime = None
+        self.not_luft_open = False
 
     def endstop_status(self, eventtime):
         self.is_doors_open = True if self.doors_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
@@ -24,11 +27,33 @@ class SafetyPrinting:
         if self.safety_enabled:
             if self.is_doors_open or self.is_hood_open:
                 if self.virtual_sdcard_object.is_active():#not pause_resume_object.is_paused:
-                    self.gcode.run_script("PAUSE")
+                    if not self.luft_timer:
+                        self.luft_timer = self.reactor.register_timer(self.is_luft_timer, self.reactor.NOW)
+                    if self.not_luft_open:
+                        self.not_luft_open = False
+                        self.gcode.run_script("PAUSE")
             elif pause_resume_object.is_paused:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
                 self.gcode.run_script("RESUME")
                     
         return eventtime + 1
+    
+    def is_luft_timer(self, eventtime):
+        if not self.last_eventtime:
+            self.last_eventtime = eventtime 
+        pass_time = abs(eventtime - self.last_eventtime)
+        if pass_time > 3:
+            self.reset_timer()
+            if self.is_doors_open or self.is_hood_open:
+                self.not_luft_open = True
+            return self.reactor.NEVER
+        return eventtime + 1
+
+    def reset_timer(self):
+        if self.luft_timer:
+            self.reactor.unregister_timer(self.luft_timer)
+            self.luft_timer = None
+            self.last_eventtime = None
+    
     
     def _handle_set_safety_printing(self, web_request):
         self.safety_enabled = web_request.get_boolean('safety_enabled')

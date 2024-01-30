@@ -33,12 +33,13 @@ class SafetyPrinting:
                     if self.not_luft_open:
                         self.not_luft_open = False
                         self.is_safety_pause = True
-                        self.gcode.run_script("PAUSE")
+                        self.gcode.run_script_from_command("PAUSE")
             elif self.luft_timer:
-                    self.reset_luft_timer()
+                self.not_luft_open = False
+                self.reset_luft_timer()
             elif pause_resume_object.is_paused and self.is_safety_pause:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
                 self.is_safety_pause = False
-                self.gcode.run_script("RESUME")
+                self.gcode.run_script_from_command("RESUME")
                     
         return eventtime + 1
     

@@ -1,5 +1,8 @@
 import os, logging
 import subprocess
+import NetworkManager
+import dbus
+from dbus.mainloop.glib import DBusGMainLoop
 #import locales
 class WifiMode:
     def __init__(self, config):
@@ -14,6 +17,7 @@ class WifiMode:
             self.wifiMode = 'AP'
         self.reactor = self.printer.get_reactor()
         self.timer = None
+        self.access_point = None
         # self.printer.register_event_handler("klippy:ready",
         #                                     self._handle_ready)
         webhooks = self.printer.lookup_object('webhooks')
@@ -29,11 +33,13 @@ class WifiMode:
         #if want to control connection from klipper (maybe moonraker will be better)
         return 1
     
-    def find_AP_connection(self):
-        #for future, for details look to create_AP_connection
-        return 1
-    
-    
+    def find_hotspot_connection(self):
+        #Найти соединение, которое является точкой доступа для принтера
+        for con in NetworkManager.Settings.ListConnections():
+            settings = con.GetSettings()
+            if "802-11-wireless" in settings:
+                if settings["802-11-wireless"]["mode"] == NetworkManager.NM_802_11_MODE_AP:
+                    self.access_point = settings["802-11-wireless"]['ssid']
     
     # def watch_wifi_mode(self, eventtime):
     #     data = None
@@ -53,9 +59,9 @@ class WifiMode:
     def _handle_set_wifi_mode(self, web_request):
         self.wifiMode = web_request.get_str('wifi_mode')
         if self.wifiMode == 'AP':
-            os.system("nmcli connection up Gelios")
+            os.system(f"nmcli connection up {self.access_point}")
         elif self.wifiMode == 'Default':
-            os.system("nmcli connection down Gelios")   
+            os.system(f"nmcli connection down {self.access_point}")   
 
     def get_status(self, eventtime):
         return {

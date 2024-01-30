@@ -20,13 +20,13 @@ class SafetyPrinting:
     def endstop_status(self, eventtime):
         self.is_doors_open = True if self.doors_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
         self.is_hood_open = True if self.hood_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
-        #pause_resume_object = self.printer.lookup_object('pause_resume')
+        pause_resume_object = self.printer.lookup_object('pause_resume')
         if self.safety_enabled:
             if self.is_doors_open or self.is_hood_open:
                 if self.virtual_sdcard_object.is_active():#not pause_resume_object.is_paused:
                     self.gcode.run_script("PAUSE")
-            # elif pause_resume_object.is_paused:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
-            #     self.gcode.run_script("RESUME")
+            elif pause_resume_object.is_paused:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
+                self.gcode.run_script("RESUME")
                     
         return eventtime + 1
     

@@ -25,7 +25,7 @@ class LedControl:
         self.enabled = True
         self.extruder = None
         self.heater_bed = None
-        
+        self.set_led_on_printing = False
         self.hb_temp = self.ex_temp = 0
         self.effects = {
             "error": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=ERROR\n",
@@ -92,62 +92,65 @@ class LedControl:
     def watch_for_printing(self, eventtime):
         if self.enabled:
             if self.is_printing:
-                logging.info("watch_for_printing")
+                # logging.info("watch_for_printing")
                 ex_temp, ex_target = self.extruder.get_heater().get_temp(eventtime)
                 hb_temp, hb_target = self.heater_bed.get_heater().get_temp(eventtime)
-                logging.info(f"ex_temp {self.extruder.get_heater().get_temp(eventtime)} hb_temp {self.heater_bed.get_heater().get_temp(eventtime)}")
+                # logging.info(f"ex_temp {self.extruder.get_heater().get_temp(eventtime)} hb_temp {self.heater_bed.get_heater().get_temp(eventtime)}")
                 hb_warm = hb_temp >= hb_target if hb_target != 0 else False
                 ex_warm = ex_temp >= ex_target if ex_target != 0 else False
                 heater_bed_busy = self.heater_bed.get_heater().check_busy(eventtime) and not hb_warm
                 extruder_busy = self.extruder.get_heater().check_busy(eventtime) and not ex_warm
                 heaters_busy = heater_bed_busy or extruder_busy
-                logging.info(f"default busy heater_bed {self.heater_bed.get_heater().check_busy(eventtime)} after all busy {heater_bed_busy}")
-                logging.info(f"default busy extruder {self.heater_bed.get_heater().check_busy(eventtime)} after all busy {extruder_busy}")
-                logging.info(f"paused {self.paused} effect {self.now_effect}")
+                # logging.info(f"default busy heater_bed {self.heater_bed.get_heater().check_busy(eventtime)} after all busy {heater_bed_busy}")
+                # logging.info(f"default busy extruder {self.heater_bed.get_heater().check_busy(eventtime)} after all busy {extruder_busy}")
+                # logging.info(f"paused {self.paused} effect {self.now_effect}")
                 # Эффекты печати включаются только если закончились временные эффекты
                 if not self.timer:
                     if self.paused:
                         if self.now_effect != "paused":
-                            logging.info("paused run")
+                            # logging.info("paused run")
                             self.run_if_enabled("paused")
                     elif not heaters_busy and ex_target != 0 and hb_target != 0:
-                        if self.now_effect != "printing":
-                            logging.info("printing run")
+                        if self.set_led_on_printing:
+                            if self.now_effect != "set_led":
+                                # logging.info("set_led run")
+                                self.run_if_enabled("set_led")
+                        elif self.now_effect != "printing":
+                            # logging.info("printing run")
                             self.run_if_enabled("printing")
-                            return eventtime + 1
                     else:
                         if self.now_effect != "extruder_bed_heating":
-                            logging.info("extruder_bed_heating run")
+                            # logging.info("extruder_bed_heating run")
                             self.run_if_enabled("extruder_bed_heating")
-                            return eventtime + 1
         else:
             if self.printing_timer:
                 self.reset_printing_timer()
                 return self.reactor.NEVER
         return eventtime + 1
     def reset_printing_timer(self):
-        logging.info(f"reset_printing_timer")
+        # logging.info(f"reset_printing_timer")
         if self.printing_timer:
+            self.set_led_on_printing = False
             self.reactor.unregister_timer(self.printing_timer)
             self.printing_timer = None
             
     def create_ten_seconds_timer(self):
         self.last_eventtime = None
         if self.timer is None:
-            logging.info(f"if not timer")
+            # logging.info(f"if not timer")
             self.timer = self.reactor.register_timer(
                 self._on_tick_timer, self.reactor.NOW) 
     def _on_tick_timer(self, eventtime):
         if not self.last_eventtime:
             self.last_eventtime = eventtime 
-        logging.info(f"_on_tick_timer {eventtime} {self.last_eventtime}")
+        # logging.info(f"_on_tick_timer {eventtime} {self.last_eventtime}")
         pass_time = abs(eventtime - self.last_eventtime)
         if pass_time > 10:
             self.reset_timer()
             return self.reactor.NEVER
         return eventtime + 1
     def reset_timer(self):
-        logging.info(f"reset timer from reset_timer")
+        # logging.info(f"reset timer from reset_timer")
         if self.timer:
             self.reactor.unregister_timer(self.timer)
             self.timer = None
@@ -165,7 +168,7 @@ class LedControl:
         if self.is_printing:
             if not self.printing_timer:
                 self.set_start_print_effect()
-        self.run_if_enabled(self.now_effect if self.now_effect in ["extruder_heating", "bed_heating","extruder_bed_heating","paused"] else "enabled")
+        self.run_if_enabled(self.now_effect if self.now_effect in ["extruder_heating", "bed_heating","extruder_bed_heating","paused", "set_led"] else "enabled")
         
     
     def _handle_disabled(self):
@@ -230,9 +233,17 @@ class LedControl:
                         self.create_ten_seconds_timer()
                     self.gcode.run_script_from_command(self.effects[event])
                     self.now_effect = event
-                elif event in ["paused", "printing", "extruder_bed_heating"]:
-                    self.paused = True if event == "paused" else False
-                    self.gcode.run_script_from_command(self.effects[event])
+                elif event in ["paused", "printing", "extruder_bed_heating", "set_led"]:
+                    if event == "paused":
+                        self.paused = True
+                    elif event != "set_led":
+                        self.paused = False
+                    if event == "set_led":
+                        if not self.paused:
+                            self.set_led_on_printing = True
+                            self.gcode.run_script_from_command((self.effects[event] % (self.rgb[0], self.rgb[1], self.rgb[2])))
+                    else:
+                        self.gcode.run_script_from_command(self.effects[event])
                     self.now_effect = event
             else:
                 if event in ["error", "print_error", "interrupt", "complete"]:

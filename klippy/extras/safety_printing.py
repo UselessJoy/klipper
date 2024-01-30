@@ -19,6 +19,7 @@ class SafetyPrinting:
         self.luft_timer = None
         self.last_evettime = None
         self.not_luft_open = False
+        self.is_safety_pause = False
 
     def endstop_status(self, eventtime):
         self.is_doors_open = True if self.doors_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
@@ -31,8 +32,10 @@ class SafetyPrinting:
                         self.luft_timer = self.reactor.register_timer(self.is_luft_timer, self.reactor.NOW)
                     if self.not_luft_open:
                         self.not_luft_open = False
+                        self.is_safety_pause = True
                         self.gcode.run_script("PAUSE")
-            elif pause_resume_object.is_paused:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
+            elif pause_resume_object.is_paused and self.is_safety_pause:#self.virtual_sdcard_object.print_stats.get_status(eventtime)['state'] == 'paused':
+                self.is_safety_pause = False
                 self.gcode.run_script("RESUME")
                     
         return eventtime + 1

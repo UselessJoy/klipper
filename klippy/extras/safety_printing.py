@@ -17,7 +17,7 @@ class SafetyPrinting:
         self.reactor = self.printer.get_reactor()
         self.timer = self.reactor.register_timer(self.endstop_status, self.reactor.NOW)
         self.luft_timer = None
-        self.last_evettime = None
+        self.last_eventtime = None
         self.not_luft_open = False
         self.is_safety_pause = False
 

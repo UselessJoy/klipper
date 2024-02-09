@@ -25,7 +25,8 @@ class SafetyPrinting:
         self.is_doors_open = True if self.doors_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
         self.is_hood_open = True if self.hood_endstop.get_status(eventtime)['state'] == 'RELEASED' else False
         pause_resume_object = self.printer.lookup_object('pause_resume')
-        if self.safety_enabled:
+        virtual_sdcard_object = self.printer.lookup_object('virtual_sdcard')
+        if self.safety_enabled and virtual_sdcard_object.is_active():
             if self.is_doors_open or self.is_hood_open:
                 if not pause_resume_object.is_paused:#self.virtual_sdcard_object.is_active():#not pause_resume_object.is_paused:
                     if not self.luft_timer:

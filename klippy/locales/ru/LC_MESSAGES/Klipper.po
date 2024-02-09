@@ -2934,3 +2934,8 @@ msgstr "Слишком много повторных попыток"
 
 msgid "Adjust the Z tilt"
 msgstr "Регулировка угла наклона Z"
+
+# =======================MESSAGES MODULE====================#
+msgid "Heating with the wait parameter, gcodes will be processed after warming up"
+msgstr "Нагрев с параметром 'wait', g-коды будут обработаны после разогрева"
+# =====================END MESSAGES MODULE==================#

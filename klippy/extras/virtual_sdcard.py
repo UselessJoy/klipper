@@ -347,7 +347,7 @@ class VirtualSD:
             # Dispatch command
             self.cmd_from_sd = True
             line = lines.pop()
-            next_file_position = self.file_position + len(line) + 1
+            next_file_position = self.file_position + len(line.encode()) + 1
             self.next_file_position = next_file_position
             try:
                 self.gcode.run_script(line)
@@ -455,7 +455,7 @@ class VirtualSD:
             #     continue
             self.cmd_from_sd = True
             self.gcode.run_script(line)
-            next_file_position = file_position + len(line) + 1        
+            next_file_position = file_position + len(line.encode()) + 1       
             file_position = next_file_position
             file.seek(file_position)
             self.cmd_from_sd = False

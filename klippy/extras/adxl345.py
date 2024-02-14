@@ -261,8 +261,8 @@ class ADXL345EndstopWrapper:
         adxl345.set_reg(REG_INT_ENABLE, 0x00, minclock=clock)
         adxl345.read_reg(REG_INT_SOURCE)
         adxl345.set_reg(REG_INT_ENABLE, 0x40, minclock=clock)
-        if not adxl345.is_measuring():
-            adxl345.set_reg(REG_POWER_CTL, 0x08, minclock=clock)
+        # if not adxl345.is_measuring():
+        #     adxl345.set_reg(REG_POWER_CTL, 0x08, minclock=clock)
         if not self._try_clear_tap():
             raise self.printer.command_error(
                     "ADXL345 tap triggered before move, too sensitive?")
@@ -273,8 +273,8 @@ class ADXL345EndstopWrapper:
         print_time = toolhead.get_last_move_time()
         clock = adxl345.get_mcu().print_time_to_clock(print_time)
         adxl345.set_reg(REG_INT_ENABLE, 0x00, minclock=clock)
-        if not adxl345.is_measuring():
-            adxl345.set_reg(REG_POWER_CTL, 0x00)
+        # if not adxl345.is_measuring():
+        #     adxl345.set_reg(REG_POWER_CTL, 0x00)
         if not self._try_clear_tap():
             raise self.printer.command_error(
                     "ADXL345 tap triggered after move, too sensitive?")

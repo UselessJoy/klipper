@@ -8,6 +8,7 @@ import collections
 import chelper
 from . import shaper_defs
 import locales
+
 class InputShaperParams:
     def __init__(self, axis, config):
         self.axis = axis
@@ -93,7 +94,7 @@ class InputShaper:
         self.toolhead = None
         self.shapers = [AxisInputShaper('x', config),
                         AxisInputShaper('y', config)]
-        self.stepper_kinematics = []
+        self.input_shaper_stepper_kinematics = []
         self.orig_stepper_kinematics = []
         # Register gcode commands
         gcode = self.printer.lookup_object('gcode')
@@ -104,9 +105,8 @@ class InputShaper:
         return self.shapers
     def connect(self):
         self.toolhead = self.printer.lookup_object("toolhead")
-        
+        # Configure initial values
         self._update_input_shaping(error=self.printer.config_error)
-        
     def _get_input_shaper_stepper_kinematics(self, stepper):
         # Lookup stepper kinematics
         sk = stepper.get_stepper_kinematics()
@@ -125,7 +125,6 @@ class InputShaper:
             return None
         self.input_shaper_stepper_kinematics.append(is_sk)
         return is_sk
-    
     def _update_input_shaping(self, error=None):
         self.toolhead.flush_step_generation()
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -147,12 +146,10 @@ class InputShaper:
             if old_delay != new_delay:
                 self.toolhead.note_step_generation_scan_time(new_delay,
                                                              old_delay)
-            if failed_shapers:
-                error = error or self.printer.command_error
-                error = error or self.printer.command_error
-                raise error(_("Failed to configure shaper(s) %s with given parameters")
-                        % (', '.join([s.get_name()  for s in failed_shapers])))
-                
+        if failed_shapers:
+            error = error or self.printer.command_error
+            raise error(_("Failed to configure shaper(s) %s with given parameters")#no locale
+                        % (', '.join([s.get_name() for s in failed_shapers])))
     def disable_shaping(self):
         for shaper in self.shapers:
             shaper.disable_shaping()
@@ -163,10 +160,9 @@ class InputShaper:
         self._update_input_shaping()
     cmd_SET_INPUT_SHAPER_help = _("Set cartesian parameters for input shaper")
     def cmd_SET_INPUT_SHAPER(self, gcmd):
-        updated = False
-        for shaper in self.shapers:
-            updated |= shaper.update(gcmd)
-        if updated:
+        if gcmd.get_command_parameters():
+            for shaper in self.shapers:
+                shaper.update(gcmd)
             self._update_input_shaping()
         for shaper in self.shapers:
             shaper.report(gcmd)

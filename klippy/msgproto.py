@@ -4,7 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import json, zlib, logging
-import locales 
+import locales
 DefaultMessages = {
     "identify_response offset=%u data=%.*s": 0,
     "identify offset=%u count=%c": 1,
@@ -234,6 +234,7 @@ class MessageParser:
         self.messages = []
         self.messages_by_id = {}
         self.messages_by_name = {}
+        self.msgtag_by_format = {}
         self.config = {}
         self.version = self.build_versions = ""
         self.raw_identify_data = ""
@@ -316,6 +317,11 @@ class MessageParser:
             self._error(_("Command format mismatch: %s vs %s"),
                         msgformat, mp.msgformat)
         return mp
+    def lookup_msgtag(self, msgformat):
+        msgtag = self.msgtag_by_format.get(msgformat)
+        if msgtag is None:
+            self._error(_("Unknown command: %s"), msgformat)
+        return msgtag
     def create_command(self, msg):
         parts = msg.strip().split()
         if not parts:
@@ -323,7 +329,7 @@ class MessageParser:
         msgname = parts[0]
         mp = self.messages_by_name.get(msgname)
         if mp is None:
-            self._error("Unknown command: %s", msgname)
+            self._error(_("Unknown command: %s"), msgname)
         try:
             argparts = dict(arg.split('=', 1) for arg in parts[1:])
             for name, value in argparts.items():
@@ -375,7 +381,8 @@ class MessageParser:
                 msgtype = 'output'
             self.messages.append((msgtag, msgtype, msgformat))
             if msgtag < -32 or msgtag > 95:
-                self._error(_("Multi-byte msgtag not supported"))
+                self._error("Multi-byte msgtag not supported")
+            self.msgtag_by_format[msgformat] = msgtag
             msgid = msgtag & 0x7f
             if msgtype == 'output':
                 self.messages_by_id[msgid] = OutputFormat(msgid, msgformat)

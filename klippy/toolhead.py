@@ -1,6 +1,6 @@
 # Code for coordinating events on the printer toolhead
 #
-# Copyright (C) 2016-2021  Kevin O'Connor <kevin@koconnor.net>
+# Copyright (C) 2016-2024  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging, importlib
@@ -186,22 +186,20 @@ class LookAheadQueue:
             # Enough moves have been queued to reach the target flush time.
             self.flush(lazy=True)
 
-MIN_KIN_TIME = 0.100
-MOVE_BATCH_TIME = 0.500
-SDS_CHECK_TIME = 0.001 # step+dir+step filter in stepcompress.c
-MOVE_HISTORY_EXPIRE = 30.
-
-DRIP_SEGMENT_TIME = 0.050
-DRIP_TIME = 0.100
-
-STEPCOMPRESS_FLUSH_TIME = 0.050
 BUFFER_TIME_LOW = 1.0
 BUFFER_TIME_HIGH = 2.0
 BUFFER_TIME_START = 0.250
 BGFLUSH_LOW_TIME = 0.200
 BGFLUSH_BATCH_TIME = 0.200
 BGFLUSH_EXTRA_TIME = 0.250
+MIN_KIN_TIME = 0.100
+MOVE_BATCH_TIME = 0.500
+STEPCOMPRESS_FLUSH_TIME = 0.050
+SDS_CHECK_TIME = 0.001 # step+dir+step filter in stepcompress.c
+MOVE_HISTORY_EXPIRE = 30.
 
+DRIP_SEGMENT_TIME = 0.050
+DRIP_TIME = 0.100
 class DripModeEndSignal(Exception):
     pass
 
@@ -226,7 +224,7 @@ class ToolHead:
             'square_corner_velocity', 5., minval=0.)
         self.junction_deviation = 0.
         self._calc_junction_deviation()
-         # Input stall detection
+        # Input stall detection
         self.check_stall_time = 0.
         self.print_stall = 0
         # Input pause tracking
@@ -351,8 +349,8 @@ class ToolHead:
         # Generate steps for moves
         if self.special_queuing_state:
             self._update_drip_move_time(next_move_time)
-        self.note_kinematic_activity(next_move_time + self.kin_flush_delay,
-                                     set_step_gen_time=True)
+        self.note_mcu_movequeue_activity(next_move_time + self.kin_flush_delay,
+                                         set_step_gen_time=True)
         self._advance_move_time(next_move_time)
     def _flush_lookahead(self):
         # Transit from "NeedPrime"/"Priming"/"Drip"/main state to "NeedPrime"
@@ -371,15 +369,6 @@ class ToolHead:
             self._calc_print_time()
         else:
             self.lookahead.flush()
-        return self.print_time
-    def _flush_lookahead(self):
-        if self.special_queuing_state:
-            return self.flush_step_generation()
-        self.lookahead.flush()
-    def get_last_move_time(self):
-        self._flush_lookahead()
-        if self.special_queuing_state:
-            self._calc_print_time()
         return self.print_time
     def _check_pause(self):
         eventtime = self.reactor.monotonic()
@@ -422,7 +411,7 @@ class ToolHead:
                 self.check_stall_time = self.print_time
         except:
             logging.exception("Exception in priming_handler")
-            self.printer.invoke_shutdown("Exception in priming_handler")
+            self.printer.invoke_shutdown(_("Exception in priming_handler"))
         return self.reactor.NEVER
     def _flush_handler(self, eventtime):
         try:
@@ -440,8 +429,7 @@ class ToolHead:
                     self.check_stall_time = self.print_time
             # In "NeedPrime"/"Priming" state - flush queues if needed
             while 1:
-                if self.last_flush_time >= self.need_flush_time:
-                     end_flush = self.need_flush_time + BGFLUSH_EXTRA_TIME
+                end_flush = self.need_flush_time + BGFLUSH_EXTRA_TIME
                 if self.last_flush_time >= end_flush:
                     self.do_kick_flush_timer = True
                     return self.reactor.NEVER
@@ -515,8 +503,8 @@ class ToolHead:
                 self.drip_completion.wait(curtime + wait_time)
                 continue
             npt = min(self.print_time + DRIP_SEGMENT_TIME, next_print_time)
-            self.note_kinematic_activity(npt + self.kin_flush_delay,
-                                         set_step_gen_time=True)
+            self.note_mcu_movequeue_activity(npt + self.kin_flush_delay,
+                                             set_step_gen_time=True)
             self._advance_move_time(npt)
     def drip_move(self, newpos, speed, drip_completion):
         self.dwell(self.kin_flush_delay)

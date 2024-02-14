@@ -124,10 +124,10 @@ class ConfigWrapper:
                      note_valid=True):
         return self.getlists(option, default, seps=(sep,), count=count,
                              parser=float, note_valid=note_valid)
-    def getsection(self, section):
+    def getsection(self, section) -> ConfigWrapper:
         return ConfigWrapper(self.printer, self.fileconfig,
                              self.access_tracking, section)
-    def has_section(self, section):
+    def has_section(self, section) -> bool:
         return self.fileconfig.has_section(section)
     def get_prefix_sections(self, prefix):
         return [self.getsection(s) for s in self.fileconfig.sections()

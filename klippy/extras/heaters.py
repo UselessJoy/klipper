@@ -236,6 +236,9 @@ class PrinterHeaters:
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.printer.register_event_handler("gcode:request_restart",
                                             self.turn_off_all_heaters)
+        webhooks = self.printer.lookup_object('webhooks')
+        webhooks.register_endpoint("heaters/turn_off_heaters",
+                                   self.turn_off_all_heaters)
         # Register commands
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command("TURN_OFF_HEATERS", self.cmd_TURN_OFF_HEATERS,
@@ -299,6 +302,9 @@ class PrinterHeaters:
         return {'available_heaters': self.available_heaters,
                 'available_sensors': self.available_sensors,
                 'is_waiting': self.is_waiting}
+    
+    def get_waiting(self):
+        return self.is_waiting
         
     def invoke_interrupt(self):
         self.is_waiting = False

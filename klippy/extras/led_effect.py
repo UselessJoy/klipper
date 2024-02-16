@@ -73,6 +73,7 @@ class ledFrameHandler:
         self.heaterCurrent   = {}
         self.heaterTarget    = {}
         self.heaterLast      = {}
+        self.heaterOnUpdate  = {}
         self.heaterTimer     = None
         self.homing          = {}
         self.homing_start_flag = {}
@@ -146,7 +147,7 @@ class ledFrameHandler:
             self.heaterLast[effect.heater] = 100
             self.heaterCurrent[effect.heater] = 0
             self.heaterTarget[effect.heater]  = 0
-
+            self.heaterOnUpdate[effect.heater] = self.heaters[effect.heater].last_temp
             if not self.heaterTimer:
                 self.heaterTimer = self.reactor.register_timer(self._pollHeater,
                                                                self.reactor.NOW)
@@ -162,6 +163,20 @@ class ledFrameHandler:
 
         self.effects.append(effect)
 
+    def updateHeaterTemp(self, heater):
+            heater=heater.strip('\"\'')
+            if heater.startswith("temperature_fan ") or heater.startswith("temperature_sensor "):
+                return
+            pheater = self.printer.lookup_object('heaters')
+            self.heaters[heater] = pheater.lookup_heater(heater)
+            self.heaterLast[heater] = 100
+            self.heaterCurrent[heater] = 0
+            self.heaterTarget[heater]  = 0
+            self.heaterOnUpdate[heater] = self.heaters[heater].last_temp
+            if not self.heaterTimer:
+                self.heaterTimer = self.reactor.register_timer(self._pollHeater,
+                                                               self.reactor.NOW)
+        
     def _pollHeater(self, eventtime):
         for heater in self.heaters.keys():
             current, target = self.heaters[heater].get_temp(eventtime)
@@ -525,6 +540,8 @@ class ledEffect:
         ####      NEW      ####
         if red != None or green !=None or blue != None :
             self.set_color(float(red), float(green), float(blue))
+        if self.heater:
+            self.handler.updateHeaterTemp(self.heater)
         ####    END NEW    ####
         if gcmd.get_int('STOP', 0) >= 1:
             if self.enabled:
@@ -917,11 +934,11 @@ class ledEffect:
             heaterTarget  = self.frameHandler.heaterTarget[self.handler.heater]
             heaterCurrent = self.frameHandler.heaterCurrent[self.handler.heater]
             heaterLast    = self.frameHandler.heaterLast[self.handler.heater]
-
+            heaterOnUpdate = self.frameHandler.heaterOnUpdate[self.handler.heater]
             if heaterTarget > 0.0 and heaterCurrent > 0.0:
                 if (heaterCurrent >= self.effectRate):
                     if (heaterCurrent <= heaterTarget-2):
-                        s = int(((heaterCurrent - self.effectRate) / heaterTarget) * 200)
+                        s = int(((heaterCurrent - heaterOnUpdate) / heaterTarget) * 200)
                         s = min(len(self.thisFrame)-1,s)
                         return self.thisFrame[s]
                     elif self.effectCutoff > 0:
@@ -933,7 +950,7 @@ class ledEffect:
 
             elif self.effectRate > 0 and heaterCurrent > 0.0:
                 if heaterCurrent >= self.effectRate and heaterLast > 0:
-                    s = int(((heaterCurrent - self.effectRate) / heaterLast) * 200)
+                    s = int(((heaterCurrent - heaterOnUpdate) / heaterLast) * 200)
                     s = min(len(self.thisFrame)-1,s)
                     return self.thisFrame[s]
 

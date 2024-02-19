@@ -3,14 +3,15 @@ import subprocess
 import NetworkManager
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
-#import locales
+import locales
+
+### Перенести WifiManager из KlipperScreen на Klipper
+
 class WifiMode:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.wifiMode = 'Default' 
         DBusGMainLoop(set_as_default=True)
-        self.reactor = self.printer.get_reactor()
-        self.timer = None
         self.access_point = self.find_hotspot_connection()
         self.wifiMode = 'AP' if self.is_hotspot() else 'Default'
         webhooks = self.printer.lookup_object('webhooks')
@@ -41,7 +42,6 @@ class WifiMode:
     #     return 1
     
     def find_hotspot_connection(self) -> str:
-        """Находит соединение, которое является собственной точкой доступа. В случае, если такого соединения нет - возвращает пустую строку"""
         for con in NetworkManager.Settings.ListConnections():
             settings = con.GetSettings()
             if '802-11-wireless' in settings:

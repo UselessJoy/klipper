@@ -1,6 +1,7 @@
 import os, pathlib
-##### BY FARINOV #####
 import locales
+
+### Переделать логику работы с USB-накопителем
 class FlashUsb:
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -82,4 +83,3 @@ class FlashUsb:
 
 def load_config(config):
     return FlashUsb(config)
-##### END BY FARINOV #####

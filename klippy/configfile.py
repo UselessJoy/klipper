@@ -438,7 +438,7 @@ class PrinterConfig:
         comments = {'before_sections': []}
         # Индекс первого вхождения в секцию
         for line in dataLines:
-            if line[0] == '[':
+            if line.startswith('['):
                 break
             comments['before_sections'].append(line)
             start_sections_index +=1

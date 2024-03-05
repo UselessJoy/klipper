@@ -6,3 +6,4 @@ out
 klippy/.version
 .vscode/settings.json
 klippy/interfaces/printer.py
+klippy/extras/rebuild_print.py

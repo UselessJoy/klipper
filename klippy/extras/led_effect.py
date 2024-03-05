@@ -144,7 +144,7 @@ class ledFrameHandler:
             else:
                 pheater = self.printer.lookup_object('heaters')
                 self.heaters[effect.heater] = pheater.lookup_heater(effect.heater)
-            self.heaterLast[effect.heater] = 100
+            self.heaterLast[effect.heater] = self.heaters[effect.heater].last_temp
             self.heaterCurrent[effect.heater] = 0
             self.heaterTarget[effect.heater]  = 0
             self.heaterOnUpdate[effect.heater] = self.heaters[effect.heater].last_temp
@@ -169,7 +169,7 @@ class ledFrameHandler:
                 return
             pheater = self.printer.lookup_object('heaters')
             self.heaters[heater] = pheater.lookup_heater(heater)
-            self.heaterLast[heater] = 100
+            self.heaterLast[heater] = self.heaters[heater].last_temp
             self.heaterCurrent[heater] = 0
             self.heaterTarget[heater]  = 0
             self.heaterOnUpdate[heater] = self.heaters[heater].last_temp
@@ -922,7 +922,7 @@ class ledEffect:
             if len(self.paletteColors) == 1:
                 self.paletteColors += self.paletteColors
 
-            gradient = colorArray(COLORS, self._gradient(self.paletteColors[:-1], 200) +
+            gradient = colorArray(COLORS, self._gradient(self.paletteColors[:-1], steps = 200) +
                                     self.paletteColors[-1:])
 
             for i in range(len(gradient)):
@@ -935,11 +935,13 @@ class ledEffect:
             heaterCurrent = self.frameHandler.heaterCurrent[self.handler.heater]
             heaterLast    = self.frameHandler.heaterLast[self.handler.heater]
             heaterOnUpdate = self.frameHandler.heaterOnUpdate[self.handler.heater]
+            # logging.info(len(self.thisFrame))
+            # logging.info(self.thisFrame)
             if heaterTarget > 0.0 and heaterCurrent > 0.0:
                 if (heaterCurrent >= self.effectRate):
-                    if (heaterCurrent <= heaterTarget-2):
-                        s = int(((heaterCurrent - heaterOnUpdate) / heaterTarget) * 200)
-                        s = min(len(self.thisFrame)-1,s)
+                    if (heaterCurrent <= heaterTarget):
+                        s = int(((heaterCurrent - heaterOnUpdate) * len(self.thisFrame)) / (heaterTarget - heaterOnUpdate))
+                        s = min(len(self.thisFrame)-1, s if s > 0 else 0)
                         return self.thisFrame[s]
                     elif self.effectCutoff > 0:
                         return None
@@ -950,8 +952,8 @@ class ledEffect:
 
             elif self.effectRate > 0 and heaterCurrent > 0.0:
                 if heaterCurrent >= self.effectRate and heaterLast > 0:
-                    s = int(((heaterCurrent - heaterOnUpdate) / heaterLast) * 200)
-                    s = min(len(self.thisFrame)-1,s)
+                    s = int(((heaterCurrent - heaterOnUpdate) * len(self.thisFrame)) / (heaterTarget - heaterOnUpdate))
+                    s = min(len(self.thisFrame)-1, s if s > 0 else 0)
                     return self.thisFrame[s]
 
             return None

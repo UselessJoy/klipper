@@ -349,16 +349,16 @@ class PrinterHeaters:
             gcode.respond_raw(self._get_temp(eventtime))
             eventtime = reactor.pause(eventtime + 1.)
         self.is_waiting = False
-    def set_temperature(self, heater, temp, wait=False):
+    def set_temperature(self, heater, target_temp, wait=False):
         if heater.name.startswith("extruder"):
-            self.printer.send_event("extruder:heating", temp)
+            self.printer.send_event("extruder:heating", target_temp)
         elif heater.name.startswith("heater_bed"):
-            self.printer.send_event("heater_bed:heating", temp)
+            self.printer.send_event("heater_bed:heating", target_temp)
         self.is_waiting = wait
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt: None))
-        heater.set_temp(temp)
-        if wait and temp:
+        heater.set_temp(target_temp)
+        if wait and target_temp:
             self._wait_for_temperature(heater)
     cmd_TEMPERATURE_WAIT_help = _("Wait for a temperature on a sensor")
     def cmd_TEMPERATURE_WAIT(self, gcmd):

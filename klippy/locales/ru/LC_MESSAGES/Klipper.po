@@ -623,8 +623,8 @@ msgstr "mux endpoint %s %s %s может иметь только один клю
 msgid "mux endpoint %s %s %s already registered (%s)"
 msgstr "mux endpoint %s %s %s уже зарегистрирована (%s)"
 
-msgid "Shutdown due to webhooks request"
-msgstr "Завершение работы из-за запроса"
+msgid "Shutdown due to webhooks request\n"
+msgstr "Завершение работы из-за запроса\n"
 
 #, python-format
 msgid "webhooks: No registered callback for path '%s'"
@@ -2797,6 +2797,18 @@ msgstr "Печать приостановлена. Необходимо закр
 
 msgid "Printing is paused. Must close hood"
 msgstr "Печать приостановлена. Необходимо закрыть крышку"
+
+msgid "All closed"
+msgstr "Крышка и дверцы закрыты"
+
+msgid "Hood open"
+msgstr "Крышка открыта"
+
+msgid "Doors are open"
+msgstr "Дверцы открыты"
+
+msgid "Doors and hood are open"
+msgstr "Дверцы и крышка открыты"
 
 msgid "Unable to get file list"
 msgstr "Не удается получить список файлов"

@@ -62,10 +62,6 @@ class HeaterCheck:
                 # Target changed - reset checks
                 logging.info("Heater %s approaching new target of %.3f",
                              self.heater_name, target)
-                # if self.heater_name.startswith("extruder"):
-                #     self.printer.send_event("extruder:heating")
-                # elif self.heater_name.startswith("heater_bed:heating"):
-                #     self.printer.send_event("heater_bed:heating")
                 self.approaching_target = self.starting_approach = True
                 self.goal_temp = temp + self.heating_gain
                 self.goal_systime = eventtime + self.check_gain_time

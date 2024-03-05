@@ -4,7 +4,9 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, logging, io
+import re
 import locales
+import subprocess
 VALID_GCODE_EXTS = ['gcode', 'g', 'gco']
 
 class VirtualSD:
@@ -15,15 +17,14 @@ class VirtualSD:
         # sdcard state
         sd = config.get('path')
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))
+        self.media_dirname = "/media"
         self.rebuild_choise = config.get('rebuild')
         stepper_z = config.getsection('stepper_z')
         self.max_z = stepper_z.getint('position_max')
         self.current_file = None
-        self.inter = False
-        #### By Farinov ####
         self.interrupted_file = None
+        self.show_interrupt = False
         self.last_coord = [0.0, 0.0, 0.0]
-        #### End by Farinov ####
         self.file_position = self.file_size = 0
         # Print Stat Tracking
         self.print_stats = self.printer.load_object(config, 'print_stats')
@@ -59,9 +60,12 @@ class VirtualSD:
         self.gcode.register_command(
             "SDCARD_REMOVE_FILE", self.cmd_SDCARD_REMOVE_FILE)
         
+        self.gcode.register_command(
+            "SDCARD_PASS_FILE", self.cmd_SDCARD_PASS_FILE)
 
         self.printer.register_event_handler("klippy:ready",
                                             self.was_shutdown_at_printing)
+        
         ####    END NEW    ####
 
     def handle_shutdown(self):
@@ -115,8 +119,10 @@ class VirtualSD:
             'is_active': self.is_active(),
             'file_position': self.file_position,
             'file_size': self.file_size,
-            'interrupted_file': str(self.interrupted_file),
-            'rebuild': str(self.rebuild_choise)
+            'interrupted_file': self.interrupted_file,
+            'rebuild': str(self.rebuild_choise),
+            'has_interrupted_file': self.has_interrupted_file(),
+            'show_interrupt': self.show_interrupt
         }
     def file_path(self):
         if self.current_file:
@@ -156,6 +162,14 @@ class VirtualSD:
             self.current_file = None
             self.print_stats.note_cancel()
         self.file_position = self.file_size = 0.
+        self.run_gcode_on_cancel()
+        
+    def run_gcode_on_cancel(self):
+        self.gcode.run_script_from_command(
+                                "G91\n"
+                                "G0 Z 10\n"
+                                "G90 \n"
+                                "G28 X Y\n")
     # G-Code commands
     def cmd_error(self, gcmd):
         raise gcmd.error(_("SD write not supported"))
@@ -174,8 +188,8 @@ class VirtualSD:
     ####      NEW      ####
     def was_shutdown_at_printing(self):
         if self.has_interrupted_file():
-            if self.rebuild_choise == 'confirm' and not self.inter:
-                self.inter = True
+            if self.rebuild_choise == 'confirm':
+                self.show_interrupt = True
                 self.print_stats.note_interrupt()
                 logging.info("Waiting confirm for continue print")
             elif self.rebuild_choise == 'autoconfirm':
@@ -205,11 +219,16 @@ class VirtualSD:
         self.do_resume()
     ####      NEW      ####
     def cmd_SDCARD_SAVE_FILE(self, gcmd):
-        if self.work_timer is not None:
-            raise gcmd.error(_("SD busy"))
-        self.save_printing_parameters()
+        if self.work_timer is None:
+            #raise gcmd.error(_("SD busy"))
+            self.save_printing_parameters()
 
+    def cmd_SDCARD_PASS_FILE(self, gcmd):
+        self.show_interrupt = False
+        self.print_stats.reset()
+            
     def cmd_SDCARD_RUN_FILE(self, gcmd):
+        self.show_interrupt = False
         safety_printing_object = self.printer.lookup_object('safety_printing')
         if safety_printing_object.safety_enabled:
             safety_printing_object.raise_error_if_open()
@@ -218,9 +237,9 @@ class VirtualSD:
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)
         self.work_timer = self.reactor.register_timer(
             self.rebuild_begin_print, self.reactor.NOW)
-            
+         
     def cmd_SDCARD_REMOVE_FILE(self, gcmd):
-        #self.load_saved_parameters()
+        self.show_interrupt = False
         self._remove_file()
         gcmd.respond_raw(_("Remove interrupted file"))
         self.print_stats.reset()
@@ -256,15 +275,58 @@ class VirtualSD:
             filename = filename[1:]
         self._load_file(gcmd, filename)
 
-    def _load_file(self, gcmd, filename, file_position=0, check_subdirs=False):
+    #filename is path from flash
+    #if flash name is FLASH, then filename will be FLASH/gcode_name
+    def find_media_file(self, filename):
+        media_file = os.path.join(self.media_dirname, filename)
+        if os.path.isfile(media_file):
+            return media_file
+        else:
+            raise
+        
+    def _load_file(self, gcmd, filename: str, file_position=0, check_subdirs=False):
         files = self.get_file_list(check_subdirs)
+        logging.info(f"files is {files} ")
         flist = [f[0] for f in files]
-        files_by_lower = { fname.lower(): fname for fname, fsize in files }
-        fname = filename
+        #files_by_lower = { fname.lower(): fname for fname, fsize in files }
+        fname: str = filename
+        logging.info(f"in filename {fname} ")
         try:
             if fname not in flist:
-                fname = files_by_lower[fname.lower()]
-            fname = os.path.join(self.sdcard_dirname, fname)
+                logging.info(f"not in flist")
+                media_fname = self.find_media_file(fname)
+                name = fname.split('/').pop()
+                logging.info(f"only name {name}")
+                parent_files = self.get_file_list()
+                parent_flist = [f[0] for f in parent_files]
+                logging.info(f"parent flist {parent_flist}")
+                tmp_r = re.compile('_tmp(?:[0-9]*)')
+                i = 0
+                result_name = None
+                while not result_name:
+                    logging.info(f"in while")
+                    if i > 100:
+                        raise
+                    if name in parent_flist:
+                        logging.info(f"name in parent files")
+                        name = name.split('.')
+                        logging.info(f"name after split {name}")
+                        if i == 0:
+                            name[0] = name[0] + ('_tmp')
+                            logging.info(f"name [0] after first found {name[0]}")
+                        else:
+                            name[0] = tmp_r.sub('', name[0]).rstrip()
+                            name[0] = name[0] + f'_tmp{i}'
+                            logging.info(f"name [0] after next found {name[0]}")
+                        name = name[0] + '.' + name[1]
+                        logging.info(f"name after manipulation {name}")
+                        i = i + 1
+                    else:
+                        result_name = name
+                fname = os.path.join(self.sdcard_dirname, result_name)
+                subprocess.check_output(f"cp {media_fname} {fname}", universal_newlines=True, shell=True, stderr=subprocess.STDOUT)  
+            else:  
+                fname = os.path.join(self.sdcard_dirname, fname)
             self.interrupted_file = fname
             f = io.open(fname, 'r', newline='')
             f.seek(0, os.SEEK_END)
@@ -395,16 +457,17 @@ class VirtualSD:
                 lines = interrupted_file.readlines()
                 last_e = float(lines[5])
                 interrupted_file.close()
-                os.system('rm -rf ' + file)
+                os.system('cp ' + file + " 1" + file)
             os.system('touch ' + file)
             interrupted_file = io.open(file, 'r+')
             filename = self.file_path().rsplit('/', 1)[-1] + '\n'
             position = str(self.file_position) + '\n'
+            last_pos = self.gcode_move.get_status()['position']
             last_position = [
-                             str(self.gcode_move.get_status()['position'].z) + '\n', 
-                             str(self.gcode_move.get_status()['position'].x) + '\n',
-                             str(self.gcode_move.get_status()['position'].y) + '\n',
-                             str(self.gcode_move.get_status()['position'].e + last_e) + '\n'
+                             str(last_pos.z) + '\n', 
+                             str(last_pos.x) + '\n',
+                             str(last_pos.y) + '\n',
+                             str(last_pos.e + last_e) + '\n'
                             ]
             lines = [filename, position, last_position[0], last_position[1], last_position[2], last_position[3]]
             interrupted_file.writelines(lines)
@@ -450,6 +513,17 @@ class VirtualSD:
         #                         "M109 S150\n"
         #                         "M190 S50\n")
         while not line.startswith('G28') or not data:
+            if not lines:
+                # Read more data
+                try:
+                    data = self.current_file.read(8192)
+                    lines = data.split('\n')
+                    lines[0] = partial_input + lines[0]
+                    partial_input = lines.pop()
+                    lines.reverse()
+                except:
+                    logging.exception("virtual_sdcard read")
+                    break
             # if gcode_mutex.test():
             #    # self.reactor.pause(self.reactor.monotonic() + 0.100)
             #     continue

@@ -5,8 +5,6 @@ import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import locales
 
-### Перенести WifiManager из KlipperScreen на Klipper
-
 class WifiMode:
     def __init__(self, config):
         self.printer = config.get_printer()

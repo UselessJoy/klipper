@@ -360,7 +360,7 @@ class WebHooks:
         web_request.send(response)
 
     def _handle_estop_request(self, web_request):
-        self.printer.invoke_shutdown(_("Shutdown due to webhooks request"))
+        self.printer.invoke_shutdown(_("Shutdown due to webhooks request\n"))
 
     def _handle_rpc_registration(self, web_request):
         template = web_request.get_dict('response_template')

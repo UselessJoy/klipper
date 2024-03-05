@@ -14,6 +14,7 @@ class PauseResume:
         self.is_paused = False
         self.sd_paused = False
         self.pause_command_sent = False
+        
         self.printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
         self.gcode.register_command("PAUSE", self.cmd_PAUSE,
@@ -47,10 +48,23 @@ class PauseResume:
         self.gcode.run_script("CANCEL_PRINT")
 
     def _handle_pause_request(self, web_request):
+        safety = self.printer.lookup_object('safety_printing')
+        messages = self.printer.lookup_object("messages")
+        if safety.safety_enabled:
+            if safety.send_pause:
+                messages.send_message('warning', 'wait_for_pause')
+                return
         self.manual_pause = True
         self.gcode.run_script("PAUSE")
 
     def _handle_resume_request(self, web_request):
+        safety = self.printer.lookup_object('safety_printing')
+        messages = self.printer.lookup_object("messages")
+        if safety.safety_enabled:
+            if safety.send_resume:
+                messages.send_message('warning', 'wait_for_resume')
+                return
+        self.manual_pause = False
         self.gcode.run_script("RESUME")
     
     def get_status(self, eventtime):

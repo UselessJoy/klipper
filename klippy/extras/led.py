@@ -17,20 +17,20 @@ class LEDHelper:
         self.led_count = led_count
         self.need_transmit = False
         # Initial color
-        red = config.getfloat('initial_RED', 0., minval=0., maxval=1.)
-        green = config.getfloat('initial_GREEN', 0., minval=0., maxval=1.)
-        blue = config.getfloat('initial_BLUE', 0., minval=0., maxval=1.)
-        white = config.getfloat('initial_WHITE', 0., minval=0., maxval=1.)
-        self.led_state = [(red, green, blue, white)] * led_count
+        self.red = config.getfloat('initial_RED', 0., minval=0., maxval=1.)
+        self.green = config.getfloat('initial_GREEN', 0., minval=0., maxval=1.)
+        self.blue = config.getfloat('initial_BLUE', 0., minval=0., maxval=1.)
+        self.white = config.getfloat('initial_WHITE', 0., minval=0., maxval=1.)
+        self.led_state = [(self.red, self.green, self.blue, self.white)] * led_count
         # Register commands
-        name = config.get_name().split()[-1]
+        self.name = config.get_name().split()[-1]
         gcode = self.printer.lookup_object('gcode')
-        gcode.register_mux_command("SET_LED", "LED", name, self.cmd_SET_LED,
+        gcode.register_mux_command("SET_LED", "LED", self.name, self.cmd_SET_LED,
                                    desc=self.cmd_SET_LED_help)
         ####      NEW      ####
-        gcode.register_mux_command("SAVE_DEFAULT_COLOR", "NEOPIXEL", name, self.cmd_SAVE_NEOPIXEL_DEFAULT,
-                                    desc=self.cmd_SAVE_NEOPIXEL_DEFAULT_help)
-        gcode.register_mux_command("GET_COLOR", "NEOPIXEL", name, self.cmd_GET_DEFAULT_NEOPIXEL_COLOR,
+        gcode.register_mux_command("SAVE_DEFAULT_COLOR", "NEOPIXEL", self.name, self.cmd_SAVE_DEFAULT_COLOR,
+                                    desc=self.cmd_SAVE_DEFAULT_COLOR_help)
+        gcode.register_mux_command("GET_COLOR", "NEOPIXEL", self.name, self.cmd_GET_DEFAULT_NEOPIXEL_COLOR,
                                    desc=self.cmd_GET_DEFAULT_NEOPIXEL_COLOR_help)
         ####    END NEW    #### 
     def get_led_count(self):
@@ -62,66 +62,39 @@ class LEDHelper:
         #logging.info(configfile.getsection("neopixel"))
         return "Hello"
 
-    cmd_SAVE_NEOPIXEL_DEFAULT_help = _("Save default neopixel color")
-    def cmd_SAVE_NEOPIXEL_DEFAULT(self, gcmd):
+    cmd_SAVE_DEFAULT_COLOR_help = _("Save default neopixel color")
+    def cmd_SAVE_DEFAULT_COLOR(self, gcmd):
         #logging.info("COMMAND SAVE_DEFAULT_COLOR")
-        red = gcmd.get_float('RED', 0., minval=0., maxval=1.)
-        green = gcmd.get_float('GREEN', 0., minval=0., maxval=1.)
-        blue = gcmd.get_float('BLUE', 0., minval=0., maxval=1.)
-        # configfile = self.printer.lookup_object('configfile')
-        # configfile.set('neopixel ' + gcmd.get("NEOPIXEL"), 'initial_RED', "%.1f" % (red))
-        # configfile.set('neopixel ' + gcmd.get("NEOPIXEL"), 'initial_GREEN', "%.1f" % (green))
-        # configfile.set('neopixel ' + gcmd.get("NEOPIXEL"), 'initial_BLUE', "%.1f" % (blue))
-        try:
-            cfgname = self.printer.get_start_args()['config_file']
-            with open(cfgname, 'r+') as file:
-                lines = file.readlines()
-                i = 0
-                all_colors = 0
-                led_effect_cnahged = False
-                for line in enumerate(lines):
-                    if line[1].lstrip().startswith('initial_RED'):
-                        lines[i] = f'initial_RED: {red}\n'
-                        all_colors +=1
-                    if line[1].lstrip().startswith('initial_GREEN'):
-                        lines[i] = f'initial_GREEN: {green}\n'
-                        all_colors +=1
-                    if line[1].lstrip().startswith('initial_BLUE'):
-                        lines[i] = f'initial_BLUE: {blue}\n'
-                        all_colors +=1
-                    if line[1].startswith('[led_effect NEOPIXEL_DEFAULT]'):
-                        while not lines[i].lstrip().startswith('static'):
-                            i+=1
-                        lines[i] = f'    static  1 0 screen ({red},{green},{blue})\n'
-                        i = i - line[0]
-                        led_effect_cnahged = True
-                    if all_colors == 3 and led_effect_cnahged:
-                        break
-                    i+=1
-                if all_colors != 3:
-                    gcmd.respond_info(_("Unable to load colors"))
-                    logging.error("Unable to load colors")
-                    return
-                end_lines = lines
-            with open(cfgname, 'w') as file:
-                file.writelines(end_lines)
-            gcmd.respond_info(_("New default color saved successfully"))
-        except:
-            logging.exception("Unable to open config file")
+        self.red = gcmd.get_float('RED', minval=0., maxval=1.)
+        self.green = gcmd.get_float('GREEN', minval=0., maxval=1.)
+        self.blue = gcmd.get_float('BLUE', minval=0., maxval=1.) 
+        configfile = self.printer.lookup_object('configfile')
+        neopixel_sections = { f"neopixel {self.name}": {
+                                "initial_red": self.red,
+                                "initial_green": self.green,
+                                "initial_blue": self.blue
+                              },
+                              "led_effect DEFAULT": {
+                                "layers": f"static  1 0 screen ({self.red},{self.green},{self.blue})"
+                              }
+                          }
+        configfile.update_config(setting_sections=neopixel_sections, save_immediatly=True)
+        messages = self.printer.lookup_object("messages")
+        messages.send_message('success', 'saved_default_color')
     ####    END NEW    ####
 
     cmd_SET_LED_help = _("Set the color of an LED")
     def cmd_SET_LED(self, gcmd):
         # Parse parameters
-        red = gcmd.get_float('RED', 0., minval=0., maxval=1.)
-        green = gcmd.get_float('GREEN', 0., minval=0., maxval=1.)
-        blue = gcmd.get_float('BLUE', 0., minval=0., maxval=1.)
-        white = gcmd.get_float('WHITE', 0., minval=0., maxval=1.)
-        self.printer.send_event("led:set_led", float(red), float(green), float(blue))
+        self.red = gcmd.get_float('RED', minval=0., maxval=1.)
+        self.green = gcmd.get_float('GREEN', minval=0., maxval=1.)
+        self.blue = gcmd.get_float('BLUE', minval=0., maxval=1.)
+        self.white = gcmd.get_float('WHITE', 0., minval=0., maxval=1.)
+        self.printer.send_event("led:set_led", float(self.red), float(self.green), float(self.blue))
         index = gcmd.get_int('INDEX', None, minval=1, maxval=self.led_count)
         transmit = gcmd.get_int('TRANSMIT', 1)
         sync = gcmd.get_int('SYNC', 1)
-        color = (red, green, blue, white)
+        color = (self.red, self.green, self.blue, self.white)
         # Update and transmit data
         def lookahead_bgfunc(print_time):
             self.set_color(index, color)
@@ -136,7 +109,8 @@ class LEDHelper:
             lookahead_bgfunc(None)
         
     def get_status(self, eventtime=None):
-        return {'color_data': self.led_state}
+        return {'color_data': self.led_state,
+                'default_color': [self.red, self.green, self.blue, self.white]}
 
 # Main LED tracking code
 class PrinterLED:

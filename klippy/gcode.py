@@ -202,7 +202,6 @@ class GCodeDispatch:
         for line in commands:
             # Ignore comments and leading/trailing spaces
             line = origline = line.strip()
-            logging.info(line)
             cpos = line.find(';')
             if cpos >= 0:
                 line = line[:cpos]
@@ -255,9 +254,6 @@ class GCodeDispatch:
         lines = [l.strip() for l in msg.strip().split('\n')]
         self.respond_raw("// " + "\n// ".join(lines))
     def _respond_error(self, msg):
-        ####      NEW      ####
-     #   self.printer.send_event("gcode:respond_error")
-        ####    END NEW    ####
         logging.warning(msg)
         lines = msg.strip().split('\n')
         if len(lines) > 1:

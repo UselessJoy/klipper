@@ -286,40 +286,27 @@ class VirtualSD:
         
     def _load_file(self, gcmd, filename: str, file_position=0, check_subdirs=False):
         files = self.get_file_list(check_subdirs)
-        logging.info(f"files is {files} ")
         flist = [f[0] for f in files]
         #files_by_lower = { fname.lower(): fname for fname, fsize in files }
         fname: str = filename
-        logging.info(f"in filename {fname} ")
         try:
             if fname not in flist:
-                logging.info(f"not in flist")
                 media_fname = self.find_media_file(fname)
                 name = fname.split('/').pop()
-                logging.info(f"only name {name}")
                 parent_files = self.get_file_list()
                 parent_flist = [f[0] for f in parent_files]
-                logging.info(f"parent flist {parent_flist}")
                 tmp_r = re.compile('_tmp(?:[0-9]*)')
                 i = 0
                 result_name = None
                 while not result_name:
-                    logging.info(f"in while")
-                    if i > 100:
-                        raise
                     if name in parent_flist:
-                        logging.info(f"name in parent files")
                         name = name.split('.')
-                        logging.info(f"name after split {name}")
                         if i == 0:
                             name[0] = name[0] + ('_tmp')
-                            logging.info(f"name [0] after first found {name[0]}")
                         else:
                             name[0] = tmp_r.sub('', name[0]).rstrip()
                             name[0] = name[0] + f'_tmp{i}'
-                            logging.info(f"name [0] after next found {name[0]}")
                         name = name[0] + '.' + name[1]
-                        logging.info(f"name after manipulation {name}")
                         i = i + 1
                     else:
                         result_name = name

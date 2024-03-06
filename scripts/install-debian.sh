@@ -41,6 +41,7 @@ create_virtualenv()
 
     # Install/update dependencies
     ${PYTHONDIR}/bin/pip install -r ${SRCDIR}/scripts/klippy-requirements.txt
+    ${PYTHONDIR}/bin/pip install python-networkmanager --use-deprecated=legacy-resolver
 }
 
 # Step 3: Install startup script

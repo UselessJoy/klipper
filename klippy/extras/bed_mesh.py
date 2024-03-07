@@ -802,11 +802,6 @@ class BedMeshCalibrate:
     
     def _run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')
-        # gcode.run_script("G90\n")
-        # gcode.run_script(f"G1 Z{self.bedmesh.drop_z}")
-        # gcode.run_script(f"G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_base}")
-        # gcode.run_script(f"G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_parking}")
-        # gcode.run_script(f"G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_parking}")
         gcode.run_script_from_command(f"\
                             G90\n\
                             G1 Z{self.bedmesh.drop_z}\n\

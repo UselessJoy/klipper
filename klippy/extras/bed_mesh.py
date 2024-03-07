@@ -102,6 +102,17 @@ class BedMesh:
         self.horizontal_move_z = config.getfloat('horizontal_move_z', 5.)
         self.fade_start = config.getfloat('fade_start', 1.)
         self.fade_end = config.getfloat('fade_end', 0.)
+        
+        self.magnet_x = str(config.getfloat('magnet_x'))
+        self.magnet_y = str(config.getfloat('magnet_y'))
+        self.speed_base = str(config.getfloat('speed_base'))
+        
+        self.parking_magnet_y = str(config.getfloat('parking_magnet_y'))
+        self.speed_parking = str(config.getfloat('speed_parking'))
+        
+        self.magnet_x_offset = str(config.getfloat('magnet_x_offset'))  
+        self.drop_z = str(config.getfloat('drop_z'))
+        
         self.fade_dist = self.fade_end - self.fade_start
         if self.fade_dist <= 0.:
             self.fade_start = self.fade_end = self.FADE_DISABLE
@@ -773,29 +784,48 @@ class BedMeshCalibrate:
         toolhead = self.printer.lookup_object('toolhead')
         curtime = self.printer.get_reactor().monotonic()
         kin_status = toolhead.get_kinematics().get_status(curtime)
-
-        axes_r = re.compile('[xyz]')
-        pruned_axes = axes_r.sub("", kin_status['homed_axes']).strip()
-        if pruned_axes != "":
-            unhomed_axes = {}
-            for axis in pruned_axes:
-                unhomed_axes[axis] = '0'
-            ho = self.printer.lookup_object('homing')
+        if kin_status['homed_axes'] == "":
+            homing = self.printer.lookup_object('homing')
             gcode = self.printer.lookup_object('gcode')
-            ho.cmd_G28(gcode.create_gcode_command("G28", "G28", unhomed_axes))
-        
+            homing.cmd_G28(gcode.create_gcode_command("G28", "G28", {}))
+            return
+        homed_axes_r = re.compile(f"[{kin_status['homed_axes']}]")
+        unhomed_axes = homed_axes_r.sub("", "xyz").strip()
+        home_command_parameters = {}
+        if unhomed_axes != "":
+            for axis in unhomed_axes:
+                home_command_parameters[axis.upper()] = "0"
+            if len(home_command_parameters) > 0:
+                homing = self.printer.lookup_object('homing')
+                gcode = self.printer.lookup_object('gcode')
+                homing.cmd_G28(gcode.create_gcode_command("G28", "G28", home_command_parameters))
+    
+    def _run_gcode_get_magnet(self):
+        gcode = self.printer.lookup_object('gcode')
+        # gcode.run_script("G90\n")
+        # gcode.run_script(f"G1 Z{self.bedmesh.drop_z}")
+        # gcode.run_script(f"G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_base}")
+        # gcode.run_script(f"G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_parking}")
+        # gcode.run_script(f"G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_parking}")
+        gcode.run_script_from_command(f"\
+                            G90\n\
+                            G1 Z{self.bedmesh.drop_z}\n\
+                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_base}\n\
+                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_parking}\n\
+                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_parking}\n\
+                         ")
     cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")         
     def cmd_BED_MESH_CALIBRATE(self, gcmd: GCodeCommand):
         profs = []
         try:
-            self._profile_name = gcmd.get('PROFILE')#, f'profile_{len_def}')
+            self._profile_name = gcmd.get('PROFILE')
         except:
             profs = self.bedmesh.pmgr.get_profiles()
             len_def = 0
             reserved = []
             for prof in profs:
                 if prof.startswith("profile_"):
-                    reserved.append[prof]
+                    reserved.append(prof)
             len_def = len(reserved)
             while f"profile_{len_def}" in reserved:
                 len_def = len_def + 1
@@ -803,13 +833,11 @@ class BedMeshCalibrate:
         if self._profile_name in profs:
             raise self.gcode.error(
                 _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name)
-            
-        logging.info(f"profile name {self._profile_name}")
+        self._run_G28_if_unhomed()  
+        self._run_gcode_get_magnet()  
         self.savePermanently: bool = gcmd.get_boolean('SAVE_PERMANENTLY', False)
-        logging.info(f"save perm {self.savePermanently}")
         self.bedmesh.set_mesh(None)
         self.update_config(gcmd)
-        self._run_G28_if_unhomed()
         self.probe_helper.start_probe(gcmd)
         
     def probe_finalize(self, offsets, positions):
@@ -935,10 +963,22 @@ class BedMeshCalibrate:
             # it is necessary to set the reference after the initial mesh
             # is generated to lookup the correct z value.
             z_mesh.set_zero_reference(*self.zero_ref_pos)
+        self._run_gcode_return_magnet()
         self.bedmesh.set_mesh(z_mesh)
         self.gcode.respond_info(_("Mesh Bed Leveling Complete"))
         self.bedmesh.add_profile(self._profile_name, self.savePermanently)
-        
+          
+    def _run_gcode_return_magnet(self):
+        gcode = self.printer.lookup_object('gcode')
+        gcode.run_script_from_command(f"\
+                            G90\n\
+                            G1 Z{self.bedmesh.drop_z}\n\
+                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_base}\n\
+                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_parking}\n\
+                            G1 X{self.bedmesh.magnet_x_offset} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_base}\n\
+                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_parking}\n\
+                         ")
+     
     def _dump_points(self, probed_pts, corrected_pts, offsets):
         # logs generated points with offset applied, points received
         # from the finalize callback, and the list of corrected points

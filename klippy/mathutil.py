@@ -6,7 +6,7 @@
 import math, logging, multiprocessing, traceback
 import queuelogger
 import locales 
-
+locales.set_locale()
 ######################################################################
 # Coordinate descent
 ######################################################################

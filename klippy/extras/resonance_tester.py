@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math, os, time
+import numpy as np, matplotlib
 from . import adxl345, shaper_calibrate
 import locales
 class TestAxis:
@@ -233,7 +234,7 @@ class ResonanceTester:
             helper = shaper_calibrate.ShaperCalibrate(self.printer)
         else:
             helper = None
-
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         data = self._run_test(
                 gcmd, [axis], helper,
                 raw_name_suffix=name_suffix if raw_output else None)[axis]
@@ -243,7 +244,7 @@ class ResonanceTester:
             gcmd.respond_info(
                     _("Resonances data written to %s file") % (csv_name,))
     cmd_SHAPER_CALIBRATE_help = (
-        "Simular to TEST_RESONANCES but suggest input shaper config")
+        _("Simular to TEST_RESONANCES but suggest input shaper config"))
     def cmd_SHAPER_CALIBRATE(self, gcmd):
         # Parse parameters
         axis = gcmd.get("AXIS", None)
@@ -263,7 +264,7 @@ class ResonanceTester:
 
         # Setup shaper calibration
         helper = shaper_calibrate.ShaperCalibrate(self.printer)
-
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         calibration_data = self._run_test(gcmd, calibrate_axes, helper)
 
         configfile = self.printer.lookup_object('configfile')
@@ -286,18 +287,18 @@ class ResonanceTester:
                     calibration_data[axis], all_shapers)
             gcmd.respond_info(
                     _("Shaper calibration data written to %s file") % (csv_name,))
+            # if not os.path.isdir("~/.shaper-image"):
+            #     os.system("mkdir ~/.shaper-image")
+            # os.system(f"~/klipper/scripts/calibrate_shaper.py {csv_name} -o ~/.shaper-image/shaper_calibrate.png")
         gcmd.respond_info(
             _("The SAVE_CONFIG command will update the printer config file\n"
             "with these parameters and restart the printer."))
-        # find_csv()
-        # create_to_png()
-        # in_fluidd_find_png_and_offer_download()
-        # os.system("~/klipper/scripts/calibrate_shaper.py /tmp/resonances_y_*.csv -o /tmp/shaper_calibrate_y.png")
-        
+       
     cmd_MEASURE_AXES_NOISE_help = (
         _("Measures noise of all enabled accelerometer chips"))
     def cmd_MEASURE_AXES_NOISE(self, gcmd):
         meas_time = gcmd.get_float("MEAS_TIME", 2.)
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         raw_values = [(chip_axis, chip.start_internal_client())
                       for chip_axis, chip in self.accel_chips]
         self.printer.lookup_object('toolhead').dwell(meas_time)

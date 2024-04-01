@@ -6,7 +6,7 @@
 import sys, os, pty, fcntl, termios, signal, logging, json, time
 import subprocess, traceback, shlex
 import locales 
-
+locales.set_locale()
 ######################################################################
 # Low-level Unix commands
 ######################################################################

@@ -7,6 +7,7 @@
 import os, sys, logging
 import msgproto
 import locales 
+locales.set_locale()
 def read_dictionary(filename):
     dfile = open(filename, 'rb')
     dictionary = dfile.read()

@@ -6,6 +6,7 @@
 import math, logging, collections
 import chelper
 import locales 
+locales.set_locale()
 class error(Exception):
     pass
 

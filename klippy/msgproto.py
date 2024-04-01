@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import json, zlib, logging
 import locales
+locales.set_locale()
 DefaultMessages = {
     "identify_response offset=%u data=%.*s": 0,
     "identify offset=%u count=%c": 1,

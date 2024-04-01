@@ -6,6 +6,7 @@
 import logging, threading, os
 import serial
 import locales 
+locales.set_locale()
 import msgproto, chelper, util
 
 class error(Exception):

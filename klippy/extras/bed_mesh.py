@@ -6,7 +6,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 from __future__ import annotations
 from ctypes import Array
-import logging, math, json, collections, re
+import logging, math, json, collections #, re
 
 from configfile import ConfigWrapper, PrinterConfig
 from gcode import GCodeCommand
@@ -101,18 +101,7 @@ class BedMesh:
         self.toolhead = None
         self.horizontal_move_z = config.getfloat('horizontal_move_z', 5.)
         self.fade_start = config.getfloat('fade_start', 1.)
-        self.fade_end = config.getfloat('fade_end', 0.)
-        
-        self.magnet_x = str(config.getfloat('magnet_x'))
-        self.magnet_y = str(config.getfloat('magnet_y'))
-        self.speed_base = str(config.getfloat('speed_base'))
-        
-        self.parking_magnet_y = str(config.getfloat('parking_magnet_y'))
-        self.speed_parking = str(config.getfloat('speed_parking'))
-        
-        self.magnet_x_offset = str(config.getfloat('magnet_x_offset'))  
-        self.drop_z = str(config.getfloat('drop_z'))
-        
+        self.fade_end = config.getfloat('fade_end', 0.)  
         self.fade_dist = self.fade_end - self.fade_start
         if self.fade_dist <= 0.:
             self.fade_start = self.fade_end = self.FADE_DISABLE
@@ -520,43 +509,82 @@ class BedMeshCalibrate:
             config.get('algorithm', 'lagrange').strip().lower()
         orig_cfg['tension'] = mesh_cfg['tension'] = config.getfloat(
             'bicubic_tension', .2, minval=0., maxval=2.)
-        for i in list(range(1, 100, 1)):
-            start = config.getfloatlist("faulty_region_%d_min" % (i,), None,
-                                        count=2)
-            if start is None:
-                break
-            end = config.getfloatlist("faulty_region_%d_max" % (i,), count=2)
-            # Validate the corners.  If necessary reorganize them.
-            # c1 = min point, c3 = max point
-            #  c4 ---- c3
-            #  |        |
-            #  c1 ---- c2
-            c1 = [min([s, e]) for s, e in zip(start, end)]
-            c3 = [max([s, e]) for s, e in zip(start, end)]
-            c2 = [c1[0], c3[1]]
-            c4 = [c3[0], c1[1]]
-            # Check for overlapping regions
-            for j, (prev_c1, prev_c3) in enumerate(self.faulty_regions):
-                prev_c2 = [prev_c1[0], prev_c3[1]]
-                prev_c4 = [prev_c3[0], prev_c1[1]]
-                # Validate that no existing corner is within the new region
-                for coord in [prev_c1, prev_c2, prev_c3, prev_c4]:
-                    if within(coord, c1, c3):
-                        raise config.error(
-                            _("bed_mesh: Existing faulty_region_%d %s overlaps "
-                            "added faulty_region_%d %s")
-                            % (j+1, repr([prev_c1, prev_c3]),
-                               i, repr([c1, c3])))
-                # Validate that no new corner is within an existing region
-                for coord in [c1, c2, c3, c4]:
-                    if within(coord, prev_c1, prev_c3):
-                        raise config.error(
-                            _("bed_mesh: Added faulty_region_%d %s overlaps "
-                            "existing faulty_region_%d %s")
-                            % (i, repr([c1, c3]),
-                               j+1, repr([prev_c1, prev_c3])))
-            self.faulty_regions.append((c1, c3))
+        min_x = 150
+        max_x = 300
+        min_y = 40
+        max_y = 215
+        step_x = 10
+        step_y = 20
+        
+        for i in range(min_x, max_x, step_x):
+            for j in range(min_y, max_y, step_y):
+                start = (i + 1, j + 1)
+                end = (i+step_x, j+step_y)
+                c1 = [min([s, e]) for s, e in zip(start, end)]
+                c3 = [max([s, e]) for s, e in zip(start, end)]
+                c2 = [c1[0], c3[1]]
+                c4 = [c3[0], c1[1]]
+                # Check for overlapping regions
+                for j, (prev_c1, prev_c3) in enumerate(self.faulty_regions):
+                    prev_c2 = [prev_c1[0], prev_c3[1]]
+                    prev_c4 = [prev_c3[0], prev_c1[1]]
+                    # Validate that no existing corner is within the new region
+                    for coord in [prev_c1, prev_c2, prev_c3, prev_c4]:
+                        if within(coord, c1, c3):
+                            raise config.error(
+                                _("bed_mesh: Existing faulty_region_%d %s overlaps "
+                                "added faulty_region_%d %s")
+                                % (j+1, repr([prev_c1, prev_c3]),
+                                i, repr([c1, c3])))
+                    # Validate that no new corner is within an existing region
+                    for coord in [c1, c2, c3, c4]:
+                        if within(coord, prev_c1, prev_c3):
+                            raise config.error(
+                                _("bed_mesh: Added faulty_region_%d %s overlaps "
+                                "existing faulty_region_%d %s")
+                                % (i, repr([c1, c3]),
+                                j+1, repr([prev_c1, prev_c3])))
+                self.faulty_regions.append((c1, c3))
+        
+        # for i in list(range(1, 100, 1)):
+        #     start = (min_x + step_x*(i%((max_x - min_x)/step_x)), min_y + step_y*(i))
+        #     start = config.getfloatlist("faulty_region_%d_min" % (i,), None,
+        #                                 count=2)
+        #     if start is None:
+        #         break
+        #     end = config.getfloatlist("faulty_region_%d_max" % (i,), count=2)
+        #     # Validate the corners.  If necessary reorganize them.
+        #     # c1 = min point, c3 = max point
+        #     #  c4 ---- c3
+        #     #  |        |
+        #     #  c1 ---- c2
+        #     c1 = [min([s, e]) for s, e in zip(start, end)]
+        #     c3 = [max([s, e]) for s, e in zip(start, end)]
+        #     c2 = [c1[0], c3[1]]
+        #     c4 = [c3[0], c1[1]]
+        #     # Check for overlapping regions
+        #     for j, (prev_c1, prev_c3) in enumerate(self.faulty_regions):
+        #         prev_c2 = [prev_c1[0], prev_c3[1]]
+        #         prev_c4 = [prev_c3[0], prev_c1[1]]
+        #         # Validate that no existing corner is within the new region
+        #         for coord in [prev_c1, prev_c2, prev_c3, prev_c4]:
+        #             if within(coord, c1, c3):
+        #                 raise config.error(
+        #                     _("bed_mesh: Existing faulty_region_%d %s overlaps "
+        #                     "added faulty_region_%d %s")
+        #                     % (j+1, repr([prev_c1, prev_c3]),
+        #                        i, repr([c1, c3])))
+        #         # Validate that no new corner is within an existing region
+        #         for coord in [c1, c2, c3, c4]:
+        #             if within(coord, prev_c1, prev_c3):
+        #                 raise config.error(
+        #                     _("bed_mesh: Added faulty_region_%d %s overlaps "
+        #                     "existing faulty_region_%d %s")
+        #                     % (i, repr([c1, c3]),
+        #                        j+1, repr([prev_c1, prev_c3])))
+        #     self.faulty_regions.append((c1, c3))
         self._verify_algorithm(config.error)
+        
     def _verify_algorithm(self, error):
         params = self.mesh_config
         x_pps = params['mesh_x_pps']
@@ -778,37 +806,7 @@ class BedMeshCalibrate:
         if self.zero_reference_mode == ZrefMode.PROBE:
             adj_pts.append(self.zero_ref_pos)
         return adj_pts
-    
-    
-    def _run_G28_if_unhomed(self):
-        toolhead = self.printer.lookup_object('toolhead')
-        curtime = self.printer.get_reactor().monotonic()
-        kin_status = toolhead.get_kinematics().get_status(curtime)
-        if kin_status['homed_axes'] == "":
-            homing = self.printer.lookup_object('homing')
-            gcode = self.printer.lookup_object('gcode')
-            homing.cmd_G28(gcode.create_gcode_command("G28", "G28", {}))
-            return
-        homed_axes_r = re.compile(f"[{kin_status['homed_axes']}]")
-        unhomed_axes = homed_axes_r.sub("", "xyz").strip()
-        home_command_parameters = {}
-        if unhomed_axes != "":
-            for axis in unhomed_axes:
-                home_command_parameters[axis.upper()] = "0"
-            if len(home_command_parameters) > 0:
-                homing = self.printer.lookup_object('homing')
-                gcode = self.printer.lookup_object('gcode')
-                homing.cmd_G28(gcode.create_gcode_command("G28", "G28", home_command_parameters))
-    
-    def _run_gcode_get_magnet(self):
-        gcode = self.printer.lookup_object('gcode')
-        gcode.run_script_from_command(f"\
-                            G90\n\
-                            G1 Z{self.bedmesh.drop_z}\n\
-                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_base}\n\
-                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_parking}\n\
-                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_parking}\n\
-                         ")
+
     cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")         
     def cmd_BED_MESH_CALIBRATE(self, gcmd: GCodeCommand):
         profs = []
@@ -816,20 +814,13 @@ class BedMeshCalibrate:
             self._profile_name = gcmd.get('PROFILE')
         except:
             profs = self.bedmesh.pmgr.get_profiles()
-            len_def = 0
-            reserved = []
-            for prof in profs:
-                if prof.startswith("profile_"):
-                    reserved.append(prof)
-            len_def = len(reserved)
-            while f"profile_{len_def}" in reserved:
-                len_def = len_def + 1
-            self._profile_name = f"profile_{len_def}"
+            i = 0
+            while f"profile_{i}" in profs:
+                i = i + 1
+            self._profile_name = f"profile_{i}"
         if self._profile_name in profs:
             raise self.gcode.error(
-                _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name)
-        self._run_G28_if_unhomed()  
-        self._run_gcode_get_magnet()  
+                _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name) 
         self.savePermanently: bool = gcmd.get_boolean('SAVE_PERMANENTLY', False)
         self.bedmesh.set_mesh(None)
         self.update_config(gcmd)
@@ -958,21 +949,9 @@ class BedMeshCalibrate:
             # it is necessary to set the reference after the initial mesh
             # is generated to lookup the correct z value.
             z_mesh.set_zero_reference(*self.zero_ref_pos)
-        self._run_gcode_return_magnet()
         self.bedmesh.set_mesh(z_mesh)
         self.gcode.respond_info(_("Mesh Bed Leveling Complete"))
         self.bedmesh.add_profile(self._profile_name, self.savePermanently)
-          
-    def _run_gcode_return_magnet(self):
-        gcode = self.printer.lookup_object('gcode')
-        gcode.run_script_from_command(f"\
-                            G90\n\
-                            G1 Z{self.bedmesh.drop_z}\n\
-                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_base}\n\
-                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_parking}\n\
-                            G1 X{self.bedmesh.magnet_x_offset} Y{self.bedmesh.magnet_y} F{self.bedmesh.speed_base}\n\
-                            G1 X{self.bedmesh.magnet_x} Y{self.bedmesh.parking_magnet_y} F{self.bedmesh.speed_parking}\n\
-                         ")
      
     def _dump_points(self, probed_pts, corrected_pts, offsets):
         # logs generated points with offset applied, points received
@@ -1480,14 +1459,16 @@ class ProfileManager:
         saving_mesh = {mesh_section: mesh_options}
         configfile.update_config(setting_sections=saving_mesh, save_immediatly=True)
         self.gcode.respond_info(
-            _("Bed Mesh state has been saved to profile [%s].\n")
+            _("Bed Mesh state has been saved to profile [%s].")
             % (prof_name))
         if prof_name in self.unsaved_profiles: 
             unsaved = list(self.unsaved_profiles)
             unsaved.remove(prof_name)
             self.unsaved_profiles = unsaved
         self.bedmesh.update_status()
-
+        msg_obj = self.printer.lookup_object("messages")
+        msg_obj.send_message("success", "successfull_save_bed_mesh")
+        
     def load_profile(self, prof_name: str):
         profile = self.profiles.get(prof_name, None)
         if profile is None:

@@ -6,6 +6,7 @@
 import logging, socket, os, sys, errno, json, collections
 import gcode
 import locales 
+locales.set_locale()
 REQUEST_LOG_SIZE = 20
 
 # Json decodes strings as unicode types in Python 2.x.  This doesn't
@@ -414,9 +415,10 @@ class GCodeHelper:
         self.is_output_registered = False
         self.clients = {}
         # Register webhooks
-        wh = printer.lookup_object('webhooks')
+        wh: WebHooks = printer.lookup_object('webhooks')
         wh.register_endpoint("gcode/help", self._handle_help)
         wh.register_endpoint("gcode/script", self._handle_script)
+        wh.register_endpoint("gcode/async_command", self._handle_async_command)
         wh.register_endpoint("gcode/restart", self._handle_restart)
         wh.register_endpoint("gcode/firmware_restart",
                              self._handle_firmware_restart)
@@ -430,6 +432,15 @@ class GCodeHelper:
         self.gcode.run_script('restart')
     def _handle_firmware_restart(self, web_request):
         self.gcode.run_script('firmware_restart')
+    def _handle_async_command(self, web_request):
+        logging.info("run handle async command")
+        try:
+            #upper_command = web_request.get_str('command').upper()
+            cmd, origline, params = self.gcode.parse_command(web_request.get_str('command'))
+            func = self.gcode.async_commands[cmd]
+            return func(self.gcode.create_gcode_command(cmd, origline, params))
+        except Exception as e:
+            logging.error(e)
     def _output_callback(self, msg):
         for cconn, template in list(self.clients.items()):
             if cconn.is_closed():

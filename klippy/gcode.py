@@ -6,7 +6,7 @@
 from __future__ import annotations
 import os, re, logging, collections, shlex
 import locales 
-
+locales.set_locale()
 class CommandError(Exception):
     pass
 
@@ -115,6 +115,7 @@ class GCodeDispatch:
         self.output_callbacks = []
         self.base_gcode_handlers = self.gcode_handlers = {}
         self.ready_gcode_handlers = {}
+        self.async_commands = {}
         self.mux_commands = {}
         self.gcode_help = {}
         self.status_commands = {}
@@ -133,6 +134,21 @@ class GCodeDispatch:
             return cmd[0].isupper() and cmd[1].isdigit()
         except:
             return False
+         
+    def register_async_command(self, cmd: str, func, desc=None):
+        if cmd in self.async_commands:
+            raise self.printer.config_error(
+                _("async command %s already registered") % (cmd,))# no locale
+        elif cmd in self.ready_gcode_handlers:
+            raise self.printer.config_error(
+                _("gcode command %s already registered and cannot be both sync and async") % (cmd,)) # no locale
+        elif not cmd.startswith("ASYNC_"):
+            raise self.printer.config_error(
+                _("async command %s must start with 'ASYNC_' prefix") % (cmd,)) # no locale
+        self.async_commands[cmd] = func
+        self.gcode_help[cmd] = desc
+        self._build_status_commands()
+        
     def register_command(self, cmd, func, when_not_ready=False, desc=None):
         if func is None:
             old_cmd = self.ready_gcode_handlers.get(cmd)
@@ -173,9 +189,13 @@ class GCodeDispatch:
     def get_command_help(self):
         return dict(self.gcode_help)
     def get_status(self, eventtime):
-        return {'commands': self.status_commands}
+        return {
+                'commands': self.status_commands,
+                'async_commands': [cmd for cmd in self.async_commands]
+                }
     def _build_status_commands(self):
         commands = {cmd: {} for cmd in self.gcode_handlers}
+        commands.update({cmd: {} for cmd in self.async_commands})
         for cmd in self.gcode_help:
             if cmd in commands:
                 commands[cmd]['help'] = self.gcode_help[cmd]
@@ -196,27 +216,35 @@ class GCodeDispatch:
         self.gcode_handlers = self.ready_gcode_handlers
         self._build_status_commands()
         self._respond_state("Ready")
+    
+    
     # Parse input into commands
     args_r = re.compile('([A-Z_]+|[A-Z*/])')
+    # Регулярка под параметры вида PARAM=VALUE123 (Которая не работает((( )
+    # args_r = re.compile('(?<!=)(\b[A-Z_]+)')
+    def parse_command(self, line):
+        # Ignore comments and leading/trailing spaces
+        line = origline = line.strip()
+        cpos = line.find(';')
+        if cpos >= 0:
+            line = line[:cpos]
+        # Break line into parts and determine command
+        parts = self.args_r.split(line.upper())
+        numparts = len(parts)
+        cmd = ""
+        if numparts >= 3 and parts[1] != 'N':
+            cmd = parts[1] + parts[2].strip()
+        elif numparts >= 5 and parts[1] == 'N':
+            # Skip line number at start of command
+            cmd = parts[3] + parts[4].strip()
+        # Build gcode "params" dictionary
+        params = { parts[i]: parts[i+1].strip()
+                    for i in range(1, numparts, 2) }
+        return cmd, origline, params
+    
     def _process_commands(self, commands, need_ack=True):
         for line in commands:
-            # Ignore comments and leading/trailing spaces
-            line = origline = line.strip()
-            cpos = line.find(';')
-            if cpos >= 0:
-                line = line[:cpos]
-            # Break line into parts and determine command
-            parts = self.args_r.split(line.upper())
-            numparts = len(parts)
-            cmd = ""
-            if numparts >= 3 and parts[1] != 'N':
-                cmd = parts[1] + parts[2].strip()
-            elif numparts >= 5 and parts[1] == 'N':
-                # Skip line number at start of command
-                cmd = parts[3] + parts[4].strip()
-            # Build gcode "params" dictionary
-            params = { parts[i]: parts[i+1].strip()
-                       for i in range(1, numparts, 2) }
+            cmd, origline, params = self.parse_command(line)
             gcmd = GCodeCommand(self, cmd, origline, params, need_ack)
             # Invoke handler for command
             handler = self.gcode_handlers.get(cmd, self.cmd_default)
@@ -235,6 +263,7 @@ class GCodeDispatch:
                 if not need_ack:
                     raise
             gcmd.ack()
+            
     def run_script_from_command(self, script):
         self._process_commands(script.split('\n'), need_ack=False)
     def run_script(self, script):
@@ -248,11 +277,24 @@ class GCodeDispatch:
     def respond_raw(self, msg):
         for cb in self.output_callbacks:
             cb(msg)
-    def respond_info(self, msg, log=True):
+            
+    def respond_msg(self, msg, msg_stat, log):
         if log:
             logging.info(msg)
         lines = [l.strip() for l in msg.strip().split('\n')]
-        self.respond_raw("// " + "\n// ".join(lines))
+        self.respond_raw(f"{msg_stat} " + f"\n{msg_stat} ".join(lines))
+         
+    def respond_info(self, msg, log=True):
+        self.respond_msg(msg, "//", log)   
+    def respond_warning(self, msg, log=True):
+        self.respond_msg(msg, "(warning)", log)
+    def respond_success(self, msg, log=True):
+        self.respond_msg(msg, "(success)", log)
+    def respond_suggestion(self, msg, log=True):
+        self.respond_msg(msg, "(suggestion)", log)   
+    def respond_error(self, msg, log=True):
+        self.respond_msg(msg, "(error)", log)
+        
     def _respond_error(self, msg):
         logging.warning(msg)
         lines = msg.strip().split('\n')
@@ -261,6 +303,7 @@ class GCodeDispatch:
         self.respond_raw('!! %s' % (lines[0].strip(),))
         if self.is_fileinput:
             self.printer.request_exit('error_exit')
+            
     def _respond_state(self, state):
         self.respond_info(_("Klipper state: %s") % (state,), log=False)
     # Parameter parsing helpers

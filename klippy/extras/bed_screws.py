@@ -84,6 +84,7 @@ class BedScrews:
             raise gcmd.error(_("Already in bed_screws helper; use ABORT to exit"))
         # reset accepted screws
         self.accepted_screws = 0
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         self.move((None, None, self.horizontal_move_z), self.speed)
         self.move_to_screw('adjust', 0)
     cmd_ACCEPT_help = _("Accept bed screw position")

@@ -3,7 +3,7 @@
 # Copyright (C) 2016-2021  Kevin O'Connor <kevin@koconnor.net>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import logging, math
+import logging, math, re
 import locales
 HOMING_START_DELAY = 0.001
 ENDSTOP_SAMPLE_TIME = .000015
@@ -253,6 +253,27 @@ class PrinterHoming:
             raise self.printer.command_error(
                 _("Probe triggered prior to movement"))
         return epos
+    
+    def run_G28_if_unhomed(self):
+        toolhead = self.printer.lookup_object('toolhead')
+        curtime = self.printer.get_reactor().monotonic()
+        kin_status = toolhead.get_kinematics().get_status(curtime)
+        if kin_status['homed_axes'] == "":
+            gcode = self.printer.lookup_object('gcode')
+            self.cmd_G28(gcode.create_gcode_command("G28", "G28", {}))
+            return True
+        homed_axes_r = re.compile(f"[{kin_status['homed_axes']}]")
+        unhomed_axes = homed_axes_r.sub("", "xyz").strip()
+        home_command_parameters = {}
+        if unhomed_axes != "":
+            for axis in unhomed_axes:
+                home_command_parameters[axis.upper()] = "0"
+            if len(home_command_parameters) > 0:
+                gcode = self.printer.lookup_object('gcode')
+                self.cmd_G28(gcode.create_gcode_command("G28", "G28", home_command_parameters))
+                return True
+        return False
+                
     def cmd_G28(self, gcmd):
         # Move to origin
         axes = []
@@ -260,12 +281,21 @@ class PrinterHoming:
             if gcmd.get(axis, None) is not None:
                 axes.append(pos)
         if not axes:
-            axes = [1, 0, 2]
-        homing_state = Homing(self.printer)
-        homing_state.set_axes(axes)
+            axes = [2, 1, 0]
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         try:
-            kin.home(homing_state)
+            if 2 in axes:
+                homing_z = Homing(self.printer)
+                homing_z.set_axes([2])
+                kin.home(homing_z)
+                toolhead = self.printer.lookup_object('toolhead')
+                probe = self.printer.lookup_object('probe')
+                toolhead.manual_move([None, None, probe.drop_z], probe.speed_base)
+                axes.remove(2)
+            if len(axes) > 0:
+                homing_state = Homing(self.printer)
+                homing_state.set_axes(axes)
+                kin.home(homing_state)
         except self.printer.command_error:
             if self.printer.is_shutdown():
                 raise self.printer.command_error(

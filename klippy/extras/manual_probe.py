@@ -8,6 +8,9 @@ import locales
 class ManualProbe:
     def __init__(self, config):
         self.printer = config.get_printer()
+        self.config = config
+        self.drop_z = config.getfloat('drop_z', 5)
+        self.manual_speed = config.getfloat('manual_speed', 3000)
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode_move = self.printer.load_object(config, "gcode_move")
@@ -55,13 +58,15 @@ class ManualProbe:
             'is_active': False,
             'z_position': None,
             'z_position_lower': None,
-            'z_position_upper': None
+            'z_position_upper': None,
+            'command': None
         }
     def get_status(self, eventtime):
         return self.status
     cmd_MANUAL_PROBE_help = _("Start manual probe helper script")
     def cmd_MANUAL_PROBE(self, gcmd):
-        ManualProbeHelper(self.printer, gcmd, self.manual_probe_finalize)
+        ManualProbeHelper(self.printer, self.config, gcmd, self.manual_probe_finalize)
+        
     def z_endstop_finalize(self, kin_pos):
         if kin_pos is None:
             return
@@ -72,9 +77,20 @@ class ManualProbe:
             "with the above and restart the printer.") % (z_pos,))
         configfile = self.printer.lookup_object('configfile')
         configfile.set('stepper_z', 'position_endstop', "%.3f" % (z_pos,))
+        
     cmd_Z_ENDSTOP_CALIBRATE_help = _("Calibrate a Z endstop")
     def cmd_Z_ENDSTOP_CALIBRATE(self, gcmd):
-        ManualProbeHelper(self.printer, gcmd, self.z_endstop_finalize)
+        was_homed =self.printer.lookup_object('homing').run_G28_if_unhomed()
+        toolhead = self.printer.lookup_object('toolhead')
+        curtime = self.printer.get_reactor().monotonic()
+        toolhead_status = toolhead.get_status(curtime)
+        if was_homed:
+            pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 3)]
+        else:
+            pos = toolhead.get_position()
+        pos[2] = self.drop_z
+        toolhead.manual_move(pos, self.manual_speed)
+        ManualProbeHelper(self.printer, self.config, gcmd, self.z_endstop_finalize)
     def cmd_Z_OFFSET_APPLY_ENDSTOP(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
@@ -123,18 +139,22 @@ def verify_no_manual_probe(printer):
             _("Already in a manual Z probe. Use ABORT to abort it."))
     gcode.register_command('ACCEPT', None)
 
-Z_BOB_MINIMUM = 0.500
+#Z_BOB_MINIMUM = 0.500
 BISECT_MAX = 0.200
 
 # Helper script to determine a Z height
 class ManualProbeHelper:
-    def __init__(self, printer, gcmd, finalize_callback):
+    def __init__(self, printer, config, gcmd, finalize_callback):
         self.printer = printer
         self.finalize_callback = finalize_callback
+        stepper_z = config.getsection('stepper_z')
+        self.max_z = stepper_z.getfloat('position_max')
+        self.min_z = stepper_z.getfloat('position_min')
         self.gcode = self.printer.lookup_object('gcode')
         self.toolhead = self.printer.lookup_object('toolhead')
         self.manual_probe = self.printer.lookup_object('manual_probe')
         self.speed = gcmd.get_float("SPEED", 5.)
+        self.command = gcmd.get_command()
         self.past_positions = []
         self.last_toolhead_pos = self.last_kinematics_pos = None
         # Register commands
@@ -164,12 +184,15 @@ class ManualProbeHelper:
         self.last_kinematics_pos = kin_pos
         return kin_pos
     def move_z(self, z_pos):
-        curpos = self.toolhead.get_position()
         try:
-            z_bob_pos = z_pos + Z_BOB_MINIMUM
-            if curpos[2] < z_bob_pos:
-                self.toolhead.manual_move([None, None, z_bob_pos], self.speed)
-            self.toolhead.manual_move([None, None, z_pos], self.speed)
+            if z_pos > self.max_z:
+                self.gcode.respond_warning(_("WARNING: Reached stepper maximum position"))
+                self.toolhead.manual_move([None, None, self.max_z], self.speed)
+            elif z_pos < self.min_z:
+                self.gcode.respond_warning(_("WARNING: Reached stepper minimum position")) 
+                self.toolhead.manual_move([None, None, self.min_z], self.speed)
+            else:
+                self.toolhead.manual_move([None, None, z_pos], self.speed)
         except self.printer.command_error as e:
             self.finalize(False)
             raise
@@ -178,8 +201,8 @@ class ManualProbeHelper:
         kin_pos = self.get_kinematics_pos()
         z_pos = kin_pos[2]
         if warn_no_change and z_pos == prev_pos:
-            self.gcode.respond_info(
-                "WARNING: No change in position (reached stepper resolution)")
+            self.gcode.respond_warning(
+                _("WARNING: No change in position (reached stepper resolution)"))
         # Find recent positions that were tested
         pp = self.past_positions
         next_pos = bisect.bisect_left(pp, z_pos)
@@ -199,20 +222,21 @@ class ManualProbeHelper:
             'z_position': z_pos,
             'z_position_lower': prev_pos_val,
             'z_position_upper': next_pos_val,
+            'command': self.command
         }
         # Find recent positions
         self.gcode.respond_info(_("Z position: %s --> %.3f <-- %s")
                                 % (prev_str, z_pos, next_str))
     cmd_ACCEPT_help = _("Accept the current Z position")
     def cmd_ACCEPT(self, gcmd):
-        pos = self.toolhead.get_position()
-        start_pos = self.start_position
-        if pos[:2] != start_pos[:2] or pos[2] >= start_pos[2]:
-            gcmd.respond_info(
-                _("Manual probe failed! Use TESTZ commands to position the\n"
-                "nozzle prior to running ACCEPT."))
-            self.finalize(False)
-            return
+        # pos = self.toolhead.get_position()
+        # start_pos = self.start_position
+        # if pos[:2] != start_pos[:2] or pos[2] >= start_pos[2]:
+        #     gcmd.respond_info(
+        #         _("Manual probe failed! Use TESTZ commands to position the\n"
+        #         "nozzle prior to running ACCEPT."))
+        #     self.finalize(False)
+        #     return
         self.finalize(True)
     cmd_ABORT_help = _("Abort manual Z probing tool")
     def cmd_ABORT(self, gcmd):

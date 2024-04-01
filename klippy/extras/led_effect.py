@@ -115,7 +115,7 @@ class ledFrameHandler:
     
     def _handle_homing_move_begin(self, hmove):
         endstops_being_homed = [name for es,name in hmove.endstops]
-        logging.info(endstops_being_homed)
+        #logging.info(endstops_being_homed)
 
         for endstop in endstops_being_homed:
             if endstop in self.homing_start_flag: 
@@ -458,7 +458,6 @@ class ledEffect:
                 raise self.printer.config_error(
                     _("Error parsing palette in '%s' for layer \"%s\": %s")
                         % (self.config.get_name(), parms[0], e,))
-            logging.info("super palette - " + str(palette))
             self.layers.insert(0, layer(handler       = self,
                                         frameHandler  = self.handler,
                                         effectRate    = float(parms[1]),
@@ -1254,7 +1253,7 @@ class ledEffect:
             self.coloridx=-1
             self.my_flag={}
             for endstop in self.handler.endstops:
-                logging.info(endstop)
+                #logging.info(endstop)
                 self.frameHandler.homing_end_flag[endstop] = 0
                 self.my_flag[endstop] = self.frameHandler.homing_end_flag[endstop]
 

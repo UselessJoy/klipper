@@ -6,7 +6,7 @@
 import sys, os, zlib, logging, math
 import serialhdl, msgproto, pins, chelper, clocksync
 import locales
-
+locales.set_locale()
 class error(Exception):
     pass
 
@@ -527,6 +527,8 @@ class MCU:
         self._printer = printer = config.get_printer()
         self._clocksync = clocksync
         self._reactor = printer.get_reactor()
+        self.reconnect_trying = 0
+        self.reconnect_timer = None
         self._name = config.get_name()
         if self._name.startswith('mcu '):
             self._name = self._name[4:]
@@ -536,13 +538,24 @@ class MCU:
         self._baud = 0
         self._canbus_iface = None
         canbus_uuid = config.get('canbus_uuid', None)
+        self._serialport = config.get('serial', None)
         if canbus_uuid is not None:
             self._serialport = canbus_uuid
             self._canbus_iface = config.get('canbus_interface', 'can0')
             cbid = self._printer.load_object(config, 'canbus_ids')
             cbid.add_uuid(config, canbus_uuid, self._canbus_iface)
-        else:
-            self._serialport = config.get('serial')
+        elif not self._serialport:
+            try:
+                serial_path = "/dev/serial/by-id/"
+                for serial_device in os.listdir(serial_path):
+                    if serial_device.startswith("usb-Klipper"):
+                        self._serialport = serial_path + serial_device
+                        mcu_section = {self._name: {"serial": self._serialport}}
+                        configfile = self._printer.lookup_object('configfile')
+                        configfile.update_config(setting_sections=mcu_section, save_immediatly=True, need_restart=True)
+            except Exception as e:
+                raise error(_(f"Cannot find serial port for {self._name}\n{e}")) # no locale
+        else:   
             if not (self._serialport.startswith("/dev/rpmsg_")
                     or self._serialport.startswith("/tmp/klipper_host_")):
                 self._baud = config.getint('baud', 250000, minval=2400)
@@ -589,6 +602,22 @@ class MCU:
         printer.register_event_handler("klippy:connect", self._connect)
         printer.register_event_handler("klippy:shutdown", self._shutdown)
         printer.register_event_handler("klippy:disconnect", self._disconnect)
+    
+    # def reconnect_to_mcu(self, eventtime):
+    #     try:
+    #         if self.reconnect_trying != 10:
+    #             serial_path = "/dev/serial/by-id/"
+    #             for serial_device in os.listdir(serial_path):
+    #                 if serial_device.startswith("usb-Klipper"):
+    #                     self._serialport = serial_path + serial_device
+    #         else:
+    #             self._reactor.unregister_timer(self.reconnect_timer)
+    #             self.reconnect_timer = None
+    #             raise _(f"Cannot find serial port for {self._name}\n")
+    #     except:
+    #         logging.error(_(f"Cannot find serial port for {self._name}\n"))# no locale
+    #     self.reconnect_trying = self.reconnect_trying + 1
+    #     return eventtime + 1
     # Serial callbacks
     def _handle_mcu_stats(self, params):
         count = params['count']

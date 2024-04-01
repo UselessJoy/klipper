@@ -144,6 +144,9 @@ class VirtualSD:
         safety_printing_object = self.printer.lookup_object('safety_printing')
         if safety_printing_object.safety_enabled:
             safety_printing_object.raise_error_if_open()
+        probe_object = self.printer.lookup_object('probe')
+        if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
+            probe_object.run_gcode_return_magnet()
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
@@ -165,11 +168,12 @@ class VirtualSD:
         self.run_gcode_on_cancel()
         
     def run_gcode_on_cancel(self):
-        self.gcode.run_script_from_command(
-                                "G91\n"
-                                "G0 Z 10\n"
-                                "G90 \n"
-                                "G28 X Y\n")
+        if self.printer.lookup_object('toolhead').get_kinematics().get_status(self.reactor.monotonic())['homed_axes'] == 'xyz':
+            self.gcode.run_script_from_command(
+                                    "G91\n"
+                                    "G0 Z 10\n"
+                                    "G90 \n"
+                                    "G28 X Y\n")
     # G-Code commands
     def cmd_error(self, gcmd):
         raise gcmd.error(_("SD write not supported"))
@@ -311,7 +315,7 @@ class VirtualSD:
                     else:
                         result_name = name
                 fname = os.path.join(self.sdcard_dirname, result_name)
-                subprocess.check_output(f"cp {media_fname} {fname}", universal_newlines=True, shell=True, stderr=subprocess.STDOUT)  
+                subprocess.check_output(f"cp \"{media_fname}\" \"{fname}\"", universal_newlines=True, shell=True, stderr=subprocess.STDOUT)  
             else:  
                 fname = os.path.join(self.sdcard_dirname, fname)
             self.interrupted_file = fname

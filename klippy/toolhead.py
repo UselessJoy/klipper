@@ -6,6 +6,7 @@
 import math, logging, importlib
 import mcu, chelper, kinematics.extruder
 import locales 
+locales.set_locale()
 # Common suffixes: _d is distance (in mm), _v is velocity (in
 #   mm/second), _v2 is velocity squared (mm^2/s^2), _t is time (in
 #   seconds), _r is ratio (scalar between 0.0 and 1.0)
@@ -208,6 +209,7 @@ class ToolHead:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
+        self.is_homing = False
         self.all_mcus = [
             m for n, m in self.printer.lookup_objects(module='mcu')]
         self.mcu = self.all_mcus[0]
@@ -276,11 +278,20 @@ class ToolHead:
         gcode.register_command('M204', self.cmd_M204)
         self.printer.register_event_handler("klippy:shutdown",
                                             self._handle_shutdown)
+        # Register homing events when klippy load all objects
+        self.printer.register_event_handler("klippy:ready",
+                                            self._handle_ready)
         # Load some default modules
         modules = ["gcode_move", "homing", "idle_timeout", "statistics",
                    "manual_probe", "tuning_tower"]
         for module_name in modules:
             self.printer.load_object(config, module_name)
+    
+    def _handle_ready(self):
+        self.printer.register_event_handler("homing:homing_move_begin",
+                                            self._handle_homing_move_begin)
+        self.printer.register_event_handler("homing:homing_move_end",
+                                            self._handle_homing_move_end)
     # Print time and flush tracking
     def _advance_flush_time(self, flush_time):
         flush_time = max(flush_time, self.last_flush_time)
@@ -562,8 +573,15 @@ class ToolHead:
                      'max_velocity': self.max_velocity,
                      'max_accel': self.max_accel,
                      'max_accel_to_decel': self.requested_accel_to_decel,
-                     'square_corner_velocity': self.square_corner_velocity})
+                     'square_corner_velocity': self.square_corner_velocity,
+                     'is_homing': self.is_homing})
         return res
+    
+    def _handle_homing_move_begin(self, hmove_object):
+        self.is_homing = True
+    def _handle_homing_move_end(self, hmove_object):
+        self.is_homing = False
+
     def _handle_shutdown(self):
         self.can_pause = False
         self.lookahead.reset()

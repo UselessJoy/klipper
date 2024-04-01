@@ -7,6 +7,7 @@ from __future__ import annotations
 import sys, os, glob, re, time, logging, configparser, io
 #from klippy import Printer
 import locales
+locales.set_locale()
 error = configparser.Error
 
 class sentinel:

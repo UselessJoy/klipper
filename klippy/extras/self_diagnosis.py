@@ -5,7 +5,7 @@ class AudioMessages:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
-        self.gcode.register_command("SELF_DIAGNOSIS", self.self_diagnosis)
+        #self.gcode.register_command("SELF_DIAGNOSIS", self.self_diagnosis)
         
     def self_diagnosis(self, gcmd):
         self.check_motors()

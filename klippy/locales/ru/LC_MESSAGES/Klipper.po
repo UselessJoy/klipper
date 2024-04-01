@@ -573,7 +573,7 @@ msgid "Exception in flush_handler"
 msgstr "Исключение в flush_handler"
 
 msgid "Set printer velocity limits"
-msgstr "Установите ограничения скорости принтера"
+msgstr "Установить ограничения скорости принтера"
 
 #, python-format
 msgid "Invalid M204 command \"%s\""
@@ -657,16 +657,16 @@ msgid "'%s' is not a valid extruder."
 msgstr "'%s' - неверное имя экструдера."
 
 msgid "Set pressure advance parameters"
-msgstr "Установите параметры pressure advance"
+msgstr "Установить параметры pressure advance"
 
 msgid "Active extruder does not have a stepper"
 msgstr "Активный экструдер не оснащен шаговиком"
 
 msgid "Unable to infer active extruder stepper"
-msgstr "Невозможно определить активный шаговик экструдера"
+msgstr "Невозможно определить активный шаговый двигатель экструдера"
 
 msgid "Set extruder rotation distance"
-msgstr "Установите дистанцию вращения экструдера"
+msgstr "Установить дистанцию вращения экструдера"
 
 msgid "Rotation distance can not be zero"
 msgstr "Дистанция вращения не может быть 0"
@@ -676,21 +676,21 @@ msgid "Extruder '%s' rotation distance set to %0.6f"
 msgstr "Экструдер '%s': дистанция вращения установлена на %0.6f"
 
 msgid "Set extruder stepper motion queue"
-msgstr "Установите очередь шагового перемещения экструдера"
+msgstr "Установить очередь шагового перемещения экструдера"
 
 #, python-format
 msgid "Extruder '%s' now syncing with '%s'"
 msgstr "Экструдер '%s' синхронизирован с '%s'"
 
 msgid "Set extruder step distance"
-msgstr "Установите длину шага экструдера"
+msgstr "Установить длину шага экструдера"
 
 #, python-format
 msgid "Extruder '%s' step distance set to %0.6f"
 msgstr "Экструдер '%s': длина шага установлена на %0.6f"
 
 msgid "Set extruder stepper"
-msgstr "Установите шаговик экструдера"
+msgstr "Установить шаговый двигатель экструдера"
 
 msgid ""
 "Extrude below minimum temp\n"
@@ -1217,14 +1217,8 @@ msgid "Unable to save to profile [%s], the bed has not been probed"
 msgstr "Не удалось сохранить в профиле [%s], слой не был апробирован"
 
 #, python-format
-msgid ""
-"Bed Mesh state has been saved to profile [%s]\n"
-"for the current session.  The SAVE_CONFIG command will\n"
-"update the printer config file and restart the printer."
-msgstr ""
-"Состояние сетки стола сохранено в профиле [%s]\n"
-"для текущей сессии.  Команда SAVE_CONFIG\n"
-"обновит файл конфигурации принтера и перезапустит принтер."
+msgid "Bed Mesh state has been saved to profile [%s]."
+msgstr "Состояние сетки стола сохранено в профиле [%s]"
 
 #, python-format
 msgid "bed_mesh: Unknown profile [%s]"
@@ -1452,7 +1446,7 @@ msgstr "Dotstar пины должны быть на одном mcu"
 # =======================ENDSTOP_PHASE MODULE====================#
 #, python-format
 msgid "Stepper %s phase unknown"
-msgstr "Шаговик %s фаза неизвестна"
+msgstr "шаговый двигатель %s фаза неизвестна"
 
 #, python-format
 msgid "Invalid trigger_phase '%s'"
@@ -1562,13 +1556,13 @@ msgstr "Сообщает о параметрах ретракта"
 # ========================FORCE_MOVE MODULE======================#
 #, python-format
 msgid "Unknown stepper %s"
-msgstr "Неизвестный шаговик %s"
+msgstr "Неизвестный шаговый двигатель %s"
 
 msgid "Oscillate a given stepper to help id it"
-msgstr "Поколебите заданный шаговик, чтобы помочь идентифицировать его"
+msgstr "Осциллировать заданный шаговый двигатель, чтобы помочь идентифицировать его"
 
 msgid "Manually move a stepper; invalidates kinematics"
-msgstr "Вручную перемещать шаговик; приводит к аннулированию кинематики"
+msgstr "Вручную переместить шаговый двигатель; приводит к аннулированию кинематики"
 
 msgid "Force a low-level kinematic position"
 msgstr "Принудительно установить позицию кинематики"
@@ -1864,6 +1858,9 @@ msgstr "Недопустимый параметр для display_template: %s"
 msgid "No LED pin definitions found in '%s'"
 msgstr "В '%s' не найдено определений выводов светодиодов"
 
+msgid "Assign a display_template to an LED"
+msgstr "Назначить display_template светодиоду"
+
 # ==========================END LED MODULE=======================#
 # ============================LM75 MODULE========================#
 #, python-format
@@ -1920,6 +1917,13 @@ msgstr ""
 
 msgid "WARNING: No change in position (reached stepper resolution)"
 msgstr "ПРЕДУПРЕЖДЕНИЕ: Положение не меняется (достигнуто шаговое разрешение)"
+
+
+msgid "WARNING: Reached stepper maximum position"
+msgstr "ПРЕДУПРЕЖДЕНИЕ: достигнута максимальная позиция для шагового двигателя"
+
+msgid "WARNING: Reached stepper minimum position"
+msgstr "ПРЕДУПРЕЖДЕНИЕ: достигнута минимальная позиция для шагового двигателя"
 
 #, python-format
 msgid "Z position: %s --> %.3f <-- %s"
@@ -2142,6 +2146,11 @@ msgstr "Передать информацию слайсера, такую ка�
 
 # ======================END PRINT_STATS MODULE===================#
 # ===========================PROBE MODULE========================#
+msgid "Command to get magnet probe"
+msgstr "Взять пробу"
+msgid "Command to return magnet probe"
+msgstr "Вернуть пробу"
+
 msgid ""
 "If the probe did not move far enough to trigger, then consider reducing the Z axis "
 "minimum position so the probe can travel further (the Z minimum position can be "
@@ -2234,6 +2243,11 @@ msgstr "Требуется как минимум %d точек проб для %
 msgid "horizontal_move_z can't be less thanprobe's z_offset"
 msgstr "horizontal_move_z не может быть меньше z_offset проб"
 
+msgid ""
+"horizontal_move_z can't be less than "
+"probe's z_offset"
+msgstr "horizontal_move_z в секции [bed_mesh] не может быть меньше чем"
+"z_offset в секции [probe]"
 # =========================END PROBE MODULE======================#
 # =====================QUAD_GANTRY_LEVEL MODULE==================#
 msgid "Possibly Z motor numbering is wrong"
@@ -2462,6 +2476,64 @@ msgstr ""
 "уровень стола превышает заданные пределы ({} мм)! Отрегулируйте винты и "
 "перезапустите печать."
 
+msgid "Stop the current screw calibrating"
+msgstr "Прерывает калибровку на текущем винте и переходит к следующему"
+
+msgid "Go to the given screw to calibrate"
+msgstr "Переместиться к заданному винту для калибровки"
+
+#, python-format
+msgid "Cannot set new calibrating screw: already wait move to next screw %s"
+msgstr "Не удалось установить новый калибровочный винт: уже ожидается движение к винту %s"
+
+msgid "Cannot set new calibrating screw: calibration is not performed"
+msgstr "Не удалось установить новый калибровочный винт: калибровка не произодится"
+
+msgid "Cannot set new calibrating screw: screw is not defined"
+msgstr "Не удалось установить новый калибровочный винт: винт не задан"
+
+#, python-format
+msgid "Cannot set new calibrating screw: screw %s is base screw"
+msgstr "Не удалось установить новый калибровочный винт: винт %s является базовой точкой"
+
+msgid "Cannot set new calibrating screw: screw %s not in defined screws"
+msgstr "Не удалось установить новый калибровочный винт: винта %s в списке винтов не существует"
+
+msgid "Set the given screw as base screw"
+msgstr "Установить заданный винт как базовую точку"
+
+msgid "Cannot set new base screw: calibration already performed"
+msgstr "Не удалось установить новую базовую точку: уже идет калибровка"
+
+#, python-format
+msgid "Cannot set new base screw: screw %s is not defined"
+msgstr "Не удалось установить новую базовую точку: винта %s в списке винтов не существует"
+
+msgid "Reset base screw"
+msgstr "Сбросить базовую точку"
+
+msgid "Cannot reset base screw: calibration already performed"
+msgstr "Невозможно сбросить базовую точку: калибровка уже идет"
+
+msgid "Calibrate screws until SCREWS_TILT_CALIBRATE_STOP send or increase minimal deviation of screws"
+msgstr "Калибровать винты до тех пор, пока не поступит команда SCREWS_TILT_CALIBRATE_STOP, либо пока не будут достигнуты приемлимые отклонения на всех винтах"
+
+msgid "Successfull calibrated screws!"
+msgstr "Винты успешно откалиброваны!"
+
+msgid "Screws calibrating stoped"
+msgstr "Калибровка винтов прервана"
+
+#, python-format
+msgid "Successfull calibrated screw %s"
+msgstr "Успешно откалибровал винт %s"
+
+msgid "Current screw calibrating stoped"
+msgstr "Калибровка текущего винта прервана"
+
+msgid "Stop SCREWS_TILT_CALIBRATE command"
+msgstr "Прерывает выполнение команды SCREWS_TILT_CALIBRATE"
+
 # ==================END SCREWS_TILT_ADJUST MODULE================#
 # ========================SDCARD_LOOP MODULE=====================#
 msgid "Begins a looped section in the SD file."
@@ -2605,11 +2677,11 @@ msgstr "Включение/выключение отдельного шагов�
 
 #, python-format
 msgid "SET_STEPPER_ENABLE: Invalid stepper \"%s\""
-msgstr "SET_STEPPER_ENABLE: Недопустимый шаговик \"%s\""
+msgstr "SET_STEPPER_ENABLE: Недопустимый шаговый двигатель \"%s\""
 
 #, python-format
 msgid "Unknown stepper '%s'"
-msgstr "Неизвестный шаговик '%s'"
+msgstr "Неизвестный шаговый двигатель '%s'"
 
 # =====================END STEPPER_ENABLE MODULE==================#
 # ===========================SX1509 MODULE========================#
@@ -2950,4 +3022,17 @@ msgstr "Регулировка угла наклона Z"
 # =======================MESSAGES MODULE====================#
 msgid "Heating with the wait parameter, gcodes will be processed after warming up"
 msgstr "Нагрев с параметром 'wait', g-коды будут обработаны после разогрева"
+
+
+msgid "Printing is paused. Printing will be continued after closing doors and hood"
+msgstr "Печать поставлена на паузу. Она продолжится, как только двери и крышка будут закрыты"
+
+msgid "Printer already go to pause"
+msgstr "Принтер уже идет в паузу"
+
+msgid "Printer already wait go to resume"
+msgstr "Принтер уже продолжает печать"
+
+msgid "New default color was successfully saved!"
+msgstr "Цвет подсветки по умолчанию успешно сохранен!"
 # =====================END MESSAGES MODULE==================#

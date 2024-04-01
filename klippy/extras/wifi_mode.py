@@ -1,7 +1,6 @@
 import os, logging
 import subprocess
 import NetworkManager
-import dbus
 from dbus.mainloop.glib import DBusGMainLoop
 import locales
 
@@ -32,14 +31,6 @@ class WifiMode:
         except:
             pass
         return False
-                     
-    # def create_AP_connection(self):
-    #     #for future, if don-t want to change AP_connection regardless of id connection
-    #     return 1
-    
-    # def change_AP_connection(self):
-    #     #if want to control connection from klipper (maybe moonraker will be better)
-    #     return 1
     
     def find_hotspot_connection(self) -> str:
         for con in NetworkManager.Settings.ListConnections():

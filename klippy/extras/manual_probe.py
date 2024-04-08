@@ -91,6 +91,7 @@ class ManualProbe:
         pos[2] = self.drop_z
         toolhead.manual_move(pos, self.manual_speed)
         ManualProbeHelper(self.printer, self.config, gcmd, self.z_endstop_finalize)
+        
     def cmd_Z_OFFSET_APPLY_ENDSTOP(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
@@ -98,12 +99,13 @@ class ManualProbe:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
             new_calibrate = self.z_position_endstop - offset
+            configfile.set('stepper_z', 'position_endstop',
+                "%.3f" % (new_calibrate,))
             self.gcode.respond_info(
                 _("stepper_z: position_endstop: %.3f\n"
                 "The SAVE_CONFIG command will update the printer config file\n"
                 "with the above and restart the printer.") % (new_calibrate))
-            configfile.set('stepper_z', 'position_endstop',
-                "%.3f" % (new_calibrate,))
+            
     def cmd_Z_OFFSET_APPLY_DELTA_ENDSTOPS(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')

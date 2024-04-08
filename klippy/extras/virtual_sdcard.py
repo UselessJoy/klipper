@@ -144,6 +144,7 @@ class VirtualSD:
         safety_printing_object = self.printer.lookup_object('safety_printing')
         if safety_printing_object.safety_enabled:
             safety_printing_object.raise_error_if_open()
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         probe_object = self.printer.lookup_object('probe')
         if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
             probe_object.run_gcode_return_magnet()

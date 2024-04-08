@@ -384,6 +384,7 @@ class PrinterProbe:
         manual_probe.ManualProbeHelper(self.printer, self.config, gcmd,
                                        self.probe_calibrate_finalize)
         
+    cmd_Z_OFFSET_APPLY_PROBE_help = _("Adjust the probe's z_offset")    
     def cmd_Z_OFFSET_APPLY_PROBE(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
@@ -391,13 +392,12 @@ class PrinterProbe:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
             new_calibrate = self.z_offset - offset
+            configfile.set(self.name, 'z_offset', "%.3f" % (new_calibrate,))
             self.gcode.respond_info(
                 _("%s: z_offset: %.3f\n"
                 "The SAVE_CONFIG command will update the printer config file\n"
                 "with the above and restart the printer.")
                 % (self.name, new_calibrate))
-            configfile.set(self.name, 'z_offset', "%.3f" % (new_calibrate,))
-    cmd_Z_OFFSET_APPLY_PROBE_help = _("Adjust the probe's z_offset")
 
 # Endstop wrapper that enables probe specific features
 class ProbeEndstopWrapper:

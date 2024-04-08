@@ -18,6 +18,7 @@ class ScrewsTiltAdjust:
         self.screws = {}
         self.results = {}
         self.max_diff = None
+        self.minutes_deviation = 3
         self.i_base = self.z_base = self.base_screw = self.calibrating_screw = self.calibrating_screws = self.next_screw = None
         self.stop_screw = self.stop_calibrate = self.is_calibrating = False
         self.max_diff_error = False
@@ -146,6 +147,7 @@ class ScrewsTiltAdjust:
     cmd_SCREWS_TILT_CALIBRATE_help = _("Calibrate screws until SCREWS_TILT_CALIBRATE_STOP send or increase minimal deviation of screws")
     def cmd_SCREWS_TILT_CALIBRATE(self, gcmd):
         messages = self.printer.lookup_object('messages')
+        self.minutes_deviation = gcmd.get_int("MAX_MINUTES_DEVIATION", 3)
         self.is_calibrating = True
         self.results = {}
         self.calibrating_screw = None
@@ -196,7 +198,7 @@ class ScrewsTiltAdjust:
             if screw != self.base_screw:
                 sign, full_turns, minutes, diff = self.calculate_adjust(positions[i][2])
                 self.results[self.calibrating_screws[screw]['prefix']].update({'z': z, 'sign': sign, 'adjust':"%02d:%02d" % (full_turns, minutes)})
-                if not (full_turns == 0 and minutes == 0):
+                if not (full_turns == 0 and minutes <= self.minutes_deviation):
                     return
         self.success = True
         self.stop_calibrate = True
@@ -215,6 +217,8 @@ class ScrewsTiltAdjust:
         self.z_base = positions[0][2]
         is_clockwise_thread = (self.thread & 1) == 0
         sign = "CW" if is_clockwise_thread else "CCW"
+        if self.calibrating_screw['prefix'] in self.results:
+                del self.results[self.calibrating_screw['prefix']]
         self.results[self.calibrating_screw['prefix']] = {'x': self.calibrating_screw['coord'][0], 'y': self.calibrating_screw['coord'][1], 'z': self.z_base, 
             'sign': sign, 'adjust': '00:00', 'is_base': True
         }
@@ -222,10 +226,12 @@ class ScrewsTiltAdjust:
     def on_screw_finalize(self, offsets, positions):
         if not self.stop_screw and not self.stop_calibrate:
             sign, full_turns, minutes, diff = self.calculate_adjust(positions[0][2])
+            if self.calibrating_screw['prefix'] in self.results:
+                del self.results[self.calibrating_screw['prefix']]
             self.results[self.calibrating_screw['prefix']] = {'x': self.calibrating_screw['coord'][0], 'y': self.calibrating_screw['coord'][1], 'z': positions[0][2], 
                 'sign': sign, 'adjust':"%02d:%02d" % (full_turns, minutes), 'is_base': False
             }
-            if not (full_turns == 0 and minutes == 0):
+            if not (full_turns == 0 and minutes <= self.minutes_deviation):
                 self.gcode.respond_info("adjust %s %02d:%02d" % (sign, full_turns, minutes))
                 return "retry"
             self.gcode.respond_info("Successfull calibrated screw %s" % self.calibrating_screw['name'])
@@ -291,6 +297,8 @@ class ScrewsTiltAdjust:
         for i, screw in enumerate(self.screws):
             z = positions[i][2]
             coord, name = self.screws[screw]['coord'], self.screws[screw]['name']
+            if self.screws[screw]['prefix'] in self.results:
+                del self.results[self.screws[screw]['prefix']]
             if screw == self.base_screw:
                 # Show the results
                 self.gcode.respond_info(

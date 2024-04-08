@@ -989,6 +989,9 @@ msgstr "Ошибка при удаленном вычислении: %s"
 
 # ===================END BACKGROUD_PROCESS MODULE================#
 # =========================BED_MESH MODULE=======================#
+msgid "Successfull save bed mesh"
+msgstr "Сетка стола успешно сохранена"
+
 #, python-format
 msgid "bed_mesh: malformed '%s' value: %s"
 msgstr "bed_mesh: искаженное '%s' значение: %s"
@@ -2409,7 +2412,47 @@ msgstr "Измеряет шум у всех включенных акселер�
 
 #, python-format
 msgid "Axes noise for %s-axis accelerometer: %.6f (x), %.6f (y), %.6f (z)"
-msgstr "Шум осей по оси %s для акселерометра: %.6f (x), %.6f (y), %.6f (z)"
+msgstr "Шум по оси %s для акселерометра: %.6f (x), %.6f (y), %.6f (z)"
+
+msgid "Frequency, Hz"
+msgstr "Частота, Гц"
+
+msgid "Power spectral density"
+msgstr "Спектральная плотность мощности"
+
+#, python-format
+msgid "Frequency response and shapers (%s)"
+msgstr "Частотная характеристика и шейперы (%s)"
+
+msgid "Shaper vibration reduction (ratio)"
+msgstr "Коэффициент понижения вибраций"
+
+#, python-format
+msgid "%s (%.1f Hz, vibr=%.1f%%, sm~=%.2f, accel<=%.f)"
+msgstr "%s (%.1f Гц, вибрации=%.1f%%, сглаживание~=%.2f, ускорение<=%.f)"
+
+msgid "After\nshaper"
+msgstr "После\nшейпер"
+
+#, python-format
+msgid "Recommended shaper: %s"
+msgstr "Рекомендуемый шейпер: %s"
+
+#, python-format
+msgid "Cannot find graph %s"
+msgstr "График %s не найден"
+
+#, python-format
+msgid "Graph %s already exist"
+msgstr "График %s уже существует"
+
+#, python-format
+msgid "Unsupported path for graph %s"
+msgstr "Неподдерживаемый путь для графика %s"
+
+#, python-format
+msgid "Graph %s doesn't saved"
+msgstr "График %s не сохранен"
 
 # ===================END RESONANCE_TESTER MODULE=================#
 # ==========================RESPOND MODULE=======================#

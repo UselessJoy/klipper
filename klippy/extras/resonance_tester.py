@@ -4,9 +4,21 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import logging, math, os, time
-import numpy as np, matplotlib
+import subprocess
+from matplotlib.figure import Figure
+import numpy as np
 from . import adxl345, shaper_calibrate
+import matplotlib
+matplotlib.rcParams.update({'figure.autolayout': True})
+matplotlib.use('Agg')
+import matplotlib.pyplot, matplotlib.dates, matplotlib.font_manager
+import matplotlib.ticker
+from textwrap import wrap
 import locales
+import re
+
+MAX_TITLE_LENGTH=65
+
 class TestAxis:
     def __init__(self, axis=None, vib_dir=None):
         if axis is None:
@@ -117,10 +129,26 @@ class VibrationPulseTest:
             gcmd.respond_info(_("Re-enabled [input_shaper]"))
 
 class ResonanceTester:
+    tmp_shaper_graph_r = re.compile(r"calibration_data_[xy]_\d+_\d+.png")
+    
     def __init__(self, config):
         self.printer = config.get_printer()
         self.move_speed = config.getfloat('move_speed', 50., above=0.)
         self.test = VibrationPulseTest(config)
+        self.messages = None
+        config_file_path_name = self.printer.get_start_args()['config_file']
+        config_dir = os.path.normpath(os.path.join(config_file_path_name, ".."))
+
+        # Параметры для графиков шейпера
+        self.active_shaper_graph = ""
+        self.shaper_graphs_dir = os.path.join(config_dir, ".shaper-images/")
+        if not os.path.isdir(self.shaper_graphs_dir):
+                os.mkdir(self.shaper_graphs_dir)
+        self.status = {
+            'saved': self.get_saved_shaper_graphs(),
+            'tmp': self.get_tmp_shaper_graphs(),
+            'active': self.active_shaper_graph
+        }
         if not config.get('accel_chip_x', None):
             self.accel_chip_names = [('xy', config.get('accel_chip').strip())]
         else:
@@ -132,6 +160,12 @@ class ResonanceTester:
         self.autocalibrate = config.getboolean('autocalibrate', False)
         self.max_smoothing = config.getfloat('max_smoothing', None, minval=0.05)
 
+        # Регистрация вебхуков
+        webhooks = self.printer.lookup_object('webhooks')
+        webhooks.register_endpoint("resonance_tester/shaper_graph",
+                                   self._handle_shaper_graph)
+        
+        # Регистрация команд 
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command("MEASURE_AXES_NOISE",
                                     self.cmd_MEASURE_AXES_NOISE,
@@ -143,7 +177,10 @@ class ResonanceTester:
                                     self.cmd_SHAPER_CALIBRATE,
                                     desc=self.cmd_SHAPER_CALIBRATE_help)
         self.printer.register_event_handler("klippy:connect", self.connect)
-
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        
+    def _handle_ready(self):
+        self.messages = self.printer.lookup_object("messages")
     def connect(self):
         self.accel_chips = [
                 (chip_axis, self.printer.lookup_object(chip_name))
@@ -210,6 +247,7 @@ class ResonanceTester:
                     else:
                         calibration_data[axis].add_data(new_data)
         return calibration_data
+    
     cmd_TEST_RESONANCES_help = (_("Runs the resonance test for a specifed axis"))
     def cmd_TEST_RESONANCES(self, gcmd):
         # Parse parameters
@@ -243,11 +281,13 @@ class ResonanceTester:
                                                   helper, axis, data)
             gcmd.respond_info(
                     _("Resonances data written to %s file") % (csv_name,))
+            
     cmd_SHAPER_CALIBRATE_help = (
         _("Simular to TEST_RESONANCES but suggest input shaper config"))
     def cmd_SHAPER_CALIBRATE(self, gcmd):
         # Parse parameters
         axis = gcmd.get("AXIS", None)
+        plot_freq = gcmd.get_float("PLOT_FREQ", 200.)
         if not axis:
             calibrate_axes = [TestAxis('x'), TestAxis('y')]
         elif axis.lower() not in 'xy':
@@ -287,13 +327,170 @@ class ResonanceTester:
                     calibration_data[axis], all_shapers)
             gcmd.respond_info(
                     _("Shaper calibration data written to %s file") % (csv_name,))
-            # if not os.path.isdir("~/.shaper-image"):
-            #     os.system("mkdir ~/.shaper-image")
-            # os.system(f"~/klipper/scripts/calibrate_shaper.py {csv_name} -o ~/.shaper-image/shaper_calibrate.png")
+            fig: Figure = self.plot_freq_response(csv_name, calibration_data[axis], all_shapers,
+                                best_shaper, plot_freq)
+            fig.set_size_inches(8, 6)
+            shaper_path = os.path.join("/tmp/", csv_name.rpartition('/')[2].replace('.csv', '.png'))
+            fig.savefig(shaper_path)
+            self.update_status()
         gcmd.respond_info(
             _("The SAVE_CONFIG command will update the printer config file\n"
             "with these parameters and restart the printer."))
-       
+    
+    def get_status(self, eventtime):
+        return self.status
+    def update_status(self):
+        self.status = {
+                    'saved': self.get_saved_shaper_graphs(),
+                    'tmp': self.get_tmp_shaper_graphs(),
+                    'active': self.active_shaper_graph
+        }
+        
+    def get_saved_shaper_graphs(self):
+        return [f"config/.shaper-images/{filename}" for filename in os.listdir(self.shaper_graphs_dir) if filename.endswith('.png')]
+    
+    def get_tmp_shaper_graphs(self):
+        return [f"tmp/{filename}" for filename in os.listdir("/tmp/") if self.tmp_shaper_graph_r.match(filename)]
+    
+    def _handle_shaper_graph(self, web_request):
+        action = web_request.get('action')
+        webhook_func = {
+            'save': self.save_shaper_graph,
+            'delete': self.remove_shaper_graph,
+            'load': self.load_shaper_graph,
+            'unload': self.unload_shaper_graph,
+            'rename': self.rename_shaper_graph
+        }
+        if action not in webhook_func:
+            return
+        args = web_request.get('args')
+        # args должны иметь следующий вид:
+        # config/.shaper-images/{filename} - (1)
+        # tmp/{filename} - (2)
+        # filename - (3)
+        # Такие пути необходимы, чтобы fluidd мог их без проблем прочитать и загрузить картинку (см. createFileUrlWithToken в исходниках fluidd)
+        # где filename - имя графика
+        webhook_func[action](args)
+        self.update_status()
+    
+    def load_shaper_graph(self, args):
+        # Для load аргумент должен быть либо (1), либо (2)
+        saved = self.get_saved_shaper_graphs()
+        tmp = self.get_tmp_shaper_graphs()
+        if args[0] not in saved and \
+            args[0] not in tmp:
+                self.messages.send_message("warning", _("Cannot find graph %s") % args[0].rpartition('/')[2])# no locale
+                return
+        self.active_shaper_graph = args[0]
+    
+    def unload_shaper_graph(self, args=None):
+        self.active_shaper_graph = ""
+        
+    def save_shaper_graph(self, args):
+        # На save первым аргументом должен идти (2), вторым - (3)
+        tmp = self.get_tmp_shaper_graphs()
+        if args[0] not in tmp:
+            self.messages.send_message("warning", _("Cannot find graph %s") % args[0].rpartition('/')[2])# no locale
+            return
+        saved = self.get_saved_shaper_graphs()
+        if f"config/.shaper-images/{args[1]}" in saved:
+            self.messages.send_message("warning", _("Graph %s already exist") % args[0].rpartition('/')[2])# no locale
+            return
+        saving_new_graph_path = f"{self.shaper_graphs_dir}/{args[1]}"
+        os.system(f"cp /{args[0]} {saving_new_graph_path}")
+        os.system(f"rm /{args[0]}")
+        self.update_status()
+    
+    def remove_shaper_graph(self, args):
+        # Для remove аргумент должен быть либо (1), либо (2)
+        removing_path = None
+        if args[0].startswith('tmp'):
+            tmp = self.get_tmp_shaper_graphs()
+            if args[0] not in tmp:
+                self.messages.send_message("warning", _("Cannot find graph %s") % args[0].rpartition('/')[2])# no locale
+                return
+            removing_path = f"/{args[0]}"
+        elif args[0].startswith('config'):
+            saved = self.get_saved_shaper_graphs()
+            if args[0] not in saved:
+                self.messages.send_message("warning", _("Cannot find graph %s") % args[0].rpartition('/')[2])# no locale
+                return
+            removing_path = f"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}" # Поскольку в dir не хватает только имени
+        if removing_path:
+            if args[0] == self.active_shaper_graph:
+                self.active_shaper_graph = ""
+            os.system(f"rm {removing_path}")
+            self.update_status()
+        else:
+            self.messages.send_message("warning", _("Unsupported path for graph %s") % args[0].rpartition('/')[2])# no locale
+
+    def rename_shaper_graph(self, args):
+        # Для rename первый аргумент должен быть (2), второй - (3)
+        # При переименовании графиков в /tmp, они будут теряться из-за регулярки
+        saved = self.get_saved_shaper_graphs()
+        if args[0] not in saved:
+            self.messages.send_message("warning", _("Graph %s doesn't saved") % args[0].rpartition('/')[2])# no locale
+            return
+        if f"config/.shaper-images/{args[1]}" in saved:
+            self.messages.send_message("warning", _("Graph %s already exist") % args[0].rpartition('/')[2])# no locale
+            return
+        renamed_path = f"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}" # Поскольку в dir не хватает только имени
+        os.system(f"mv {renamed_path} {self.shaper_graphs_dir}/{args[1]}")
+        self.update_status()
+        
+    def plot_freq_response(self, name: str, calibration_data, shapers,
+                       selected_shaper, max_freq):
+        freqs = calibration_data.freq_bins
+        psd = calibration_data.psd_sum[freqs <= max_freq]
+        px = calibration_data.psd_x[freqs <= max_freq]
+        py = calibration_data.psd_y[freqs <= max_freq]
+        pz = calibration_data.psd_z[freqs <= max_freq]
+        freqs = freqs[freqs <= max_freq]
+
+        fontP = matplotlib.font_manager.FontProperties()
+        fontP.set_size('x-small')
+
+        fig, ax = matplotlib.pyplot.subplots()
+        ax.set_xlabel(_("Frequency, Hz")) # no locale
+        ax.set_xlim([0, max_freq])
+        ax.set_ylabel(_("Power spectral density")) # no locale
+
+        ax.plot(freqs, psd, label='X+Y+Z', color='purple')
+        ax.plot(freqs, px, label='X', color='red')
+        ax.plot(freqs, py, label='Y', color='green')
+        ax.plot(freqs, pz, label='Z', color='blue')
+
+        title = _("Frequency response and shapers (%s)") % (name.split('/').pop()) # no locale
+        ax.set_title("\n".join(wrap(title, MAX_TITLE_LENGTH)))
+        ax.xaxis.set_minor_locator(matplotlib.ticker.MultipleLocator(5))
+        ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+        ax.ticklabel_format(axis='y', style='scientific', scilimits=(0,0))
+        ax.grid(which='major', color='grey')
+        ax.grid(which='minor', color='lightgrey')
+
+        ax2 = ax.twinx()
+        ax2.set_ylabel(_("Shaper vibration reduction (ratio)")) # no locale
+        for shaper in shapers:
+            label = _("%s (%.1f Hz, vibr=%.1f%%, sm~=%.2f, accel<=%.f)") % ( # no locale
+                    shaper.name.upper(), shaper.freq,
+                    shaper.vibrs * 100., shaper.smoothing,
+                    round(shaper.max_accel / 100.) * 100.)
+            linestyle = 'dotted'
+            if shaper.name == selected_shaper:
+                linestyle = 'dashdot'
+            ax2.plot(freqs, shaper.vals, label=label, linestyle=linestyle)
+        ax.plot(freqs, psd * selected_shaper.vals,
+                label=_("After\nshaper"), color='cyan') # no locale
+        # A hack to add a human-readable shaper recommendation to legend
+        ax2.plot([], [], ' ',
+                label=_("Recommended shaper: %s") % (selected_shaper.name.upper())) # no locale
+
+        ax.legend(loc='upper left', prop=fontP)
+        ax2.legend(loc='upper right', prop=fontP)
+
+        fig.tight_layout()
+        return fig
+
     cmd_MEASURE_AXES_NOISE_help = (
         _("Measures noise of all enabled accelerometer chips"))
     def cmd_MEASURE_AXES_NOISE(self, gcmd):

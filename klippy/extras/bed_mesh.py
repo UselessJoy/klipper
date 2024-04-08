@@ -509,80 +509,42 @@ class BedMeshCalibrate:
             config.get('algorithm', 'lagrange').strip().lower()
         orig_cfg['tension'] = mesh_cfg['tension'] = config.getfloat(
             'bicubic_tension', .2, minval=0., maxval=2.)
-        min_x = 150
-        max_x = 300
-        min_y = 40
-        max_y = 215
-        step_x = 10
-        step_y = 20
-        
-        for i in range(min_x, max_x, step_x):
-            for j in range(min_y, max_y, step_y):
-                start = (i + 1, j + 1)
-                end = (i+step_x, j+step_y)
-                c1 = [min([s, e]) for s, e in zip(start, end)]
-                c3 = [max([s, e]) for s, e in zip(start, end)]
-                c2 = [c1[0], c3[1]]
-                c4 = [c3[0], c1[1]]
-                # Check for overlapping regions
-                for j, (prev_c1, prev_c3) in enumerate(self.faulty_regions):
-                    prev_c2 = [prev_c1[0], prev_c3[1]]
-                    prev_c4 = [prev_c3[0], prev_c1[1]]
-                    # Validate that no existing corner is within the new region
-                    for coord in [prev_c1, prev_c2, prev_c3, prev_c4]:
-                        if within(coord, c1, c3):
-                            raise config.error(
-                                _("bed_mesh: Existing faulty_region_%d %s overlaps "
-                                "added faulty_region_%d %s")
-                                % (j+1, repr([prev_c1, prev_c3]),
+        for i in list(range(1, 100, 1)):
+            start = config.getfloatlist("faulty_region_%d_min" % (i,), None,
+                                        count=2)
+            if start is None:
+                break
+            end = config.getfloatlist("faulty_region_%d_max" % (i,), count=2)
+            # Validate the corners.  If necessary reorganize them.
+            # c1 = min point, c3 = max point
+            #  c4 ---- c3
+            #  |        |
+            #  c1 ---- c2
+            c1 = [min([s, e]) for s, e in zip(start, end)]
+            c3 = [max([s, e]) for s, e in zip(start, end)]
+            c2 = [c1[0], c3[1]]
+            c4 = [c3[0], c1[1]]
+            # Check for overlapping regions
+            for j, (prev_c1, prev_c3) in enumerate(self.faulty_regions):
+                prev_c2 = [prev_c1[0], prev_c3[1]]
+                prev_c4 = [prev_c3[0], prev_c1[1]]
+                # Validate that no existing corner is within the new region
+                for coord in [prev_c1, prev_c2, prev_c3, prev_c4]:
+                    if within(coord, c1, c3):
+                        raise config.error(
+                            "bed_mesh: Existing faulty_region_%d %s overlaps "
+                            "added faulty_region_%d %s"
+                            % (j+1, repr([prev_c1, prev_c3]),
                                 i, repr([c1, c3])))
-                    # Validate that no new corner is within an existing region
-                    for coord in [c1, c2, c3, c4]:
-                        if within(coord, prev_c1, prev_c3):
-                            raise config.error(
-                                _("bed_mesh: Added faulty_region_%d %s overlaps "
-                                "existing faulty_region_%d %s")
-                                % (i, repr([c1, c3]),
+                # Validate that no new corner is within an existing region
+                for coord in [c1, c2, c3, c4]:
+                    if within(coord, prev_c1, prev_c3):
+                        raise config.error(
+                            "bed_mesh: Added faulty_region_%d %s overlaps "
+                            "existing faulty_region_%d %s"
+                            % (i, repr([c1, c3]),
                                 j+1, repr([prev_c1, prev_c3])))
-                self.faulty_regions.append((c1, c3))
-        
-        # for i in list(range(1, 100, 1)):
-        #     start = (min_x + step_x*(i%((max_x - min_x)/step_x)), min_y + step_y*(i))
-        #     start = config.getfloatlist("faulty_region_%d_min" % (i,), None,
-        #                                 count=2)
-        #     if start is None:
-        #         break
-        #     end = config.getfloatlist("faulty_region_%d_max" % (i,), count=2)
-        #     # Validate the corners.  If necessary reorganize them.
-        #     # c1 = min point, c3 = max point
-        #     #  c4 ---- c3
-        #     #  |        |
-        #     #  c1 ---- c2
-        #     c1 = [min([s, e]) for s, e in zip(start, end)]
-        #     c3 = [max([s, e]) for s, e in zip(start, end)]
-        #     c2 = [c1[0], c3[1]]
-        #     c4 = [c3[0], c1[1]]
-        #     # Check for overlapping regions
-        #     for j, (prev_c1, prev_c3) in enumerate(self.faulty_regions):
-        #         prev_c2 = [prev_c1[0], prev_c3[1]]
-        #         prev_c4 = [prev_c3[0], prev_c1[1]]
-        #         # Validate that no existing corner is within the new region
-        #         for coord in [prev_c1, prev_c2, prev_c3, prev_c4]:
-        #             if within(coord, c1, c3):
-        #                 raise config.error(
-        #                     _("bed_mesh: Existing faulty_region_%d %s overlaps "
-        #                     "added faulty_region_%d %s")
-        #                     % (j+1, repr([prev_c1, prev_c3]),
-        #                        i, repr([c1, c3])))
-        #         # Validate that no new corner is within an existing region
-        #         for coord in [c1, c2, c3, c4]:
-        #             if within(coord, prev_c1, prev_c3):
-        #                 raise config.error(
-        #                     _("bed_mesh: Added faulty_region_%d %s overlaps "
-        #                     "existing faulty_region_%d %s")
-        #                     % (i, repr([c1, c3]),
-        #                        j+1, repr([prev_c1, prev_c3])))
-        #     self.faulty_regions.append((c1, c3))
+            self.faulty_regions.append((c1, c3))
         self._verify_algorithm(config.error)
         
     def _verify_algorithm(self, error):
@@ -1467,7 +1429,7 @@ class ProfileManager:
             self.unsaved_profiles = unsaved
         self.bedmesh.update_status()
         msg_obj = self.printer.lookup_object("messages")
-        msg_obj.send_message("success", "successfull_save_bed_mesh")
+        msg_obj.send_message("success", _("Successfull save bed mesh"))
         
     def load_profile(self, prof_name: str):
         profile = self.profiles.get(prof_name, None)

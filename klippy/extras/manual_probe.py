@@ -98,7 +98,7 @@ class ManualProbe:
         if offset == 0:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
-            new_calibrate = self.z_position_endstop - offset
+            new_calibrate = self.z_position_endstop + offset
             configfile.set('stepper_z', 'position_endstop',
                 "%.3f" % (new_calibrate,))
             self.gcode.respond_info(

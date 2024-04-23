@@ -9,6 +9,7 @@ from ctypes import Array
 import logging, math, json, collections #, re
 
 from configfile import ConfigWrapper, PrinterConfig
+from datetime import datetime
 from gcode import GCodeCommand
 from . import probe
 import locales
@@ -132,9 +133,11 @@ class BedMesh:
         gcode_move.set_move_transform(self)
         # initialize status dict
         self.update_status()
+        
     def handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
         self.bmc.print_generated_points(logging.info)
+        
     def set_mesh(self, mesh: ZMesh | None):
         if mesh is not None and self.fade_end != self.FADE_DISABLE:
             self.log_fade_complete = True
@@ -170,6 +173,7 @@ class BedMesh:
         gcode_move = self.printer.lookup_object('gcode_move')
         gcode_move.reset_last_position()
         self.update_status()
+        
     def get_z_factor(self, z_pos):
         if z_pos >= self.fade_end:
             return 0.
@@ -177,6 +181,7 @@ class BedMesh:
             return (self.fade_end - z_pos) / self.fade_dist
         else:
             return 1.
+        
     def get_position(self):
         # Return last, non-transformed position
         if self.z_mesh is None:
@@ -202,6 +207,7 @@ class BedMesh:
             final_z_adj = factor * z_adj + self.fade_target
             self.last_position[:] = [x, y, z - final_z_adj, e]
         return list(self.last_position)
+    
     def move(self, newpos, speed):
         factor = self.get_z_factor(newpos[2])
         if self.z_mesh is None or not factor:
@@ -223,8 +229,10 @@ class BedMesh:
                     raise self.gcode.error(
                         _("Mesh Leveling: Error splitting move "))
         self.last_position[:] = newpos
+        
     def get_status(self, eventtime=None):
         return self.status
+
     def update_status(self):
         self.status = {
             "profile_name": "",
@@ -246,8 +254,54 @@ class BedMesh:
             self.status['mesh_max'] = mesh_max
             self.status['probed_matrix'] = probed_matrix
             self.status['mesh_matrix'] = mesh_matrix
+
     def get_mesh(self) -> ZMesh:
         return self.z_mesh
+
+    def load_best_mesh(self, target) -> None:
+        if target == 0:
+            return
+        logging.info("Loading best bed mesh")
+        best_profile = best_diff = best_temp = best_time = None
+        best_profiles = []
+        profiles = self.pmgr.get_profiles()
+        for name in profiles:
+            if not 'at_bed_mesh_temperature' in profiles[name]:
+                continue
+            if not best_diff:
+                best_temp = profiles[name]['at_bed_mesh_temperature']
+                best_diff = abs(best_temp - target)
+                best_profile = name
+                best_profiles.append(name)
+                continue
+            cur_diff = abs(profiles[name]['at_bed_mesh_temperature'] - target)
+            if cur_diff < best_diff:
+                best_temp = profiles[name]['at_bed_mesh_temperature']
+                best_diff = cur_diff
+                best_profile = name
+                best_profiles.append(name)
+        logging.info(f"Best profile is {best_profile}")     
+        if len(best_profiles) == 0:
+            return
+        logging.info(f"List of best profiles {best_profiles}")    
+        if len(best_profiles) > 1:
+            for pr in best_profiles:
+                if not 'calibrating_datetime' in profiles[pr]:
+                    continue
+                if not best_time:
+                    best_time = profiles[pr]['calibrating_datetime']
+                    best_profile = pr
+                    continue
+                if best_time < profiles[pr]['calibrating_datetime']:
+                    best_time = profiles[pr]['calibrating_datetime']
+                    best_profile = pr
+        logging.info(f"End of best profile {best_profile}")  
+        mesh_params = profiles[best_profile]['mesh_params']
+        z_mesh = ZMesh(mesh_params)
+        if best_profile:
+            self.set_mesh(z_mesh)
+        self.printer.lookup_object("gcode").respond_info(_("Automatic loaded bed mesh %s") % best_profile)#no locale
+         
     cmd_BED_MESH_OUTPUT_help = _("Retrieve interpolated grid of probed z-points")
     def cmd_BED_MESH_OUTPUT(self, gcmd):
         if gcmd.get_int('PGP', 0):
@@ -258,6 +312,7 @@ class BedMesh:
         else:
             self.z_mesh.print_probed_matrix(gcmd.respond_info)
             self.z_mesh.print_mesh(gcmd.respond_raw, self.horizontal_move_z)
+
     cmd_BED_MESH_MAP_help = _("Serialize mesh and output to terminal")
     def cmd_BED_MESH_MAP(self, gcmd):
         if self.z_mesh is not None:
@@ -269,9 +324,11 @@ class BedMesh:
             gcmd.respond_raw("mesh_map_output " + json.dumps(outdict))
         else:
             gcmd.respond_info(_("Bed has not been probed"))
+
     cmd_BED_MESH_CLEAR_help = _("Clear the Mesh so no z-adjustment is made")
     def cmd_BED_MESH_CLEAR(self, gcmd):
         self.set_mesh(None)
+
     cmd_BED_MESH_OFFSET_help = _("Add X/Y offsets to the mesh lookup")
     def cmd_BED_MESH_OFFSET(self, gcmd):
         if self.z_mesh is not None:
@@ -282,7 +339,7 @@ class BedMesh:
             gcode_move = self.printer.lookup_object('gcode_move')
             gcode_move.reset_last_position()
         else:
-            gcmd.respond_info(_("No mesh loaded to offset"))
+            gcmd.respond_info(_("No mesh loaded"))
             
 class ZrefMode:
     DISABLED = 0  # Zero reference disabled
@@ -1332,6 +1389,15 @@ class ProfileManager:
                 self.incompatible_profiles.append(name)
                 continue
             self.profiles[name] = {}
+            
+            at_bed_mesh_temperature = profile.getfloat('at_bed_mesh_temperature', None)
+            if at_bed_mesh_temperature:
+                self.profiles[name]['at_bed_mesh_temperature'] = at_bed_mesh_temperature
+                
+            calibrating_datetime = profile.getfloat('calibrating_datetime', None)
+            if calibrating_datetime:
+                self.profiles[name]['calibrating_datetime'] = calibrating_datetime
+                
             zvals = profile.getlists('points', seps=(',', '\n'), parser=float)
             self.profiles[name]['points'] = zvals
             self.profiles[name]['mesh_params'] = params = \
@@ -1382,6 +1448,8 @@ class ProfileManager:
         mesh_params = z_mesh.get_mesh_params()
         profiles = dict(self.profiles)
         profiles[prof_name] = profile = {}
+        profile['at_bed_mesh_temperature'] = f"{self.printer.lookup_object('heater_bed').get_heater().get_temp(self.printer.get_reactor().monotonic())[0]:.2f}"
+        profile['calibrating_datetime'] = f"{datetime.now().timestamp():.1f}"
         profile['points'] = probed_matrix
         profile['mesh_params'] = collections.OrderedDict(mesh_params)
         unsaved = list(self.unsaved_profiles)
@@ -1415,7 +1483,9 @@ class ProfileManager:
             for p in line:
                 z_values += "%.6f, " % p
             z_values = z_values[:-2]
-        mesh_options = {'version': PROFILE_VERSION, 'points': z_values}
+        mesh_options = {'version': PROFILE_VERSION, 'points': z_values, 
+                        'at_bed_mesh_temperature': profile['at_bed_mesh_temperature'],
+                        'calibrating_datetime': profile['calibrating_datetime']}
         for key, value in mesh_params.items():
                 mesh_options[key] = value
         saving_mesh = {mesh_section: mesh_options}
@@ -1461,13 +1531,13 @@ class ProfileManager:
                 self.unsaved_profiles = unsaved
             self.bedmesh.update_status()
             self.gcode.respond_info(
-                "Profile [%s] removed \n" % (prof_name))
+                _("Profile [%s] removed \n") % (prof_name))
         if prof_name == self.current_profile:
             self.bedmesh.set_mesh(None)
             self.current_profile = ""
-        else:
-            self.gcode.respond_info(
-                "No profile named [%s] to remove" % (prof_name))
+        # else:
+        #     self.gcode.respond_info(
+        #         _("No profile named [%s] to remove") % (prof_name))
             
     cmd_BED_MESH_PROFILE_help = _("Bed Mesh Persistent Storage management")
     def cmd_BED_MESH_PROFILE(self, gcmd: GCodeCommand):

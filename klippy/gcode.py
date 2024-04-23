@@ -97,6 +97,9 @@ class GCodeCommand:
                         maxval=maxval, above=above, below=below)
     def get_boolean(self, name, default=sentinel, minval=None, maxval=None):
         return self.get(name, default, parser=bool, minval=minval, maxval=maxval)
+    def get_list_str(self, name, default=sentinel, sep=','):
+        return self.get(name, default).split(sep)
+    
 
 # Parse and dispatch G-Code commands
 class GCodeDispatch:

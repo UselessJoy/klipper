@@ -6,22 +6,57 @@
 import math, logging
 from . import heaters
 import locales
+
+TUNE_PID_DELTA = 5.0
+
 class PIDCalibrate:
     def __init__(self, config):
         self.printer = config.get_printer()
-        gcode = self.printer.lookup_object('gcode')
-        gcode.register_command('PID_CALIBRATE', self.cmd_PID_CALIBRATE,
-                               desc=self.cmd_PID_CALIBRATE_help)
+        self.gcode = self.printer.lookup_object('gcode')
+        self.gcode.register_command('PID_CALIBRATE', self.cmd_PID_CALIBRATE,
+                               desc=self.cmd_PID_CALIBRATE_help)        
+        self.gcode.register_command('CALIBRATE_HEATER_PID', self.cmd_CALIBRATE_HEATER_PID,
+                               desc=self.cmd_CALIBRATE_HEATER_PID_help)
+        
     cmd_PID_CALIBRATE_help = _("Run PID calibration test")
     def cmd_PID_CALIBRATE(self, gcmd):
         heater_name = gcmd.get('HEATER')
         target = gcmd.get_float('TARGET')
         write_file = gcmd.get_int('WRITE_FILE', 0)
+        Kp, Ki, Kd = self.pid_calibrate(heater_name, target, write_file)
+        logging.info(f"Autotune: final: Kp={Kp} Ki={Ki} Kd={Kd}")
+        gcmd.respond_info(
+            _("PID parameters: pid_Kp=%.3f pid_Ki=%.3f pid_Kd=%.3f\n"
+            "The SAVE_CONFIG command will update the printer config file\n"
+            "with these parameters and restart the printer.") % (Kp, Ki, Kd))
+        
+        # Store results for SAVE_CONFIG
+        pid_target = {f"pid_{target}": f"{Kp:.3f}, {Ki:.3f}, {Kd:.3f}"}
+        saving_section = {heater_name: pid_target}
+        self.printer.lookup_object('configfile').update_config(saving_section, save_immediatly = False)
+    
+    cmd_CALIBRATE_HEATER_PID_help = _("Calibration pid by an array of temperatures") # no locale
+    def cmd_CALIBRATE_HEATER_PID(self, gcmd):
+        heater_name = gcmd.get('HEATER')
+        gcmd.respond_info(f"pid for {heater_name}")
+        temperatures = gcmd.get_list_str('TEMPERATURES', [])
+        gcmd.respond_info(str(temperatures))
+        pid_config = {}
+        for temp in temperatures:
+            gcmd.respond_info(f"Heating to temperature {temp}")
+            Kp, Ki, Kd = self.pid_calibrate(heater_name, float(temp))
+            pid_config[f"pid_{temp}"] = f"{Kp:.3f}, {Ki:.3f}, {Kd:.3f}"
+        gcmd.respond_info(f"I'm heated!")
+        saving_section = {heater_name: pid_config}
+        gcmd.respond_info(str(saving_section))
+        self.printer.lookup_object('configfile').update_config(saving_section, save_immediatly = False)
+       
+    def pid_calibrate(self, heater, target, write_file = 0):
         pheaters = self.printer.lookup_object('heaters')
         try:
-            heater = pheaters.lookup_heater(heater_name)
+            heater = pheaters.lookup_heater(heater)
         except self.printer.config_error as e:
-            raise gcmd.error(str(e))
+            raise self.gcode.error(str(e))
         self.printer.lookup_object('toolhead').get_last_move_time()
         calibrate = ControlAutoTune(heater, target)
         old_control = heater.set_control(calibrate)
@@ -34,22 +69,9 @@ class PIDCalibrate:
         if write_file:
             calibrate.write_file('/tmp/heattest.txt')
         if calibrate.check_busy(0., 0., 0.):
-            raise gcmd.error(_("pid_calibrate interrupted"))
+            raise self.gcode.error(_("pid_calibrate interrupted"))
         # Log and report results
-        Kp, Ki, Kd = calibrate.calc_final_pid()
-        logging.info("Autotune: final: Kp=%f Ki=%f Kd=%f", Kp, Ki, Kd)
-        gcmd.respond_info(
-            _("PID parameters: pid_Kp=%.3f pid_Ki=%.3f pid_Kd=%.3f\n"
-            "The SAVE_CONFIG command will update the printer config file\n"
-            "with these parameters and restart the printer.") % (Kp, Ki, Kd))
-        # Store results for SAVE_CONFIG
-        configfile = self.printer.lookup_object('configfile')
-        configfile.set(heater_name, 'control', 'pid')
-        configfile.set(heater_name, 'pid_Kp', "%.3f" % (Kp,))
-        configfile.set(heater_name, 'pid_Ki', "%.3f" % (Ki,))
-        configfile.set(heater_name, 'pid_Kd', "%.3f" % (Kd,))
-
-TUNE_PID_DELTA = 5.0
+        return calibrate.calc_final_pid()
 
 class ControlAutoTune:
     def __init__(self, heater, target):
@@ -139,6 +161,9 @@ class ControlAutoTune:
         f = open(filename, "w")
         f.write('\n'.join(pwm + out))
         f.close()
+    
+    def get_control(self):
+        return {'auto_tune': {'calibrate_temp': self.calibrate_temp}}
 
 def load_config(config):
     return PIDCalibrate(config)

@@ -730,7 +730,7 @@ class MCU:
             raise error(_("MCU '%s' error during config: %s") % ( # no locale
                 self._name, self._shutdown_msg))
         if config_params['is_shutdown']:
-            raise error(_("Can not update MCU '%s' config as it is shutdown") % (
+            raise error(_("Can not update MCU '%s' config as it is shutdown\n") % (
                 self._name,))
         return config_params
     def _log_info(self):

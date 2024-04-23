@@ -7,8 +7,6 @@ import logging
 import pins
 from . import manual_probe
 import locales
-import time
-import re
 HINT_TIMEOUT =_("""
 If the probe did not move far enough to trigger, then
 consider reducing the Z axis minimum position so the probe
@@ -391,7 +389,7 @@ class PrinterProbe:
         if offset == 0:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
-            new_calibrate = self.z_offset - offset
+            new_calibrate = self.z_offset + offset
             configfile.set(self.name, 'z_offset', "%.3f" % (new_calibrate,))
             self.gcode.respond_info(
                 _("%s: z_offset: %.3f\n"
@@ -476,6 +474,10 @@ class ProbePointsHelper:
         self.finalize_callback = finalize_callback
         self.probe_points = default_points
         self.name = config.get_name()
+        stepper_x = config.getsection('stepper_x')
+        stepper_y = config.getsection('stepper_y')
+        self.min_x = stepper_x.getfloat('position_min')
+        self.min_y = stepper_y.getfloat('position_min')
         self.gcode = self.printer.lookup_object('gcode')
         # Read config settings
         if default_points is None or config.get('points', None) is not None:
@@ -523,8 +525,10 @@ class ProbePointsHelper:
         # Move to next XY probe point
         nextpos = list(self.probe_points[len(self.results)])
         if self.use_offsets:
-            nextpos[0] -= self.probe_offsets[0]
-            nextpos[1] -= self.probe_offsets[1]
+            if not (nextpos[0] - self.probe_offsets[0] < self.min_x):
+                nextpos[0] -= self.probe_offsets[0]
+            if not (nextpos[1] - self.probe_offsets[1] < self.min_y):
+                nextpos[1] -= self.probe_offsets[1]
         toolhead.manual_move(nextpos, self.speed)
         return False
         

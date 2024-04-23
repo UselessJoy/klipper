@@ -939,7 +939,7 @@ msgstr ""
 msgid "Add X/Y offsets to the mesh lookup"
 msgstr ""
 
-msgid "No mesh loaded to offset"
+msgid "No mesh loaded"
 msgstr ""
 
 msgid "bed_mesh: min/max points too close together"

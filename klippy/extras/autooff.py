@@ -47,18 +47,9 @@ class Autooff:
     
     def _handle_set_auto_off(self, web_request):
         self.autooff_enable = web_request.get_boolean('autoOff_enable')
-        cfgname = self.printer.get_start_args()['config_file']
-        with open(cfgname, 'r+') as file:
-            lines = file.readlines()
-            i = 0
-            for line in enumerate(lines):
-                if line[1].lstrip().startswith('autooff'):
-                    lines[i] = f' autooff = {self.autooff_enable}\n'
-                i+=1
-            end_lines = lines
-        with open(cfgname, 'w') as file:
-            file.writelines(end_lines)
-        return self.autooff_enable
+        configfile = self.printer.lookup_object('configfile')
+        safety_section = {"autooff": {"autooff": self.autooff_enable}}
+        configfile.update_config(setting_sections=safety_section, save_immediatly=True)
     
     def _handle_off_auto_off(self, web_request):
         self.need_autooff = False

@@ -77,6 +77,10 @@ msgstr ""
 "сброса микропрограммы, перезагрузки конфигурации и перезапуска главного программного "
 "обеспечения. Принтер выключен"
 
+
+msgid "Unhandled exception during run\n"
+msgstr "Необработанное исключение во время выполнения\n"
+
 #, python-format
 msgid "Printer object '%s' already created"
 msgstr "Объект принтера '%s' уже создан"
@@ -343,8 +347,8 @@ msgid "Pin '%s' is not a valid pin name on mcu '%s'"
 msgstr "Pin '%s' не является допустимым именем для mcu '%s'"
 
 #, python-format
-msgid "Can not update MCU '%s' config as it is shutdown"
-msgstr "Не удается обновить конфигурацию MCU '%s', так как он выключен"
+msgid "Can not update MCU '%s' config as it is shutdown\n"
+msgstr "Не удается обновить конфигурацию MCU '%s', так как он выключен\n"
 
 #, python-format
 msgid "Unable to configure MCU '%s'"
@@ -993,6 +997,10 @@ msgid "Successfull save bed mesh"
 msgstr "Сетка стола успешно сохранена"
 
 #, python-format
+msgid "Automatic loaded bed mesh %s"
+msgstr "Автоматически установлен профиль %s"
+
+#, python-format
 msgid "bed_mesh: malformed '%s' value: %s"
 msgstr "bed_mesh: искаженное '%s' значение: %s"
 
@@ -1048,8 +1056,12 @@ msgstr "Очистите сетку, чтобы не производить z-р
 msgid "Add X/Y offsets to the mesh lookup"
 msgstr "Добавьте смещения X/Y к поиску сетки"
 
-msgid "No mesh loaded to offset"
-msgstr "Сетка не загружена для смещения"
+msgid "No mesh loaded"
+msgstr "Сетка не загружена"
+
+#, python-format
+msgid "Loaded mesh profile: %s"
+msgstr "Загруженная сетка стола: %s"
 
 msgid "bed_mesh: min/max points too close together"
 msgstr ""

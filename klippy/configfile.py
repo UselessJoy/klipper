@@ -128,6 +128,8 @@ class ConfigWrapper:
     def getsection(self, section) -> ConfigWrapper:
         return ConfigWrapper(self.printer, self.fileconfig,
                              self.access_tracking, section)
+    def getoptions(self) -> list[str]:
+        return self.fileconfig.options(self.section)
     def has_section(self, section) -> bool:
         return self.fileconfig.has_section(section)
     def get_prefix_sections(self, prefix):

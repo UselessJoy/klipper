@@ -24,6 +24,8 @@ class VirtualSD:
         self.current_file = None
         self.interrupted_file = None
         self.show_interrupt = False
+        self.watch_bed_mesh = config.getboolean('watch_bed_mesh', False)
+        self.autoload_bed_mesh = config.getboolean('autoload_bed_mesh', False)
         self.last_coord = [0.0, 0.0, 0.0]
         self.file_position = self.file_size = 0
         # Print Stat Tracking
@@ -65,9 +67,26 @@ class VirtualSD:
 
         self.printer.register_event_handler("klippy:ready",
                                             self.was_shutdown_at_printing)
-        
+    
+        webhooks = self.printer.lookup_object('webhooks')
+        webhooks.register_endpoint("virtual_sdcard/set_watch_bed_mesh",
+                                   self._handle_set_watch_bed_mesh)
+        webhooks.register_endpoint("virtual_sdcard/set_autoload_bed_mesh",
+                                   self._handle_autoload_bed_mesh)
         ####    END NEW    ####
 
+    def _handle_set_watch_bed_mesh(self, web_request):
+      self.watch_bed_mesh = web_request.get_boolean('watch_bed_mesh')
+      configfile = self.printer.lookup_object('configfile')
+      safety_section = {"virtual_sdcard": {"watch_bed_mesh": self.watch_bed_mesh}}
+      configfile.update_config(setting_sections=safety_section, save_immediatly=True)
+        
+    def _handle_autoload_bed_mesh(self, web_request):
+      self.autoload_bed_mesh = web_request.get_boolean('autoload_bed_mesh')
+      configfile = self.printer.lookup_object('configfile')
+      safety_section = {"virtual_sdcard": {"autoload_bed_mesh": self.autoload_bed_mesh}}
+      configfile.update_config(setting_sections=safety_section, save_immediatly=True)
+    
     def handle_shutdown(self):
         if self.work_timer is not None:
             self.must_pause_work = True
@@ -122,7 +141,9 @@ class VirtualSD:
             'interrupted_file': self.interrupted_file,
             'rebuild': str(self.rebuild_choise),
             'has_interrupted_file': self.has_interrupted_file(),
-            'show_interrupt': self.show_interrupt
+            'show_interrupt': self.show_interrupt,
+            'watch_bed_mesh': self.watch_bed_mesh,
+            'autoload_bed_mesh': self.autoload_bed_mesh
         }
     def file_path(self):
         if self.current_file:
@@ -148,6 +169,10 @@ class VirtualSD:
         probe_object = self.printer.lookup_object('probe')
         if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
             probe_object.run_gcode_return_magnet()
+        if self.watch_bed_mesh:
+            cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
+            messages = self.printer.lookup_object('messages')
+            messages.send_message("suggestion", _("No mesh loaded")) if cur_profile == "" else messages.send_message("//", _("Loaded mesh profile: %s") % cur_profile)
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False

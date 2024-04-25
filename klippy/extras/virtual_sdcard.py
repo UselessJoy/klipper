@@ -4,6 +4,7 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import os, logging, io
+import pathlib
 import re
 import locales
 import subprocess
@@ -15,7 +16,11 @@ class VirtualSD:
         self.printer.register_event_handler("klippy:shutdown",
                                             self.handle_shutdown)
         # sdcard state
-        sd = config.get('path')
+        path = config.get('path')
+        if os.path.isdir(os.path.join(path, 'mmcblk0p1')):
+          sd = os.path.join(path, 'mmcblk0p1')
+        else:
+          sd = os.path.join(path, 'gcodes')
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))
         self.media_dirname = "/media"
         self.rebuild_choise = config.get('rebuild')
@@ -133,6 +138,7 @@ class VirtualSD:
                 raise self.gcode.error(_("Unable to get file list"))
     def get_status(self, eventtime):
         return {
+            'gcode_path': self.sdcard_dirname,
             'file_path': self.file_path(),
             'progress': self.progress(),
             'is_active': self.is_active(),

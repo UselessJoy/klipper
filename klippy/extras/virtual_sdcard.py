@@ -18,7 +18,7 @@ class VirtualSD:
         # sdcard state
         path = config.get('path')
         if os.path.isdir(os.path.join(path, 'mmcblk0p1')):
-          sd = os.path.join(path, 'mmcblk0p1')
+          sd = os.path.join(path, 'mmcblk0p1/gcodes')
         else:
           sd = os.path.join(path, 'gcodes')
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))

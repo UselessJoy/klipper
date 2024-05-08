@@ -349,3 +349,34 @@ stepper_shutdown(void)
     }
 }
 DECL_SHUTDOWN(stepper_shutdown);
+
+// static void
+// stepper_break(struct trsync_signal *tss)
+// {
+//     struct stepper *s = container_of(tss, struct stepper, stop_signal);
+//     sched_del_timer(&s->time);
+//     s->next_step_time = s->time.waketime = 0;
+//     stepper_load_next(s);
+//     s->count = 0;
+//     while (!move_queue_empty(&s->mq)) {
+//         struct move_node *mn = move_queue_pop(&s->mq);
+//         struct stepper_move *m = container_of(mn, struct stepper_move, node);
+//         move_free(m);
+//     }
+// }
+
+
+// void
+// command_clear_queue(uint32_t *args)
+// {
+//     uint8_t i;
+//     struct stepper *s;
+//     foreach_oid(i, s, command_config_stepper) {
+//         irq_disable();
+//         stepper_break(&s->stop_signal);
+//         irq_enable();
+        
+//     }
+// }
+// DECL_COMMAND(command_clear_queue, "clear_queue");
+

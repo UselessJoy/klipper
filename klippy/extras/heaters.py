@@ -257,8 +257,10 @@ class ControlPID:
             self.prev_temp_integ = temp_integ
     def check_busy(self, eventtime, smoothed_temp, target_temp):
         temp_diff = target_temp - smoothed_temp
-        return ((abs(temp_diff) > PID_SETTLE_DELTA if temp_diff > 0 else abs(temp_diff) > self.pid_delta
-                or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE) and target_temp != 0)
+        return target_temp > smoothed_temp if target_temp != 0 else False
+        # return (((abs(temp_diff) > PID_SETTLE_DELTA or smoothed_temp >= target_temp + 10) if temp_diff > 0 
+        #          else ((abs(temp_diff) > self.pid_delta or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE) or smoothed_temp < target_temp + 10)
+        #         ) and target_temp != 0)
     
     def get_control(self):
         return {'pid': {'pid_Kp': self.Kp, 'pid_Ki': self.Ki, 'pid_Kd': self.Kd}}

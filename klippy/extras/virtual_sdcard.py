@@ -317,8 +317,7 @@ class VirtualSD:
         media_file = os.path.join(self.media_dirname, filename)
         if os.path.isfile(media_file):
             return media_file
-        else:
-            raise
+        raise Exception()
         
     def _load_file(self, gcmd, filename: str, file_position=0, check_subdirs=False):
         files = self.get_file_list(check_subdirs)

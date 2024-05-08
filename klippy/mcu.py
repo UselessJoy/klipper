@@ -321,6 +321,7 @@ class MCU_endstop:
         params = self._query_cmd.send([self._oid])
         next_clock = self._mcu.clock32_to_clock64(params['next_clock'])
         return self._mcu.clock_to_print_time(next_clock - self._rest_ticks)
+        
     def query_endstop(self, print_time):
         clock = self._mcu.print_time_to_clock(print_time)
         if self._mcu.is_fileoutput():
@@ -603,21 +604,6 @@ class MCU:
         printer.register_event_handler("klippy:shutdown", self._shutdown)
         printer.register_event_handler("klippy:disconnect", self._disconnect)
     
-    # def reconnect_to_mcu(self, eventtime):
-    #     try:
-    #         if self.reconnect_trying != 10:
-    #             serial_path = "/dev/serial/by-id/"
-    #             for serial_device in os.listdir(serial_path):
-    #                 if serial_device.startswith("usb-Klipper"):
-    #                     self._serialport = serial_path + serial_device
-    #         else:
-    #             self._reactor.unregister_timer(self.reconnect_timer)
-    #             self.reconnect_timer = None
-    #             raise _(f"Cannot find serial port for {self._name}\n")
-    #     except:
-    #         logging.error(_(f"Cannot find serial port for {self._name}\n"))# no locale
-    #     self.reconnect_trying = self.reconnect_trying + 1
-    #     return eventtime + 1
     # Serial callbacks
     def _handle_mcu_stats(self, params):
         count = params['count']
@@ -829,6 +815,7 @@ class MCU:
         self.register_response(self._handle_shutdown, 'shutdown')
         self.register_response(self._handle_shutdown, 'is_shutdown')
         self.register_response(self._handle_mcu_stats, 'stats')
+        
     # Config creation helpers
     def setup_pin(self, pin_type, pin_params):
         pcs = {'endstop': MCU_endstop,

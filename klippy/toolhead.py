@@ -370,10 +370,12 @@ class ToolHead:
         self.need_check_pause = -1.
         self.lookahead.set_flush_time(BUFFER_TIME_HIGH)
         self.check_stall_time = 0.
+        
     def flush_step_generation(self):
         self._flush_lookahead()
         self._advance_flush_time(self.step_gen_time)
         self.min_restart_time = max(self.min_restart_time, self.print_time)
+        
     def get_last_move_time(self):
         if self.special_queuing_state:
             self._flush_lookahead()
@@ -381,6 +383,7 @@ class ToolHead:
         else:
             self.lookahead.flush()
         return self.print_time
+      
     def _check_pause(self):
         eventtime = self.reactor.monotonic()
         est_print_time = self.mcu.estimated_print_time(eventtime)
@@ -413,6 +416,7 @@ class ToolHead:
         if not self.special_queuing_state:
             # In main state - defer pause checking until needed
             self.need_check_pause = est_print_time + BUFFER_TIME_HIGH + 0.100
+            
     def _priming_handler(self, eventtime):
         self.reactor.unregister_timer(self.priming_timer)
         self.priming_timer = None
@@ -424,6 +428,7 @@ class ToolHead:
             logging.exception("Exception in priming_handler")
             self.printer.invoke_shutdown(_("Exception in priming_handler"))
         return self.reactor.NEVER
+      
     def _flush_handler(self, eventtime):
         try:
             est_print_time = self.mcu.estimated_print_time(eventtime)
@@ -456,6 +461,7 @@ class ToolHead:
     # Movement commands
     def get_position(self):
         return list(self.commanded_pos)
+      
     def set_position(self, newpos, homing_axes=()):
         self.flush_step_generation()
         ffi_main, ffi_lib = chelper.get_ffi()
@@ -464,6 +470,7 @@ class ToolHead:
         self.commanded_pos[:] = newpos
         self.kin.set_position(newpos, homing_axes)
         self.printer.send_event("toolhead:set_position")
+        
     def move(self, newpos, speed):
         move = Move(self, self.commanded_pos, newpos, speed)
         if not move.move_d:
@@ -476,6 +483,7 @@ class ToolHead:
         self.lookahead.add_move(move)
         if self.print_time > self.need_check_pause:
             self._check_pause()
+            
     def manual_move(self, coord, speed):
         curpos = list(self.commanded_pos)
         for i in range(len(coord)):
@@ -483,10 +491,12 @@ class ToolHead:
                 curpos[i] = coord[i]
         self.move(curpos, speed)
         self.printer.send_event("toolhead:manual_move")
+        
     def dwell(self, delay):
         next_print_time = self.get_last_move_time() + max(0., delay)
         self._advance_move_time(next_print_time)
         self._check_pause()
+        
     def wait_moves(self):
         self._flush_lookahead()
         eventtime = self.reactor.monotonic()
@@ -495,11 +505,14 @@ class ToolHead:
             if not self.can_pause:
                 break
             eventtime = self.reactor.pause(eventtime + 0.100)
+            
     def set_extruder(self, extruder, extrude_pos):
         self.extruder = extruder
         self.commanded_pos[3] = extrude_pos
+        
     def get_extruder(self):
         return self.extruder
+      
     # Homing "drip move" handling
     def _update_drip_move_time(self, next_print_time):
         flush_delay = DRIP_TIME + STEPCOMPRESS_FLUSH_TIME + self.kin_flush_delay
@@ -517,6 +530,7 @@ class ToolHead:
             self.note_mcu_movequeue_activity(npt + self.kin_flush_delay,
                                              set_step_gen_time=True)
             self._advance_move_time(npt)
+            
     def drip_move(self, newpos, speed, drip_completion):
         self.dwell(self.kin_flush_delay)
         # Transition from "NeedPrime"/"Priming"/main state to "Drip" state
@@ -544,6 +558,7 @@ class ToolHead:
         # Exit "Drip" state
         self.reactor.update_timer(self.flush_timer, self.reactor.NOW)
         self.flush_step_generation()
+
     # Misc commands
     def stats(self, eventtime):
         max_queue_time = max(self.print_time, self.last_flush_time)
@@ -557,10 +572,12 @@ class ToolHead:
             buffer_time = 0.
         return is_active, "print_time=%.3f buffer_time=%.3f print_stall=%d" % (
             self.print_time, max(buffer_time, 0.), self.print_stall)
+        
     def check_busy(self, eventtime):
         est_print_time = self.mcu.estimated_print_time(eventtime)
         lookahead_empty = not self.lookahead.queue
         return self.print_time, est_print_time, lookahead_empty
+      
     def get_status(self, eventtime):
         print_time = self.print_time
         estimated_print_time = self.mcu.estimated_print_time(eventtime)

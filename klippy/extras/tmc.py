@@ -214,6 +214,8 @@ class TMCCommandHelper:
         self.stepper_name = ' '.join(config.get_name().split()[1:])
         self.name = config.get_name().split()[-1]
         self.mcu_tmc = mcu_tmc
+        self.type = config.get_name().split()[0]
+        self.quite_mode = bool(config.getfloat('stealthchop_threshold', 0., minval=0.))
         self.current_helper = current_helper
         self.echeck_helper = TMCErrorCheck(config, mcu_tmc)
         self.fields = mcu_tmc.get_fields()
@@ -243,6 +245,11 @@ class TMCCommandHelper:
         gcode.register_mux_command("SET_TMC_CURRENT", "STEPPER", self.name,
                                    self.cmd_SET_TMC_CURRENT,
                                    desc=self.cmd_SET_TMC_CURRENT_help)
+        
+        webhooks = self.printer.lookup_object("webhooks")
+        webhooks.register_endpoint(f"tmc/set_quite_mode/{self.name}",
+                                   self._handle_set_quite_mode)
+
     def _init_registers(self, print_time=None):
         # Send registers
         for reg_name in list(self.fields.registers.keys()):
@@ -253,6 +260,20 @@ class TMCCommandHelper:
         logging.info("INIT_TMC %s", self.name)
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()
         self._init_registers(print_time)
+    
+    def _handle_set_quite_mode(self, web_request):
+        self.quite_mode: bool = web_request.get_boolean('quite_mode')
+        
+        reg_name = self.fields.lookup_register("en_spreadcycle", None)
+        reg_val = self.fields.set_field("en_spreadcycle", int(self.quite_mode))
+        
+        print_time = self.printer.lookup_object('toolhead').get_last_move_time()
+        self.mcu_tmc.set_register(reg_name, reg_val, print_time)
+
+        configfile = self.printer.lookup_object('configfile')
+        tmc_section = {f"{self.type} {self.name}": {"stealthchop_threshold": 999999 if self.quite_mode else 0}}
+        configfile.update_config(setting_sections=tmc_section, save_immediatly=True)
+    
     cmd_SET_TMC_FIELD_help = _("Set a register field of a TMC driver")
     def cmd_SET_TMC_FIELD(self, gcmd):
         field_name = gcmd.get('FIELD').lower()
@@ -414,6 +435,9 @@ class TMCCommandHelper:
             if self.read_translate is not None:
                 reg_name, val = self.read_translate(reg_name, val)
             gcmd.respond_info(self.fields.pretty_format(reg_name, val))
+    
+    def get_status(self, evettime):
+      return {'quite_mode': self.quite_mode}
 
 
 ######################################################################

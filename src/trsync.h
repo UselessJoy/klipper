@@ -13,7 +13,5 @@ struct trsync_signal {
 
 struct trsync *trsync_oid_lookup(uint8_t oid);
 void trsync_do_trigger(struct trsync *ts, uint8_t reason);
-void trsync_add_signal(struct trsync *ts, struct trsync_signal *tss
-                       , trsync_callback_t func);
-
+void trsync_add_signal(struct trsync *ts, struct trsync_signal *tss, trsync_callback_t func);   
 #endif // trsync.h

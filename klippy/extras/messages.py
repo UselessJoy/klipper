@@ -9,7 +9,7 @@ class Messages:
         self.webhooks_messages = {   'warning': 
                             {   
                                 'on_wait_temperature': _("Heating with the wait parameter, gcodes will be processed after warming up"),
-                                'on_open_door_or_hood': _("Printing is paused. Printing will be continued after closing doors and hood"),
+                                'on_open_door_and_hood': _("Printing is paused. Printing will be continued after closing doors and hood"),
                                 'wait_for_pause': _("Printer already go to pause"),
                                 'wait_for_resume': _("Printer already wait go to resume"),
                                 'has_next_screw': _("Cannot set new calibrating screw: already wait move to next screw %s")

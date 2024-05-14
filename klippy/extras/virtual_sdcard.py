@@ -178,7 +178,7 @@ class VirtualSD:
         if self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
             messages = self.printer.lookup_object('messages')
-            messages.send_message("suggestion", _("No mesh loaded")) if cur_profile == "" else messages.send_message("//", _("Loaded mesh profile: %s") % cur_profile)
+            messages.send_message("warning", _("No mesh loaded")) if cur_profile == "" else messages.send_message("suggestion", _("Loaded mesh profile: %s") % cur_profile)
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False

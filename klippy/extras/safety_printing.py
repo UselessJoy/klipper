@@ -19,7 +19,7 @@ class SafetyPrinting:
         self.endstops_state = ALL_RELEASED
         self.past_state = None
         self.luft_timer = None
-        self.last_eventtime = None
+        self.last_eventtime = 0
         self.send_pause = self.send_resume = False
         self.messages = self.printer.lookup_object("messages")
         buttons = self.printer.load_object(config, "buttons")
@@ -69,7 +69,7 @@ class SafetyPrinting:
                 if not self.send_pause:
                     self.send_pause = True
                     self.gcode.run_script("PAUSE")
-                self.messages.send_message("warning", "on_open_door_or_hood")
+                self.messages.send_message("warning", _("Printing is paused. Printing will be continued after closing doors and hood"))
             self.reset_luft_timer()
             return self.reactor.NEVER
         return eventtime + 1
@@ -78,7 +78,7 @@ class SafetyPrinting:
         if self.luft_timer:
             self.reactor.unregister_timer(self.luft_timer)
             self.luft_timer = None
-            self.last_eventtime = None
+            self.last_eventtime = 0
     
     def raise_error_if_open(self):
         if self.endstops_state == ALL_PRESSED:

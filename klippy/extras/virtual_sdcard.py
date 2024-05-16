@@ -174,7 +174,8 @@ class VirtualSD:
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         probe_object = self.printer.lookup_object('probe')
         if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
-            probe_object.run_gcode_return_magnet()
+          probe_object.run_gcode_return_magnet()
+        probe_object.return_z()
         if self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
             messages = self.printer.lookup_object('messages')

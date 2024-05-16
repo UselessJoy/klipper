@@ -21,6 +21,7 @@ class PrinterProbe:
         self.mcu_probe = mcu_probe
         self.speed = config.getfloat('speed', 5.0, above=0.)
         self.lift_speed = config.getfloat('lift_speed', self.speed, above=0.)
+        self.last_z_position = 0
         self.x_offset = config.getfloat('x_offset', 0.)
         self.y_offset = config.getfloat('y_offset', 0.)
         self.z_offset = config.getfloat('z_offset')
@@ -190,7 +191,11 @@ class PrinterProbe:
         self.drop_z_move(toolhead)
         return self.get_status_magnet_probe(toolhead)
     
+    def return_z(self):
+      self.printer.lookup_object('toolhead').manual_move([None, None, self.last_z_position], self.speed_base)
+    
     def drop_z_move(self, toolhead):
+        self.last_z_position = toolhead.get_position()[2]
         if float(toolhead.get_position()[2]) < self.drop_z:
             toolhead.manual_move([None, None, self.drop_z], self.speed_base)
     

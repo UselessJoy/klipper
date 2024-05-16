@@ -84,10 +84,10 @@ class ManualProbe:
         toolhead = self.printer.lookup_object('toolhead')
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = toolhead.get_status(curtime)
-        if was_homed:
-            pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 3)]
-        else:
-            pos = toolhead.get_position()
+        # if was_homed:
+        pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 3)]
+        # else:
+        #     pos = toolhead.get_position()
         pos[2] = self.drop_z
         toolhead.manual_move(pos, self.manual_speed)
         ManualProbeHelper(self.printer, self.config, gcmd, self.z_endstop_finalize)

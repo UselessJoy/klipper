@@ -206,7 +206,7 @@ class VirtualSD:
                                     "G91\n"
                                     "G0 Z 10\n"
                                     "G90 \n"
-                                    "G28 X Y\n")
+                                    "G28 Y X\n")
     # G-Code commands
     def cmd_error(self, gcmd):
         raise gcmd.error(_("SD write not supported"))

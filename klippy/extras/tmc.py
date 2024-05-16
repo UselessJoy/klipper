@@ -265,7 +265,7 @@ class TMCCommandHelper:
         self.quite_mode: bool = web_request.get_boolean('quite_mode')
         
         reg_name = self.fields.lookup_register("en_spreadcycle", None)
-        reg_val = self.fields.set_field("en_spreadcycle", int(self.quite_mode))
+        reg_val = self.fields.set_field("en_spreadcycle", int((not self.quite_mode)))
         
         print_time = self.printer.lookup_object('toolhead').get_last_move_time()
         self.mcu_tmc.set_register(reg_name, reg_val, print_time)

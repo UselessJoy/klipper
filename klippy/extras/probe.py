@@ -112,7 +112,7 @@ class PrinterProbe:
                             G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
                          ")
         if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
-            raise self.printer.command_error(_("Couldn't take probe"))# no locale
+            raise self.printer.command_error(_("Couldn't take probe"))
         
     def run_gcode_return_magnet(self):
         gcode = self.printer.lookup_object('gcode')
@@ -125,7 +125,7 @@ class PrinterProbe:
                             G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
                          ")
         if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
-            raise self.printer.command_error(_("Couldn't return probe"))# no locale
+            raise self.printer.command_error(_("Couldn't return probe"))
         
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():

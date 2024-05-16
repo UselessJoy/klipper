@@ -80,7 +80,7 @@ class LEDHelper:
                           }
         configfile.update_config(setting_sections=neopixel_sections, save_immediatly=True)
         messages = self.printer.lookup_object("messages")
-        messages.send_message('success', 'saved_default_color')
+        messages.send_message('success', _("New default color was successfully saved!"))
     ####    END NEW    ####
 
     cmd_SET_LED_help = _("Set the color of an LED")

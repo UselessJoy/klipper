@@ -3090,4 +3090,11 @@ msgstr "Принтер уже продолжает печать"
 
 msgid "New default color was successfully saved!"
 msgstr "Цвет подсветки по умолчанию успешно сохранен!"
+
+msgid "Couldn't take probe"
+msgstr "Не удалось взять пробу"
+
+msgid "Couldn't return probe"
+msgstr "Не удалось вернуть пробу"
+
 # =====================END MESSAGES MODULE==================#

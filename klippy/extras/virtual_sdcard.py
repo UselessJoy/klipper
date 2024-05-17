@@ -284,7 +284,7 @@ class VirtualSD:
     def _remove_file(self):
         if self.has_interrupted_file():
             try:
-                os.system('rm -rf ' + self.sdcard_dirname + '/' + self.interrupted_file)
+                os.system(f"rm \"{self.sdcard_dirname}/{self.interrupted_file}\"")
             except:
                 logging.info("Cannot delete file")
             self.current_file = None
@@ -350,7 +350,6 @@ class VirtualSD:
                 subprocess.check_output(f"cp \"{media_fname}\" \"{fname}\"", universal_newlines=True, shell=True, stderr=subprocess.STDOUT)  
             else:  
                 fname = os.path.join(self.sdcard_dirname, fname)
-            self.interrupted_file = fname
             f = io.open(fname, 'r', newline='')
             f.seek(0, os.SEEK_END)
             fsize = f.tell()
@@ -478,14 +477,8 @@ class VirtualSD:
         if self.file_path():
             file = self.current_file.name + '.interrupted'
             last_e = 0.0
-            if self.has_interrupted_file():
-                interrupted_file = io.open(file, 'r+')
-                lines = interrupted_file.readlines()
-                last_e = float(lines[5])
-                interrupted_file.close()
-                os.system('cp ' + file + " 1" + file)
-            os.system('touch ' + file)
-            interrupted_file = io.open(file, 'r+')
+            os.system(f'touch "{file}"')
+            interrupted_file = io.open(f"{file}", 'r+')
             filename = self.file_path().rsplit('/', 1)[-1] + '\n'
             position = str(self.file_position) + '\n'
             last_pos = self.gcode_move.get_status()['position']

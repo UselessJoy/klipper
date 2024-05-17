@@ -292,6 +292,11 @@ class PrinterHoming:
                 probe = self.printer.lookup_object('probe')
                 toolhead.manual_move([None, None, probe.drop_z], probe.speed_base)
                 axes.remove(2)
+            if 1 in axes:
+              homing_y = Homing(self.printer)
+              homing_y.set_axes([1])
+              kin.home(homing_y)
+              axes.remove(1)
             if len(axes) > 0:
                 homing_state = Homing(self.printer)
                 homing_state.set_axes(axes)

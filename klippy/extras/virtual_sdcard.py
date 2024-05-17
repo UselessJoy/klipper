@@ -201,12 +201,10 @@ class VirtualSD:
         self.run_gcode_on_cancel()
         
     def run_gcode_on_cancel(self):
-        if self.printer.lookup_object('toolhead').get_kinematics().get_status(self.reactor.monotonic())['homed_axes'] == 'xyz':
-            self.gcode.run_script_from_command(
-                                    "G91\n"
-                                    "G0 Z 10\n"
-                                    "G90 \n"
-                                    "G28 Y X\n")
+      pos = self.printer.lookup_object('toolhead').get_position()
+      self.gcode.run_script(f"G0 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
+      self.gcode.run_script(f"G28 Y X")
+            
     # G-Code commands
     def cmd_error(self, gcmd):
         raise gcmd.error(_("SD write not supported"))
@@ -467,9 +465,7 @@ class VirtualSD:
         else:
             self.printer.send_event("virtual_sdcard:complete")
             self.print_stats.note_complete()
-            pos = self.printer.lookup_object('toolhead').get_position()
-            self.gcode.run_script(f"G0 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
-            self.gcode.run_script(f"G28 Y X")
+            self.run_gcode_on_cancel()
         return self.reactor.NEVER
 
 ####      NEW      ####

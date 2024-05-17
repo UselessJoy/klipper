@@ -468,6 +468,9 @@ class VirtualSD:
         else:
             self.printer.send_event("virtual_sdcard:complete")
             self.print_stats.note_complete()
+            self.gcode.run_script(f"G28 Y X")
+            pos = self.printer.lookup_object('toolhead').get_position()
+            self.gcode.run_script(f"G0 Z{pos[2]+1 if pos[2]+1 <= self.max_z else self.max_z}")
         return self.reactor.NEVER
 
 ####      NEW      ####

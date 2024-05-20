@@ -46,6 +46,7 @@ class HostResponder:
                     " of 'echo', 'command', or 'error'") % (respond_type,))
         prefix = gcmd.get('PREFIX', prefix)
         msg = gcmd.get('MSG', '')
+        msg = _(f"{msg}")
         if(no_space):
             gcmd.respond_raw("%s%s" % (prefix, msg))
         else:

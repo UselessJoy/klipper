@@ -3098,3 +3098,32 @@ msgid "Couldn't return probe"
 msgstr "Не удалось вернуть пробу"
 
 # =====================END MESSAGES MODULE==================#
+
+#, python-format
+msgid "Restoring \"%s\" temperature to %3.1f°, this may take some time"
+msgstr "Восстановление температуры \"%s\"  к %3.1f°, это может занять некоторое время"
+
+#, python-format
+msgid "Resume aborted !!! \"%s\" not hot enough, please heat up again and press RESUME"
+msgstr "Возобновление прервано \"%s\" не достаточно нагрет, пожалуйста, нагрейте снова и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "\"%s\" not hot enough, please heat up again and press RESUME"
+msgstr "\"%s\" не достаточно нагрет, пожалуйста, нагрейте снова и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "Resume aborted !!! \"%s\" detects no filament, please load filament and press RESUME"
+msgstr "Возобновление прервано \"%s\" филамент не обнаружен, пожалуйста, заправьте филамент и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "\"%s\" detects no filament, please load filament and press RESUME"
+msgstr "\"%s\" филамент не обнаружен, пожалуйста, заправьте филамент и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "%s, forced by pause_at_layer [%d]"
+msgstr "%s, принудительно остановлен функцией pause_at_layer [%d]"
+
+#, python-format
+msgid "\"%s\" not hot enough"
+msgstr "\"%s\" не достаточно нагрет"
+

@@ -719,8 +719,8 @@ msgstr ""
 "Движение превышает максимальную экструзию (%.3fмм^2 против %.3fмм^2)\n"
 "Смотрите опцию конфигурации 'max_extrude_cross_section' для деталей"
 
-msgid "Extruder not configured"
-msgstr "Экструдер не сконфигурирован"
+msgid "Extruder not configured, printing will continue without switching the extruder"
+msgstr "Экструдер не сконфигурирован, печать продолжится без переключения экструдера"
 
 msgid "Change the active extruder"
 msgstr "Измените активный экструдер"

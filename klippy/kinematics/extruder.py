@@ -284,9 +284,8 @@ class PrinterExtruder:
                 section = 'extruder%d' % (index,)
             extruder = self.printer.lookup_object(section, None)
             if extruder is None:
-                if temp <= 0.:
-                    return
-                raise gcmd.error(_("Extruder not configured"))
+              gcmd.respond_raw(_("Extruder not configured, printing will continue without switching the extruder"))
+              extruder = self.printer.lookup_object('toolhead').get_extruder()
         else:
             extruder = self.printer.lookup_object('toolhead').get_extruder()
         pheaters = self.printer.lookup_object('heaters')
@@ -320,9 +319,9 @@ class DummyExtruder:
     def get_name(self):
         return ""
     def get_heater(self):
-        raise self.printer.command_error(_("Extruder not configured"))
+        raise self.printer.command_error(_("Extruder not configured, printing will continue without switching the extruder"))
     def get_trapq(self):
-        raise self.printer.command_error(_("Extruder not configured"))
+        raise self.printer.command_error(_("Extruder not configured, printing will continue without switching the extruder"))
 
 def add_printer_objects(config):
     printer = config.get_printer()

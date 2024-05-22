@@ -473,19 +473,12 @@ class VirtualSD:
     def save_printing_parameters(self):
         if self.file_path():
             file = self.current_file.name + '.interrupted'
-            last_e = 0.0
             os.system(f'touch "{file}"')
             interrupted_file = io.open(f"{file}", 'r+')
             filename = self.file_path().rsplit('/', 1)[-1] + '\n'
             position = str(self.file_position) + '\n'
-            last_pos = self.gcode_move.get_status()['position']
-            last_position = [
-                             str(last_pos.z) + '\n', 
-                             str(last_pos.x) + '\n',
-                             str(last_pos.y) + '\n',
-                             str(last_pos.e + last_e) + '\n'
-                            ]
-            lines = [filename, position, last_position[0], last_position[1], last_position[2], last_position[3]]
+            last_pos = self.gcode_move.last_position
+            lines = [filename, position, f"{last_pos[0]}\n", f"{last_pos[1]}\n", f"{last_pos[2]}\n", f"{last_pos[3]}\n"]
             interrupted_file.writelines(lines)
             interrupted_file.close()
             return

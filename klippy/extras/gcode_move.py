@@ -8,6 +8,7 @@ import locales
 class GCodeMove:
     def __init__(self, config):
         self.printer = printer = config.get_printer()
+        self.last_param_e = 0
         printer.register_event_handler("klippy:ready", self._handle_ready)
         printer.register_event_handler("klippy:shutdown", self._handle_shutdown)
         printer.register_event_handler("toolhead:set_position",
@@ -124,6 +125,7 @@ class GCodeMove:
                         # value relative to base coordinate position
                         self.last_position[pos] = v + self.base_position[pos]
             if 'E' in params:
+                self.last_param_e = float(params['E'])
                 v = float(params['E']) * self.extrude_factor
                 if not self.absolute_coord or not self.absolute_extrude:
                     # value relative to position of last move
@@ -166,6 +168,7 @@ class GCodeMove:
         for i, offset in enumerate(offsets):
             if offset is not None:
                 if i == 3:
+                    self.last_param_e = 0
                     offset *= self.extrude_factor
                 self.base_position[i] = self.last_position[i] - offset
         if offsets == [None, None, None, None]:

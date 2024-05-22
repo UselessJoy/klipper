@@ -478,7 +478,8 @@ class VirtualSD:
             filename = self.file_path().rsplit('/', 1)[-1] + '\n'
             position = str(self.file_position) + '\n'
             last_pos = self.gcode_move.last_position
-            lines = [filename, position, f"{last_pos[0]}\n", f"{last_pos[1]}\n", f"{last_pos[2]}\n", f"{last_pos[3]}\n"]
+            last_e  = self.gcode_move.last_param_e
+            lines = [filename, position, f"{last_pos[0]}\n", f"{last_pos[1]}\n", f"{last_pos[2]}\n", f"{last_e}\n"]
             interrupted_file.writelines(lines)
             interrupted_file.close()
             return

@@ -477,9 +477,9 @@ class VirtualSD:
             interrupted_file = io.open(f"{file}", 'r+')
             filename = self.file_path().rsplit('/', 1)[-1] + '\n'
             position = str(self.file_position) + '\n'
-            last_pos = self.gcode_move.get_status(self.reactor.monotonic())['position']
+            last_pos = self.gcode_move.get_status()['position']
             last_e  = self.gcode_move.last_param_e
-            lines = [filename, position, f"{last_pos[0]}\n", f"{last_pos[1]}\n", f"{last_pos[2]}\n", f"{last_e}\n"]
+            lines = [filename, position, f"{last_pos.z}\n", f"{last_pos.x}\n", f"{last_pos.y}\n", f"{last_e}\n"]
             interrupted_file.writelines(lines)
             interrupted_file.close()
             return

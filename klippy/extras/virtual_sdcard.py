@@ -31,7 +31,7 @@ class VirtualSD:
         self.show_interrupt = False
         self.watch_bed_mesh = config.getboolean('watch_bed_mesh', False)
         self.autoload_bed_mesh = config.getboolean('autoload_bed_mesh', False)
-        self.last_coord = [0.0, 0.0, 0.0]
+        self.last_coord = [0.0, 0.0, 0.0, 0.0]
         self.file_position = self.file_size = 0
         # Print Stat Tracking
         self.print_stats = self.printer.load_object(config, 'print_stats')
@@ -288,7 +288,7 @@ class VirtualSD:
                 logging.info("Cannot delete file")
             self.current_file = None
             self.file_position = 0
-            self.last_coord = [0.0, 0.0, 0.0]
+            self.last_coord = [0.0, 0.0, 0.0, 0.0]
             self.interrupted_file = None
     ####    END NEW    ####
     def cmd_M20(self, gcmd):

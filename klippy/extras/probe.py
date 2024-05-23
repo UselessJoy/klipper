@@ -18,6 +18,7 @@ class PrinterProbe:
         self.printer = config.get_printer()
         self.config = config
         self.name = config.get_name()
+        self.sta_probe = False
         self.mcu_probe = mcu_probe
         self.speed = config.getfloat('speed', 5.0, above=0.)
         self.lift_speed = config.getfloat('lift_speed', self.speed, above=0.)
@@ -278,11 +279,11 @@ class PrinterProbe:
             self.run_gcode_get_magnet()
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = toolhead.get_status(curtime)
-        # if was_homed:
-        pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 2)]
-            # pos.append(self.drop_z)
-        # else:
-            # pos = toolhead.get_position()
+        if not self.multi_probe_pending:
+          pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 2)]
+          pos.append(self.drop_z)
+        else:
+            pos = toolhead.get_position()
         self._move(pos, self.speed_base)
          
     cmd_PROBE_help = _("Probe Z-height at current XY position")

@@ -232,13 +232,13 @@ class ScrewsTiltAdjust:
                 'sign': sign, 'adjust':"%02d:%02d" % (full_turns, minutes), 'is_base': False
             }
             if not (full_turns == 0 and minutes <= self.minutes_deviation):
-                self.gcode.respond_info("adjust %s %02d:%02d" % (sign, full_turns, minutes))
+                self.gcode.respond_info(_("adjust %s %02d:%02d") % (sign, full_turns, minutes))# no locale
                 return "retry"
-            self.gcode.respond_info("Successfull calibrated screw %s" % self.calibrating_screw['name'])
+            self.gcode.respond_info(_("Successfull calibrated screw %s") % self.calibrating_screw['name'])# no locale
             self.adjusted_screws = self.adjusted_screws + 1
         else:
             self.stop_screw = False
-            self.gcode.respond_info("Current screw calibrating stoped")
+            self.gcode.respond_info(_("Current screw calibrating stoped"))# no locale
     
     def calculate_adjust(self, z_screw):
         is_clockwise_thread = (self.thread & 1) == 0

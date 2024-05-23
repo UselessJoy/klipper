@@ -544,17 +544,23 @@ class VirtualSD:
             file.seek(file_position)
             self.cmd_from_sd = False
             line = lines.pop()
-        lead_z = (self.max_z - self.last_coord[0])/10
+        toolhead = self.printer.lookup_object('toolhead')
+        kin_status = toolhead.get_kinematics().get_status(self.reactor.monotonic())
+        if "z" not in kin_status['homed_axes']:
+          self.gcode.run_script(f"SET_KINEMATIC_POSITION Z={self.last_coord[0]}\n")
+        lead_z = 7 if self.max_z - self.last_coord[0] > 7 else self.max_z
         self.gcode.run_script(
-                                "G92 E0\n"
-                                "G1 F2100 E-1\n"
-                                "SET_KINEMATIC_POSITION Z=%f\n"
-                                "G0 Z%f\n"
-                                "G28 X Y\n"
-                                "G0 X%f Y%f Z%f F6000\n"
-                                "G92 E%f\n"
-                                % (self.last_coord[0], lead_z if self.max_z - self.last_coord[0] < 50 else 15, 
-                                   self.last_coord[1], self.last_coord[2], self.last_coord[0], self.last_coord[3]))
+          "G92 E0\n"
+          "G1 F2100 E-1\n"
+          "G91\n"
+          "G0 Z%f\n"
+          "G90\n"
+          "G28 X Y\n"
+          "G0 X%f Y%f Z%f F6000\n"
+          "G92 E%f\n"
+          % (lead_z, 
+            self.last_coord[1], self.last_coord[2], self.last_coord[0], self.last_coord[3])
+        )
         
         self.work_timer = None
         try:

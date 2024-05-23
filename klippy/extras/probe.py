@@ -556,8 +556,8 @@ class ProbePointsHelper:
         if self.horizontal_move_z < self.probe_offsets[2]:
             raise gcmd.error(_("horizontal_move_z can't be less than"
                              " probe's z_offset"))
-        self.printer.lookup_object('probe').on_start_probe()
         probe.multi_probe_begin()
+        self.printer.lookup_object('probe').on_start_probe()
         while 1:
             self.printer.send_event("probe:xy_move")
             done = self._move_next(return_probe)

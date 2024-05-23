@@ -202,7 +202,7 @@ class VirtualSD:
         
     def run_gcode_on_cancel(self):
       pos = self.printer.lookup_object('toolhead').get_position()
-      self.gcode.run_script_from_command(f"G0 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
+      # self.gcode.run_script_from_command(f"G1 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
       self.gcode.run_script_from_command(f"G28 Y")
       self.gcode.run_script_from_command(f"G28 X")
             
@@ -416,6 +416,7 @@ class VirtualSD:
                     self.current_file = None
                     logging.info("Finished SD card print")
                     self.gcode.respond_raw(_("Done printing file"))
+                    self.run_gcode_on_cancel()
                     break
                 lines = data.split('\n')
                 lines[0] = partial_input + lines[0]
@@ -466,7 +467,6 @@ class VirtualSD:
         else:
             self.printer.send_event("virtual_sdcard:complete")
             self.print_stats.note_complete()
-            self.run_gcode_on_cancel()
         return self.reactor.NEVER
 
 ####      NEW      ####

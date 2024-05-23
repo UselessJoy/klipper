@@ -279,7 +279,7 @@ class PrinterProbe:
             self.run_gcode_get_magnet()
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = toolhead.get_status(curtime)
-        if not self.multi_probe_pending or not self.printer.lookup_object('screws_tilt_adjust').is_calibrating:
+        if not self.multi_probe_pending:
           pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 2)]
           pos.append(self.drop_z)
         else:

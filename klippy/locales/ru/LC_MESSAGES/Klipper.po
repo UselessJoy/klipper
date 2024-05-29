@@ -2180,6 +2180,9 @@ msgstr "Координата по Y слишком далеко от стенк�
 msgid "Magnet check successfull. New coordinates saved"
 msgstr "Проверка захвата успешна. Новые координаты сохранены"
 
+msgid "End adjustment"
+msgstr "Закончить регулировку"
+
 msgid ""
 "If the probe did not move far enough to trigger, then consider reducing the Z axis "
 "minimum position so the probe can travel further (the Z minimum position can be "

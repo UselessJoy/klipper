@@ -282,20 +282,21 @@ class PrinterProbe:
         self.run_gcode_return_magnet()
         return
     
-    cmd_START_ADJUSTMENT_help = _("Adjust magnet probe")  # no locale
+    cmd_START_ADJUSTMENT_help = _("Adjust magnet probe")
     def cmd_START_ADJUSTMENT(self, gcmd):
       self.is_adjusting = True
       self.printer.lookup_object('homing').run_G28_if_unhomed()
       self.printer.lookup_object('gcode').run_script_from_command(f"G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base}")
     
-    cmd_ACCEPT_ADJUSTMENT_help = _("Checking coordinates for magnet capture and saving it on success")#no locale
+    cmd_ACCEPT_ADJUSTMENT_help = _("Checking coordinates for magnet capture and saving it on success")
     def cmd_ACCEPT_ADJUSTMENT(self, gcmd):
       max_y = self.config.getsection('stepper_y').getfloat('position_max')
       
       x = gcmd.get_float("X", self.magnet_x)
       y = gcmd.get_float("Y", self.magnet_y)
       if y - max_y > 5:
-        self.printer.command_error(_("Y coordinate too far from border. Please, return extruder to socket position"))# no locale
+        messages = self.printer.lookup_object("messages")
+        messages.send_message('warning', _("Y coordinate too far from border. Please, return extruder to socket position"))
         return
       if self.run_gcode_check_magnet(x, y):
         self.is_adjusting = False
@@ -304,9 +305,10 @@ class PrinterProbe:
         self.magnet_x = x
         self.magnet_y = y
         configfile.update_config(setting_sections=probe_section, save_immediatly=True)
-        gcmd.respond_info(_("Magnet check successfull. New coordinates saved"))# no locale
+        messages = self.printer.lookup_object("messages")
+        messages.send_message('success', _("Magnet check successfull. New coordinates saved"))
     
-    cmd_END_ADJUSTMENT_help = _("End adjustment")#no locale
+    cmd_END_ADJUSTMENT_help = _("End adjustment")
     def cmd_END_ADJUSTMENT(self, gcmd):
       self.is_adjusting = False
 
@@ -318,8 +320,9 @@ class PrinterProbe:
                           G1 X{x} Y{y} F{self.speed_parking}\n\
                           G1 X{x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
                         ")
+      messages = self.printer.lookup_object("messages")
       if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
-          self.printer.command_error(_("Couldn't take probe"))
+          messages.send_message('warning', _("Couldn't take probe"))
           gcode.run_script_from_command(f"G1 X{x} Y{y} F{self.speed_parking}")  
           return False
       gcode.run_script_from_command(f"\
@@ -328,7 +331,7 @@ class PrinterProbe:
                           G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
                         ")
       if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
-          self.printer.command_error(_("Couldn't return probe"))
+          messages.send_message('warning', _("Couldn't return probe"))
           return False
       return True    
       

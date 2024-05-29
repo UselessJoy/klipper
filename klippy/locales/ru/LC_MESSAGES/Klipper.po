@@ -2163,8 +2163,22 @@ msgstr "Передать информацию слайсера, такую ка�
 # ===========================PROBE MODULE========================#
 msgid "Command to get magnet probe"
 msgstr "Взять пробу"
+
 msgid "Command to return magnet probe"
 msgstr "Вернуть пробу"
+
+
+msgid "Adjust magnet probe"
+msgstr "Регулировка магнитной пробы"
+
+msgid "Checking coordinates for magnet capture and saving it on success"
+msgstr "Сохранение новых координат при успехе захвата пробы по заданным координатам" 
+
+msgid "Y coordinate too far from border. Please, return extruder to socket position"
+msgstr "Координата по Y слишком далеко от стенки. Пожалуйста, верните экструдер к гнезду пробы"
+
+msgid "Magnet check successfull. New coordinates saved"
+msgstr "Проверка захвата успешна. Новые координаты сохранены"
 
 msgid ""
 "If the probe did not move far enough to trigger, then consider reducing the Z axis "

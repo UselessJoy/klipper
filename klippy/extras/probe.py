@@ -94,7 +94,7 @@ class PrinterProbe:
         self.gcode.register_command('START_ADJUSTMENT',
                                     self.cmd_START_ADJUSTMENT,
                                     desc=self.cmd_START_ADJUSTMENT_help)
-        self.gcode.register_command('cmd_ACCEPT_ADJUSTMENT',
+        self.gcode.register_command('ACCEPT_ADJUSTMENT',
                                             self.cmd_ACCEPT_ADJUSTMENT,
                                             desc=self.cmd_ACCEPT_ADJUSTMENT_help)
         self.gcode.register_command('END_ADJUSTMENT',

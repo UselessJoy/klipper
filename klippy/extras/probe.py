@@ -116,41 +116,29 @@ class PrinterProbe:
         self.is_using_magnet_probe = not bool(res)
        
     def run_gcode_get_magnet(self):
-        # gcode = self.printer.lookup_object('gcode')
+        gcode = self.printer.lookup_object('gcode')
         toolhead = self.printer.lookup_object('toolhead')
+        gcode.run_script_from_command("G90")
         self.drop_z_move(toolhead)
-        toolhead.manual_move([self.magnet_x, self.magnet_y, None], self.speed_base)
-        toolhead.manual_move([self.magnet_x, self.parking_magnet_y, None], self.speed_parking)
-        # gcode.run_script_from_command(f"\
-        #                     G90\n\
-        #                     G1 Z{self.drop_z}\n\
-        #                     G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_base}\n\
-        #                     G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_parking}\n\
-        #                     G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
-        #                  ")
+        gcode.run_script_from_command(f"\
+                            G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base}\n\
+                            G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
+                         ")
         if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
             raise self.printer.command_error(_("Couldn't take probe"))
         
     def run_gcode_return_magnet(self):
-        # gcode = self.printer.lookup_object('gcode')
+        gcode = self.printer.lookup_object('gcode')
         toolhead = self.printer.lookup_object('toolhead')
+        gcode.run_script_from_command("G90")
         self.drop_z_move(toolhead)
         if float(toolhead.get_position()[1]) < self.parking_magnet_y:
-            toolhead.manual_move([self.magnet_x, self.parking_magnet_y, None], self.speed_base)
-        else:
-          toolhead.manual_move([self.magnet_x, None, None], self.speed_base)
-          toolhead.manual_move([None, self.magnet_y, None], self.speed_base)
-        toolhead.manual_move([self.magnet_x_offset, None, None], self.speed_base)
-        toolhead.manual_move([None, self.parking_magnet_y, None], self.speed_base)
-            
-        # gcode.run_script_from_command(f"\
-        #                     G90\n\
-        #                     G1 Z{self.drop_z}\n\
-        #                     G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_base}\n\
-        #                     G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_parking}\n\
-        #                     G1 X{self.magnet_x_offset} F{self.speed_base}\n\
-        #                     G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
-        #                  ")
+            gcode.run_script_from_command(f"G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_base}")
+        gcode.run_script_from_command(f"\
+                            G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_parking}\n\
+                            G1 X{self.magnet_x_offset} F{self.speed_base}\n\
+                            G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
+                         ")
         if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
             raise self.printer.command_error(_("Couldn't return probe"))
         
@@ -334,19 +322,20 @@ class PrinterProbe:
 
     def run_gcode_check_magnet(self, x, y):
       toolhead = self.printer.lookup_object('toolhead')
+      gcode = self.printer.lookup_object('gcode')
+      gcode.run_script_from_command("G90")
       self.drop_z_move(toolhead)
-      toolhead.manual_move([x, y, None], self.speed_parking)
-      toolhead.manual_move([x, self.parking_magnet_y, None], self.speed_parking)
-    
-    
+      gcode.run_script_from_command(f"G1 X{x} Y{self.parking_magnet_y} F{self.speed_parking}")
       messages = self.printer.lookup_object("messages")
       if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
           messages.send_message('warning', _("Couldn't take probe"))
-          toolhead.manual_move([x, y, None], self.speed_base)
+          gcode.run_script_from_command(f"G1 X{x} Y{y} F{self.speed_base}")
           return False
-      toolhead.manual_move([x, y, None], self.speed_parking)
-      toolhead.manual_move([self.magnet_x_offset, None, None], self.speed_base)
-      toolhead.manual_move([None, self.parking_magnet_y, None], self.speed_base)
+      gcode.run_script_from_command(f"\
+                            G1 X{x} Y{y} F{self.speed_parking}\n\
+                            G1 X{self.magnet_x_offset} F{self.speed_parking}\n\
+                            G1 Y{self.parking_magnet_y} F{self.speed_base}\n\
+                         ")
       if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
           messages.send_message('warning', _("Couldn't return probe"))
           return False

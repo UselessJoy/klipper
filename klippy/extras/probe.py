@@ -311,6 +311,12 @@ class PrinterProbe:
     cmd_END_ADJUSTMENT_help = _("End adjustment")
     def cmd_END_ADJUSTMENT(self, gcmd):
       self.is_adjusting = False
+      gcode = self.printer.lookup_object('gcode')
+      if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
+        gcode.run_script_from_command(f"G1 X{self.magnet_x_offset} F{self.speed_base}")
+      else:
+        self.run_gcode_return_magnet()
+      
 
     def run_gcode_check_magnet(self, x, y):
       gcode = self.printer.lookup_object('gcode')

@@ -37,6 +37,8 @@ class Messages:
         webhooks = self.printer.lookup_object('webhooks')
         webhooks.register_endpoint("messages/open_message",
                                    self._handle_open_message)
+        webhooks.register_endpoint("messages/close_message",
+                                   self.reset_open_timer)
     
     def _handle_open_message(self, web_request):
         message_type = web_request.get_str('message_type')
@@ -44,13 +46,13 @@ class Messages:
         self.send_message(message_type, message, True)
         
     def send_message(self, message_type, message, from_webhooks=False):
+        self.reset_open_timer()
         self.message_type = message_type
         self.last_eventtime = self.reactor.monotonic()
         if from_webhooks:
             self.current_message = self.webhooks_messages[self.message_type][message]
         else:
             self.current_message = message
-        self.reset_open_timer()
         self.timer = self.reactor.register_timer(self.open_timer, self.reactor.NOW)
         self.is_open = True
         self.gcode.respond_msg(self.current_message, f"({self.message_type})", True)
@@ -61,8 +63,10 @@ class Messages:
             return self.reactor.NEVER
         return eventtime + 1
 
-    def reset_open_timer(self):
+    def reset_open_timer(self, web_request=None):
         self.is_open = False
+        self.message_type = ""
+        self.current_message = ""
         if self.timer:
             self.reactor.unregister_timer(self.timer)
             self.timer = None

@@ -393,10 +393,10 @@ class ResonanceTester:
             self.messages.send_message("warning", _("Cannot find graph %s") % args[0].rpartition('/')[2])# no locale
             return
         saved = self.get_saved_shaper_graphs()
-        if f"config/.shaper-images/{args[1]}" in saved:
+        if f"\"config/.shaper-images/{args[1]}\"" in saved:
             self.messages.send_message("warning", _("Graph %s already exist") % args[0].rpartition('/')[2])# no locale
             return
-        saving_new_graph_path = f"{self.shaper_graphs_dir}/{args[1]}"
+        saving_new_graph_path = f"\"{self.shaper_graphs_dir}/{args[1]}\""
         os.system(f"cp /{args[0]} {saving_new_graph_path}")
         os.system(f"rm /{args[0]}")
         self.update_status()
@@ -415,7 +415,7 @@ class ResonanceTester:
             if args[0] not in saved:
                 self.messages.send_message("warning", _("Cannot find graph %s") % args[0].rpartition('/')[2])# no locale
                 return
-            removing_path = f"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}" # Поскольку в dir не хватает только имени
+            removing_path = f"\"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}\"" # Поскольку в dir не хватает только имени
         if removing_path:
             if args[0] == self.active_shaper_graph:
                 self.active_shaper_graph = ""
@@ -431,11 +431,11 @@ class ResonanceTester:
         if args[0] not in saved:
             self.messages.send_message("warning", _("Graph %s doesn't saved") % args[0].rpartition('/')[2])# no locale
             return
-        if f"config/.shaper-images/{args[1]}" in saved:
+        if f"\"config/.shaper-images/{args[1]}\"" in saved:
             self.messages.send_message("warning", _("Graph %s already exist") % args[0].rpartition('/')[2])# no locale
             return
-        renamed_path = f"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}" # Поскольку в dir не хватает только имени
-        os.system(f"mv {renamed_path} {self.shaper_graphs_dir}/{args[1]}")
+        renamed_path = f"\"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}\"" # Поскольку в dir не хватает только имени
+        os.system(f"mv {renamed_path} \"{self.shaper_graphs_dir}/{args[1]}\"")
         self.update_status()
         
     def plot_freq_response(self, name: str, calibration_data, shapers,

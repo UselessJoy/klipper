@@ -3105,8 +3105,8 @@ msgstr "Принтер уже идет в паузу"
 msgid "Printer already wait go to resume"
 msgstr "Принтер уже продолжает печать"
 
-msgid "New default color was successfully saved!"
-msgstr "Цвет подсветки по умолчанию успешно сохранен!"
+msgid "New default color was successfully saved"
+msgstr "Цвет подсветки по умолчанию успешно сохранен"
 
 msgid "Couldn't take probe"
 msgstr "Не удалось взять пробу"

@@ -15,7 +15,7 @@ class Messages:
                                 'has_next_screw': _("Cannot set new calibrating screw: already wait move to next screw %s")
                             },
                             'success': 
-                            {'saved_default_color': _("New default color was successfully saved!"),
+                            {'saved_default_color': _("New default color was successfully saved"),
                              'successfull_save_bed_mesh': _("Bed mesh was successfull saved!"),
                              },
                             'suggestion': 

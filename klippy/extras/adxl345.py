@@ -164,6 +164,7 @@ class AccelCommandHelper:
         _, accel_x, accel_y, accel_z = values[-1]
         gcmd.respond_info("accelerometer values (x, y, z): %.6f, %.6f, %.6f"
                           % (accel_x, accel_y, accel_z))
+      
     cmd_ACCELEROMETER_DEBUG_READ_help = _("Query register (for debugging)")
     def cmd_ACCELEROMETER_DEBUG_READ(self, gcmd):
         reg = gcmd.get("REG", minval=0, maxval=126, parser=lambda x: int(x, 0))

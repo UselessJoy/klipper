@@ -6,6 +6,7 @@
 import os, logging, threading, re
 import locales
 
+
 ######################################################################
 # Heater
 ######################################################################
@@ -18,12 +19,12 @@ PID_PARAM_BASE = 255.
 class Heater:
     def __init__(self, config, sensor):
         self.printer = config.get_printer()
-        self.name = config.get_name().split()[-1]
+        self.name = config.get_name()
+        self.short_name = short_name = self.name.split()[-1]
         # Setup sensor
         self.sensor = sensor
         self.min_temp = config.getfloat('min_temp', minval=KELVIN_TO_CELSIUS)
         self.max_temp = config.getfloat('max_temp', above=self.min_temp)
-        self.locale = config.get('locale', None)
         self.sensor.setup_minmax(self.min_temp, self.max_temp)
         self.sensor.setup_callback(self.temperature_callback)
         self.pwm_delay = self.sensor.get_report_time_delta()
@@ -37,6 +38,7 @@ class Heater:
         self.max_power = config.getfloat('max_power', 1., above=0., maxval=1.)
         self.smooth_time = config.getfloat('smooth_time', 1., above=0.)
         self.inv_smooth_time = 1. / self.smooth_time
+        self.is_shutdown = False
         self.lock = threading.Lock()
         self.last_temp = self.smoothed_temp = self.target_temp = 0.
         self.last_temp_time = 0.
@@ -56,15 +58,16 @@ class Heater:
         self.mcu_pwm.setup_cycle_time(pwm_cycle_time)
         self.mcu_pwm.setup_max_duration(MAX_HEAT_TIME)
         # Load additional modules
-        self.printer.load_object(config, "verify_heater %s" % (self.name,))
+        self.printer.load_object(config, "verify_heater %s" % (short_name,))
         self.printer.load_object(config, "pid_calibrate")
         gcode = self.printer.lookup_object("gcode")
         gcode.register_mux_command("SET_HEATER_TEMPERATURE", "HEATER",
-                                   self.name, self.cmd_SET_HEATER_TEMPERATURE,
+                                   short_name, self.cmd_SET_HEATER_TEMPERATURE,
                                    desc=self.cmd_SET_HEATER_TEMPERATURE_help)
-        
+        self.printer.register_event_handler("klippy:shutdown",
+                                            self._handle_shutdown)
     def set_pwm(self, read_time, value):
-        if self.target_temp <= 0.:
+        if self.target_temp <= 0. or self.is_shutdown:
             value = 0.
         if ((read_time < self.next_pwm_time or not self.last_pwm_value)
             and abs(value - self.last_pwm_value) < 0.05):
@@ -77,7 +80,6 @@ class Heater:
         #logging.debug("%s: pwm=%.3f@%.3f (from %.3f@%.3f [%.3f])",
         #              self.name, value, pwm_time,
         #              self.last_temp, self.last_temp_time, self.target_temp)
-        
     def temperature_callback(self, read_time, temp):
         with self.lock:
             time_diff = read_time - self.last_temp_time
@@ -89,56 +91,49 @@ class Heater:
             self.smoothed_temp += temp_diff * adj_time
             self.can_extrude = (self.smoothed_temp >= self.min_extrude_temp)
         #logging.debug("temp: %.3f %f = %f", read_time, temp)
-        
+    def _handle_shutdown(self):
+        self.is_shutdown = True
     # External commands
+    def get_name(self):
+        return self.name
     def get_pwm_delay(self):
         return self.pwm_delay
-    
     def get_max_power(self):
         return self.max_power
-    
     def get_smooth_time(self):
         return self.smooth_time
-    
     def set_temp(self, degrees):
         if degrees and (degrees < self.min_temp or degrees > self.max_temp):
             raise self.printer.command_error(
                 _("Requested temperature (%.1f) out of range (%.1f:%.1f)")
                 % (degrees, self.min_temp, self.max_temp))
+        if hasattr(self.control, 'set_best_pid'):
+                self.control.set_best_pid(degrees)
+        vsd = self.printer.lookup_object('virtual_sdcard')
+        if vsd.is_active() and vsd.autoload_bed_mesh:
+            self.printer.lookup_object('bed_mesh').load_best_mesh(degrees)
         with self.lock:
             self.target_temp = degrees
-            if hasattr(self.control, 'set_best_pid'):
-                self.control.set_best_pid(degrees)
-            vsd = self.printer.lookup_object('virtual_sdcard')
-            if vsd.is_active() and vsd.autoload_bed_mesh:
-                self.printer.lookup_object('bed_mesh').load_best_mesh(degrees)
-                
-            
-                
     def get_temp(self, eventtime):
         print_time = self.mcu_pwm.get_mcu().estimated_print_time(eventtime) - 5.
         with self.lock:
             if self.last_temp_time < print_time:
                 return 0., self.target_temp
             return self.smoothed_temp, self.target_temp
-        
     def check_busy(self, eventtime):
         with self.lock:
             return self.control.check_busy(
                 eventtime, self.smoothed_temp, self.target_temp)
-            
     def set_control(self, control):
         with self.lock:
             old_control = self.control
             self.control = control
             self.target_temp = 0.
         return old_control
-    
     def alter_target(self, target_temp):
         if target_temp:
             target_temp = max(self.min_temp, min(self.max_temp, target_temp))
         self.target_temp = target_temp
-        
     def stats(self, eventtime):
         with self.lock:
             target_temp = self.target_temp
@@ -146,8 +141,7 @@ class Heater:
             last_pwm_value = self.last_pwm_value
         is_active = target_temp or last_temp > 50.
         return is_active, '%s: target=%.0f temp=%.1f pwm=%.3f' % (
-            self.name, target_temp, last_temp, last_pwm_value)
-        
+            self.short_name, target_temp, last_temp, last_pwm_value)
     def get_status(self, eventtime):
         with self.lock:
             target_temp = self.target_temp
@@ -158,7 +152,6 @@ class Heater:
         if hasattr(self.control, 'get_control'):
             status['control'] = self.control.get_control()
         return status
-    
     cmd_SET_HEATER_TEMPERATURE_help = _("Sets a heater temperature")
     def cmd_SET_HEATER_TEMPERATURE(self, gcmd):
         temp = gcmd.get_float('TARGET', 0.)
@@ -191,6 +184,7 @@ class ControlBangBang:
     def get_control(self):
         return {'bang_bang': {'max_delta': self.max_delta}}
 
+
 ######################################################################
 # Proportional Integral Derivative (PID) control algo
 ######################################################################
@@ -206,11 +200,11 @@ class ControlPID:
         self.Kp = config.getfloat('pid_Kp', PID_PARAM_BASE) / PID_PARAM_BASE
         self.Ki = config.getfloat('pid_Ki', PID_PARAM_BASE) / PID_PARAM_BASE
         self.Kd = config.getfloat('pid_Kd', PID_PARAM_BASE) / PID_PARAM_BASE
-        self.pid_delta = config.getfloat('pid_delta', PID_SETTLE_DELTA)
         self.pid_mass = {}
         for option in config.getoptions():
             if self.pid_re.match(option):
-                self.pid_mass[float(option.partition('_')[2])] = config.getfloatlist(option)       
+                self.pid_mass[float(option.partition('_')[2])] = config.getfloatlist(option)
+        logging.info(f"pid mass is {self.pid_mass}")       
         self.min_deriv_time = heater.get_smooth_time()
         self.temp_integ_max = 0.
         if self.Ki:
@@ -228,8 +222,9 @@ class ControlPID:
                 if abs(temp - target_temp) < best_diff:
                     best_diff = abs(temp - target_temp)
                     best_pid_temp = temp
-            self.Kp, self.Ki, self.Kd = self.pid_mass[best_pid_temp]
-        
+            self.Kp, self.Ki, self.Kd = (k / PID_PARAM_BASE for k in self.pid_mass[best_pid_temp])
+            
+            
     def temperature_update(self, read_time, temp, target_temp):
         time_diff = read_time - self.prev_temp_time
         # Calculate change of temperature
@@ -255,19 +250,12 @@ class ControlPID:
         self.prev_temp_deriv = temp_deriv
         if co == bounded_co:
             self.prev_temp_integ = temp_integ
-            
     def check_busy(self, eventtime, smoothed_temp, target_temp):
-        temp_diff = target_temp - smoothed_temp
-        return ((abs(temp_diff) > PID_SETTLE_DELTA
-                or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE) and target_temp != 0)
+        return target_temp > smoothed_temp if target_temp != 0 else False
+        # temp_diff = target_temp - smoothed_temp
+        # return (abs(temp_diff) > PID_SETTLE_DELTA
+        #         or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE)
         
-    # def check_busy(self, eventtime, smoothed_temp, target_temp):
-    #     temp_diff = target_temp - smoothed_temp
-    #     # return target_temp > smoothed_temp if target_temp != 0 else False
-    #     return (((abs(temp_diff) > PID_SETTLE_DELTA or smoothed_temp >= target_temp + 10) if temp_diff > 0 
-    #              else ((abs(temp_diff) > self.pid_delta or abs(self.prev_temp_deriv) > PID_SETTLE_SLOPE) or smoothed_temp < target_temp + 10)
-    #             ) and target_temp != 0)
-    
     def get_control(self):
         return {'pid': {'pid_Kp': self.Kp, 'pid_Ki': self.Ki, 'pid_Kd': self.Kd}}
 
@@ -285,13 +273,11 @@ class PrinterHeaters:
         self.gcode_id_to_sensor = {}
         self.available_heaters = []
         self.available_sensors = []
+        self.available_monitors = []
         self.has_started = self.have_load_sensors = False
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.printer.register_event_handler("gcode:request_restart",
                                             self.turn_off_all_heaters)
-        webhooks = self.printer.lookup_object('webhooks')
-        webhooks.register_endpoint("heaters/turn_off_heaters",
-                                   self.turn_off_all_heaters)
         # Register commands
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command("TURN_OFF_HEATERS", self.cmd_TURN_OFF_HEATERS,
@@ -299,6 +285,10 @@ class PrinterHeaters:
         gcode.register_command("M105", self.cmd_M105, when_not_ready=True)
         gcode.register_command("TEMPERATURE_WAIT", self.cmd_TEMPERATURE_WAIT,
                                desc=self.cmd_TEMPERATURE_WAIT_help)
+        webhooks = self.printer.lookup_object('webhooks')
+        webhooks.register_endpoint("heaters/turn_off_heaters",
+                                   self.turn_off_all_heaters)
+        
     def load_config(self, config):
         self.have_load_sensors = True
         # Load default temperature sensors
@@ -338,8 +328,6 @@ class PrinterHeaters:
         if sensor_type not in self.sensor_factories:
             raise self.printer.config_error(
                 _("Unknown temperature sensor '%s'") % (sensor_type,))
-        if sensor_type == 'NTC 100K beta 3950':
-            config.deprecate('sensor_type', 'NTC 100K beta 3950')
         return self.sensor_factories[sensor_type](config)
     def register_sensor(self, config, psensor, gcode_id=None):
         self.available_sensors.append(config.get_name())
@@ -349,12 +337,15 @@ class PrinterHeaters:
                 return
         if gcode_id in self.gcode_id_to_sensor:
             raise self.printer.config_error(
-                _("G-Code sensor id %s already registered" )% (gcode_id,))
+                _("G-Code sensor id %s already registered") % (gcode_id,))
         self.gcode_id_to_sensor[gcode_id] = psensor
+    def register_monitor(self, config):
+        self.available_monitors.append(config.get_name())
     def get_status(self, eventtime):
         return {'available_heaters': self.available_heaters,
                 'available_sensors': self.available_sensors,
-                'is_waiting': self.is_waiting}
+                'is_waiting': self.is_waiting,
+                'available_monitors': self.available_monitors}
     
     def get_waiting(self):
         return self.is_waiting
@@ -397,21 +388,21 @@ class PrinterHeaters:
         gcode = self.printer.lookup_object("gcode")
         reactor = self.printer.get_reactor()
         eventtime = reactor.monotonic()
-        while not self.printer.is_shutdown() and heater.check_busy(eventtime) and self.is_waiting:
+        while not self.printer.is_shutdown() and heater.check_busy(eventtime):
             print_time = toolhead.get_last_move_time()
             gcode.respond_raw(self._get_temp(eventtime))
             eventtime = reactor.pause(eventtime + 1.)
         self.is_waiting = False
-    def set_temperature(self, heater, target_temp, wait=False):
+    def set_temperature(self, heater, temp, wait=False):
         if heater.name.startswith("extruder"):
-            self.printer.send_event("extruder:heating", target_temp)
+            self.printer.send_event("extruder:heating", temp)
         elif heater.name.startswith("heater_bed"):
-            self.printer.send_event("heater_bed:heating", target_temp)
+            self.printer.send_event("heater_bed:heating", temp)
         self.is_waiting = wait
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt: None))
-        heater.set_temp(target_temp)
-        if wait and target_temp:
+        heater.set_temp(temp)
+        if wait and temp:
             self._wait_for_temperature(heater)
     cmd_TEMPERATURE_WAIT_help = _("Wait for a temperature on a sensor")
     def cmd_TEMPERATURE_WAIT(self, gcmd):

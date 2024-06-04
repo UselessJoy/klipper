@@ -275,6 +275,7 @@ class VirtualSD:
             self.rebuild_begin_print, self.reactor.NOW)
          
     def cmd_SDCARD_REMOVE_FILE(self, gcmd):
+        self.printer.lookup_object('gcode_move').reset_e()
         self.show_interrupt = False
         self._remove_file()
         gcmd.respond_raw(_("Remove interrupted file"))

@@ -143,6 +143,9 @@ class GCodeMove:
             raise gcmd.error(_("Unable to parse move '%s'")
                              % (gcmd.get_commandline(),))
         self.move_with_transform(self.last_position, self.speed)
+    
+    def reset_e(self):
+      self.last_param_e = 0
     # G-Code coordinate manipulation
     def cmd_G20(self, gcmd):
         # Set units to inches

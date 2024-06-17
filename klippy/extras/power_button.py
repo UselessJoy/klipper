@@ -13,10 +13,11 @@ class PowerButton:
         self.reactor = self.printer.get_reactor()
         self.luft_timer = 0
         self.last_eventtime = 0
+        self.timeout = config.get("timeout", 3)
         buttons = self.printer.load_object(config, "buttons")
         power_pin = config.get("pin")
         buttons.register_buttons([power_pin], self.power_pin_callback)
-        self.is_invert = True if power_pin.startswith('!') else False
+        self.is_invert = power_pin.startswith('!')
         
     
     def power_pin_callback(self, eventtime, state):
@@ -32,8 +33,9 @@ class PowerButton:
   
     def is_luft_timer(self, eventtime):
       if self.last_state:
-        if abs(eventtime - self.last_eventtime) > 3:
-          os.system("systemctcl poweroff")
+        if abs(eventtime - self.last_eventtime) > self.timeout:
+          logging.info(f"timer is {eventtime} - {self.last_eventtime}")
+          os.system("systemctl poweroff")
       else:
         self.reset_luft_timer()
         return self.reactor.NEVER

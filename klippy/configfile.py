@@ -218,7 +218,6 @@ class PrinterConfig:
         return regular_data, '\n'.join(out)
     
     def _strip_duplicates(self, data: str, config: ConfigWrapper) -> str:
-        fileconfig = config.fileconfig
         # Comment out fields in 'data' that are defined in 'config'
         lines = data.split('\n')
         section = None

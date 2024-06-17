@@ -34,7 +34,6 @@ class PowerButton:
     def is_luft_timer(self, eventtime):
       if self.last_state:
         if abs(eventtime - self.last_eventtime) > self.timeout:
-          logging.info(f"timer is {eventtime} - {self.last_eventtime}")
           os.system("systemctl poweroff")
       else:
         self.reset_luft_timer()

@@ -10,6 +10,8 @@ class PauseResume:
         self.gcode = self.printer.lookup_object('gcode')
         self.manual_pause = False
         self.recover_velocity = config.getfloat('recover_velocity', 50.)
+        self.pause_velocity = config.getfloat('pause_velocity', 100.)
+        self.resume_velocity = config.getfloat('resume_velocity', 200.)
         self.v_sd = None
         self.is_paused = False
         self.sd_paused = False
@@ -69,7 +71,9 @@ class PauseResume:
     
     def get_status(self, eventtime):
         return {
-            'is_paused': self.is_paused
+            'is_paused': self.is_paused,
+            'pause_velocity': self.pause_velocity,
+            'resume_velocity': self.resume_velocity
         }
         
     def is_sd_active(self):

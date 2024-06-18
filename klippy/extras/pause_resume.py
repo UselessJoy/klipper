@@ -73,7 +73,8 @@ class PauseResume:
         return {
             'is_paused': self.is_paused,
             'pause_velocity': self.pause_velocity,
-            'resume_velocity': self.resume_velocity
+            'resume_velocity': self.resume_velocity,
+            'recover_velocity': self.recover_velocity
         }
         
     def is_sd_active(self):

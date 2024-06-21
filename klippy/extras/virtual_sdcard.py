@@ -172,14 +172,18 @@ class VirtualSD:
         if safety_printing_object.safety_enabled:
             safety_printing_object.raise_error_if_open()
         self.printer.lookup_object('homing').run_G28_if_unhomed()
-        probe_object = self.printer.lookup_object('probe')
+        # probe_object = self.printer.lookup_object('probe')
         # if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
         #   probe_object.run_gcode_return_magnet()
         # probe_object.return_z()
-        if self.watch_bed_mesh:
+        messages = self.printer.lookup_object('messages')
+        if self.autoload_bed_mesh:
+            start_heater_bed_temp = self.find_start_heater_bed_temp()
+            cur_profile = self.printer.lookup_object('bed_mesh').load_best_mesh(start_heater_bed_temp)
+            messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Automatic loaded bed mesh %s") % cur_profile)
+        elif self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
-            messages = self.printer.lookup_object('messages')
-            messages.send_message("warning", _("No mesh loaded")) if cur_profile == "" else messages.send_message("suggestion", _("Loaded mesh profile: %s") % cur_profile)
+            messages.send_message("warning", _("No mesh loaded")) if cur_profile == "" else messages.send_message("success", _("Loaded mesh profile: %s") % cur_profile)
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
@@ -504,7 +508,40 @@ class VirtualSD:
         self.gcode.respond_info(str(self.current_file))
         
         file.close()
+    
 
+    def find_start_heater_bed_temp(self): 
+        lines = []
+        partial_input = ""
+        file = io.open(self.file_path(), "r", newline='')
+        file_position = 0
+        file.seek(file_position)
+        data = file.read(4096)
+        lines: list[str] = data.split('\n')
+        lines[0] = partial_input + lines[0]
+        partial_input = lines.pop()
+        lines.reverse()
+        line: str = lines.pop()
+        while data:
+            if not lines:
+                # Read more data
+                try:
+                    data = self.current_file.read(8192)
+                    lines = data.split('\n')
+                    lines[0] = partial_input + lines[0]
+                    partial_input = lines.pop()
+                    lines.reverse()
+                except:
+                    logging.exception("virtual_sdcard read")
+                    break
+            if line.startswith('M190') or line.startswith('M109'):
+                return int(line.split(" ")[1][1:])
+            next_file_position = file_position + len(line.encode()) + 1       
+            file_position = next_file_position
+            file.seek(file_position)
+            line = lines.pop()
+        return 0
+            
     def rebuild_begin_print(self, eventtime):
         self.reactor.unregister_timer(self.work_timer)
         self.print_stats.note_start()

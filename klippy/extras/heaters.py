@@ -109,9 +109,6 @@ class Heater:
                 % (degrees, self.min_temp, self.max_temp))
         if hasattr(self.control, 'set_best_pid'):
                 self.control.set_best_pid(degrees)
-        vsd = self.printer.lookup_object('virtual_sdcard')
-        if vsd.is_active() and vsd.autoload_bed_mesh:
-            self.printer.lookup_object('bed_mesh').load_best_mesh(degrees)
         with self.lock:
             self.target_temp = degrees
     def get_temp(self, eventtime):

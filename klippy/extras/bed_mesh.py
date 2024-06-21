@@ -262,7 +262,7 @@ class BedMesh:
     def get_mesh(self) -> ZMesh:
         return self.z_mesh
 
-    def load_best_mesh(self, target) -> None:
+    def load_best_mesh(self, target) -> str | None:
         if target == 0:
             return
         logging.info("Loading best bed mesh")
@@ -300,11 +300,11 @@ class BedMesh:
                     best_time = profiles[pr]['calibrating_datetime']
                     best_profile = pr
         logging.info(f"End of best profile {best_profile}")  
-        mesh_params = profiles[best_profile]['mesh_params']
-        z_mesh = ZMesh(mesh_params)
+        # mesh_params = profiles[best_profile]['mesh_params']
+        # z_mesh = ZMesh(mesh_params)
         if best_profile:
-            self.set_mesh(z_mesh)
-        self.printer.lookup_object("gcode").respond_info(_("Automatic loaded bed mesh %s") % best_profile)#no locale
+            self.pmgr.load_profile(best_profile)
+        return best_profile
          
     cmd_BED_MESH_OUTPUT_help = _("Retrieve interpolated grid of probed z-points")
     def cmd_BED_MESH_OUTPUT(self, gcmd):

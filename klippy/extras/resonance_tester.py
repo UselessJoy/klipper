@@ -426,8 +426,8 @@ class ResonanceTester:
     
     def _handle_set_active_tension(self, web_request):
         new_active_tension = web_request.get('tension', None)
-        if self.get_belt_tensions().count(new_active_tension):
-          self.active_belt_tension = new_active_tension
+        # if self.get_belt_tensions().count(new_active_tension):
+        self.active_belt_tension = new_active_tension
     def _handle_shaper_graph(self, web_request):
         action = web_request.get('action')
         webhook_func = {

@@ -534,9 +534,11 @@ class VirtualSD:
                 lines.reverse()
                 self.reactor.pause(self.reactor.NOW)
                 continue
-            line = lines.pop()
+            line: str = lines.pop()
             if line.startswith('M190') or line.startswith('M109'):
                 return int(line.split(" ")[1][1:])
+            if line.find('CURRENT_LAYER=1') != -1: # типо после данной команды дальше температуру устанавливать нет смысла
+                return 0
             next_file_position = file_position + len(line.encode()) + 1       
             file_position = next_file_position
             file.seek(file_position)

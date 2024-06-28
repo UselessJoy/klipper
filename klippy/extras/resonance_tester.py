@@ -19,6 +19,23 @@ import re
 
 MAX_TITLE_LENGTH=65
 
+def _parse_axis(gcmd, raw_axis):
+    if raw_axis is None:
+        return None
+    raw_axis = raw_axis.lower()
+    if raw_axis in ['x', 'y']:
+        return TestAxis(axis=raw_axis)
+    dirs = raw_axis.split(',')
+    if len(dirs) != 2:
+        raise gcmd.error(_("Invalid format of axis '%s'") % (raw_axis,))
+    try:
+        dir_x = float(dirs[0].strip())
+        dir_y = float(dirs[1].strip())
+    except:
+        raise gcmd.error(
+                _("Unable to parse axis direction '%s'") % (raw_axis,))
+    return TestAxis(vib_dir=(dir_x, dir_y))
+
 class TestAxis:
     def __init__(self, axis=None, vib_dir=None):
         if axis is None:
@@ -40,23 +57,6 @@ class TestAxis:
         return self._name
     def get_point(self, l):
         return (self._vib_dir[0] * l, self._vib_dir[1] * l)
-
-def _parse_axis(gcmd, raw_axis):
-    if raw_axis is None:
-        return None
-    raw_axis = raw_axis.lower()
-    if raw_axis in ['x', 'y']:
-        return TestAxis(axis=raw_axis)
-    dirs = raw_axis.split(',')
-    if len(dirs) != 2:
-        raise gcmd.error(_("Invalid format of axis '%s'") % (raw_axis,))
-    try:
-        dir_x = float(dirs[0].strip())
-        dir_y = float(dirs[1].strip())
-    except:
-        raise gcmd.error(
-                _("Unable to parse axis direction '%s'") % (raw_axis,))
-    return TestAxis(vib_dir=(dir_x, dir_y))
 
 class VibrationPulseTest:
     def __init__(self, config):
@@ -130,6 +130,7 @@ class VibrationPulseTest:
 
 class ResonanceTester:
     tmp_shaper_graph_r = re.compile(r"calibration_data_[xy]_\d+_\d+.png")
+    tmp_belt_tension_r = re.compile(r"belt_tension_\d+_\d+.png")# 1,2 поменять на значение ремня (после отпуска)
     
     def __init__(self, config):
         self.printer = config.get_printer()
@@ -141,12 +142,15 @@ class ResonanceTester:
 
         # Параметры для графиков шейпера
         self.active_shaper_graph = ""
+        self.active_belt_tension = ""
         self.shaper_graphs_dir = os.path.join(config_dir, ".shaper-images/")
         if not os.path.isdir(self.shaper_graphs_dir):
                 os.mkdir(self.shaper_graphs_dir)
         self.status = {
             'saved': self.get_saved_shaper_graphs(),
             'tmp': self.get_tmp_shaper_graphs(),
+            'belt_tensions': self.get_belt_tensions(),
+            'active_belt_tension': self.active_belt_tension,
             'active': self.active_shaper_graph
         }
         if not config.get('accel_chip_x', None):
@@ -164,6 +168,8 @@ class ResonanceTester:
         webhooks = self.printer.lookup_object('webhooks')
         webhooks.register_endpoint("resonance_tester/shaper_graph",
                                    self._handle_shaper_graph)
+        webhooks.register_endpoint("resonance_tester/set_active_tension",
+                                   self._handle_set_active_tension)
         
         # Регистрация команд 
         self.gcode = self.printer.lookup_object('gcode')
@@ -176,6 +182,9 @@ class ResonanceTester:
         self.gcode.register_command("SHAPER_CALIBRATE",
                                     self.cmd_SHAPER_CALIBRATE,
                                     desc=self.cmd_SHAPER_CALIBRATE_help)
+        self.gcode.register_command("BELT_TENSION",
+                                    self.cmd_belt_tension,
+                                    desc=self.cmd_BELT_TENSION_help)
         self.printer.register_event_handler("klippy:connect", self.connect)
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         
@@ -248,7 +257,57 @@ class ResonanceTester:
                         calibration_data[axis].add_data(new_data)
         return calibration_data
     
-    cmd_TEST_RESONANCES_help = (_("Runs the resonance test for a specifed axis"))
+    cmd_BELT_TENSION_help = _("Runs the resonance test for belts to check their equals") # no locale
+    def cmd_belt_tension(self, gcmd): 
+        plot_freq = gcmd.get_float("PLOT_FREQ", 200.)
+        belts = {'left': {'axis': '1,1', 'data': None}, 'right': {'axis': '1,-1', 'data': None}}
+        for belt in belts:
+          axis = _parse_axis(gcmd, belts[belt]['axis'])
+          name_suffix = time.strftime("%Y%m%d_%H%M%S")
+          # Setup calculation of resonances
+          helper = shaper_calibrate.ShaperCalibrate(self.printer)
+          self.printer.lookup_object('homing').run_G28_if_unhomed()
+          belts[belt]['data'] = self._run_test(
+                  gcmd, [axis], helper,
+                  raw_name_suffix=None)[axis]
+          
+          csv_name = self.save_calibration_data('belt_tension', name_suffix,
+                                                helper, None, belts[belt]['data'])
+          gcmd.respond_info(
+                  _("Resonances data written to %s file") % (csv_name,))
+        fig: Figure = self.plot_compare_frequency([belts['left']['data'], belts['right']['data']], ['Left belt', 'Right belt'], plot_freq, 'all')# no locale
+        fig.set_size_inches(8, 6)
+        belt_tension_path = os.path.join("/tmp/", csv_name.rpartition('/')[2].replace('.csv', '.png'))
+        fig.savefig(belt_tension_path)
+        self.update_status()
+
+
+    def plot_compare_frequency(self, datas, lognames, max_freq, axis):
+      fig, ax = matplotlib.pyplot.subplots()
+      ax.set_title('Frequency responses comparison')
+      ax.set_xlabel('Frequency (Hz)')
+      ax.set_ylabel('Power spectral density')
+
+      for data, logname in zip(datas, lognames):
+          freqs = data.freq_bins
+          psd = data.get_psd(axis)[freqs <= max_freq]
+          freqs = freqs[freqs <= max_freq]
+          ax.plot(freqs, psd, label="\n".join(wrap(logname, 60)), alpha=0.6)
+
+      ax.xaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+      ax.yaxis.set_minor_locator(matplotlib.ticker.AutoMinorLocator())
+      ax.grid(which='major', color='grey')
+      ax.grid(which='minor', color='lightgrey')
+      fontP = matplotlib.font_manager.FontProperties()
+      fontP.set_size('x-small')
+      ax.legend(loc='best', prop=fontP)
+      fig.tight_layout()
+      return fig
+
+
+
+
+    cmd_TEST_RESONANCES_help = _("Runs the resonance test for a specifed axis")
     def cmd_TEST_RESONANCES(self, gcmd):
         # Parse parameters
         axis = _parse_axis(gcmd, gcmd.get("AXIS").lower())
@@ -258,9 +317,10 @@ class ResonanceTester:
             if output not in ['resonances', 'raw_data']:
                 raise gcmd.error(_("Unsupported output '%s', only 'resonances'"
                                  " and 'raw_data' are supported") % (output,))
-        if not outputs:
-            raise gcmd.error(_("No output specified, at least one of 'resonances'"
-                             " or 'raw_data' must be set in OUTPUT parameter"))
+        # Недостижимое условие
+        # if not outputs:
+        #     raise gcmd.error(_("No output specified, at least one of 'resonances'"
+        #                      " or 'raw_data' must be set in OUTPUT parameter"))
         name_suffix = gcmd.get("NAME", time.strftime("%Y%m%d_%H%M%S"))
         if not self.is_valid_name_suffix(name_suffix):
             raise gcmd.error(_("Invalid NAME parameter"))
@@ -338,20 +398,36 @@ class ResonanceTester:
             "with these parameters and restart the printer."))
     
     def get_status(self, eventtime):
-        return self.status
+        return {
+                  'saved': self.get_saved_shaper_graphs(),
+                  'tmp': self.get_tmp_shaper_graphs(),
+                  'belt_tensions': self.get_belt_tensions(),
+                  'active_belt_tension': self.active_belt_tension,
+                  'active': self.active_shaper_graph
+        }
+    
     def update_status(self):
         self.status = {
                     'saved': self.get_saved_shaper_graphs(),
                     'tmp': self.get_tmp_shaper_graphs(),
+                    'belt_tensions': self.get_belt_tensions(),
+                    'active_belt_tension': self.active_belt_tension,
                     'active': self.active_shaper_graph
         }
-        
+    
+    def get_belt_tensions(self):
+        return [f"tmp/{filename}" for filename in os.listdir("/tmp/") if self.tmp_belt_tension_r.match(filename)]
+    
     def get_saved_shaper_graphs(self):
         return [f"config/.shaper-images/{filename}" for filename in os.listdir(self.shaper_graphs_dir) if filename.endswith('.png')]
     
     def get_tmp_shaper_graphs(self):
         return [f"tmp/{filename}" for filename in os.listdir("/tmp/") if self.tmp_shaper_graph_r.match(filename)]
     
+    def _handle_set_active_tension(self, web_request):
+        new_active_tension = web_request.get('tension', None)
+        if self.get_belt_tensions().count(new_active_tension):
+          self.active_belt_tension = new_active_tension
     def _handle_shaper_graph(self, web_request):
         action = web_request.get('action')
         webhook_func = {

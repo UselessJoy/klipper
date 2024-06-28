@@ -89,18 +89,21 @@ class GCodeCommand:
             raise self.error(_("Error on '%s': %s must be below %s")
                              % (self._commandline, name, below))
         return value
-    def get_int(self, name, default=sentinel, minval=None, maxval=None):
+        
+    def get_int(self, name, default=sentinel, minval=None, maxval=None) -> int:
         return self.get(name, default, parser=int, minval=minval, maxval=maxval)
+        
     def get_float(self, name, default=sentinel, minval=None, maxval=None,
-                  above=None, below=None):
+                  above=None, below=None) -> float:
         return self.get(name, default, parser=float, minval=minval,
                         maxval=maxval, above=above, below=below)
-    def get_boolean(self, name, default=sentinel, minval=None, maxval=None):
+                        
+    def get_boolean(self, name, default=sentinel, minval=None, maxval=None) -> bool:
         return self.get(name, default, parser=bool, minval=minval, maxval=maxval)
-    def get_list_str(self, name, default=sentinel, sep=','):
-        return self.get(name, default).split(sep)
+        
+    def get_list_str(self, name, default=sentinel, sep=',') -> str:
+        return re.sub(' ', '', self.get(name, default)).split(sep)
     
-
 # Parse and dispatch G-Code commands
 class GCodeDispatch:
     error = CommandError

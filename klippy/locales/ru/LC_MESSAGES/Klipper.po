@@ -23,6 +23,12 @@ msgstr ""
 msgid "Printer is ready"
 msgstr "Принтер готов"
 
+msgid "extruder"
+msgstr "экструдер"
+
+msgid "heater_bed"
+msgstr "стол"
+
 msgid "Hello"
 msgstr "Привет"
 
@@ -2141,7 +2147,7 @@ msgid "Run PID calibration test"
 msgstr "Запустить тест PID калибровки"
 
 msgid "pid_calibrate interrupted"
-msgstr "pid_calibrate прерван"
+msgstr "Калибровка PID прервана"
 
 #, python-format
 msgid ""
@@ -2152,6 +2158,12 @@ msgstr ""
 "Параметры PID: pid_Kp=%.3f pid_Ki=%.3f pid_Kd=%.3f\n"
 "Команда SAVE_CONFIG обновит файл конфигурации принтера\n"
 "с этими параметрами и перезапустит принтер."
+
+msgid "Heating %s to"
+msgstr "Нагрев %sа до"
+
+msgid "End PID calibrate, new data saved"
+msgstr "Калибровка PID закончена, новые параметры сохранены"
 
 # =====================END PID_CALIBRATE MODULE==================#
 # ========================PRINT_STATS MODULE=====================#

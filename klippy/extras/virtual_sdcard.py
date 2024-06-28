@@ -516,30 +516,30 @@ class VirtualSD:
         file = io.open(self.file_path(), "r", newline='')
         file_position = 0
         file.seek(file_position)
-        data = file.read(4096)
-        lines: list[str] = data.split('\n')
-        lines[0] = partial_input + lines[0]
-        partial_input = lines.pop()
-        lines.reverse()
-        line: str = lines.pop()
+        data = file.read(4092)
         while data:
             if not lines:
                 # Read more data
                 try:
-                    data = self.current_file.read(8192)
-                    lines = data.split('\n')
-                    lines[0] = partial_input + lines[0]
-                    partial_input = lines.pop()
-                    lines.reverse()
+                    data = file.read(8192)
                 except:
-                    logging.exception("virtual_sdcard read")
-                    break
+                    return 0
+                if not data:
+                    # End of file
+                    file.close()
+                    return 0
+                lines = data.split('\n')
+                lines[0] = partial_input + lines[0]
+                partial_input = lines.pop()
+                lines.reverse()
+                self.reactor.pause(self.reactor.NOW)
+                continue
+            line = lines.pop()
             if line.startswith('M190') or line.startswith('M109'):
                 return int(line.split(" ")[1][1:])
             next_file_position = file_position + len(line.encode()) + 1       
             file_position = next_file_position
             file.seek(file_position)
-            line = lines.pop()
         return 0
             
     def rebuild_begin_print(self, eventtime):

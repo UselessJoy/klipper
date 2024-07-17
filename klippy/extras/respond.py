@@ -55,10 +55,10 @@ class HostResponder:
           else:
             gcmd.respond_error(msg, False)
           
-        if(no_space):
-            gcmd.respond_raw("%s%s" % (prefix, msg))
-        else:
-            gcmd.respond_raw("%s %s" % (prefix, msg))
+        # if(no_space):
+        #     gcmd.respond_raw("%s%s" % (prefix, msg))
+        # else:
+        #     gcmd.respond_raw("%s %s" % (prefix, msg))
 
 def load_config(config):
     return HostResponder(config)

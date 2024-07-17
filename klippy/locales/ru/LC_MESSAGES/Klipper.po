@@ -1003,6 +1003,10 @@ msgid "Successfull save bed mesh"
 msgstr "Сетка стола успешно сохранена"
 
 #, python-format
+msgid "profile_%d"
+msgstr "Профиль_%d"
+
+#, python-format
 msgid "Automatic loaded bed mesh %s"
 msgstr "Автоматически установлен профиль %s"
 
@@ -2140,8 +2144,44 @@ msgid "action:cancel"
 msgstr "действие: отменить"
 
 # =====================END PAUSE_RESUME MODULE===================#
+
+# =====================PAUSE_RESUME.CFG MODULE===================#
+#, python-format
+msgid "Restoring \"%s\" temperature to %3.1f, this may take some time"
+msgstr "Восстановление температуры %sа до %3.1f°, это может занять некоторое время"
+
+#, python-format
+msgid "Resume aborted !!! \"%s\" not hot enough, please heat up again and press RESUME"
+msgstr "Возобновление прервано! %s не достаточно нагрет. Пожалуйста, нагрейте снова и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "\"%s\" not hot enough, please heat up again and press RESUME"
+msgstr "%s не достаточно нагрет, пожалуйста, нагрейте снова и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "Resume aborted !!! \"%s\" detects no filament, please load filament and press RESUME"
+msgstr "Возобновление прервано! %s не обнаружено филамента. Пожалуйста, заправьте филамент и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "\"%s\" detects no filament, please load filament and press RESUME"
+msgstr "%s не обнаружено филамента. Пожалуйста, заправьте филамент и нажмите ВОЗОБНОВИТЬ"
+
+#, python-format
+msgid "%s, forced by pause_at_layer [%d]"
+msgstr "%s, принудительно остановлен функцией pause_at_layer [%d]"
+
+#, python-format
+msgid "\"%s\" not hot enough"
+msgstr "%s не достаточно нагрет"
+
+msgid "Printer not homed"
+msgstr "Неизвестны начальные координаты"
+
+# ===================END PAUSE_RESUME.CFG MODULE=================#
+
 # ==========================PCA9632 MODULE=======================#
 # ========================END PCA9632 MODULE=====================#
+
 # =======================PID_CALIBRATE MODULE====================#
 msgid "Run PID calibration test"
 msgstr "Запустить тест PID калибровки"
@@ -3128,33 +3168,3 @@ msgstr "Не удалось вернуть пробу"
 
 # =====================END MESSAGES MODULE==================#
 
-#, python-format
-msgid "Restoring \"%s\" temperature to %3.1f, this may take some time"
-msgstr "Восстановление температуры \"%s\"  к %3.1f°, это может занять некоторое время"
-
-#, python-format
-msgid "Resume aborted !!! \"%s\" not hot enough, please heat up again and press RESUME"
-msgstr "Возобновление прервано \"%s\" не достаточно нагрет, пожалуйста, нагрейте снова и нажмите ВОЗОБНОВИТЬ"
-
-#, python-format
-msgid "\"%s\" not hot enough, please heat up again and press RESUME"
-msgstr "\"%s\" не достаточно нагрет, пожалуйста, нагрейте снова и нажмите ВОЗОБНОВИТЬ"
-
-#, python-format
-msgid "Resume aborted !!! \"%s\" detects no filament, please load filament and press RESUME"
-msgstr "Возобновление прервано \"%s\" филамент не обнаружен, пожалуйста, заправьте филамент и нажмите ВОЗОБНОВИТЬ"
-
-#, python-format
-msgid "\"%s\" detects no filament, please load filament and press RESUME"
-msgstr "\"%s\" филамент не обнаружен, пожалуйста, заправьте филамент и нажмите ВОЗОБНОВИТЬ"
-
-#, python-format
-msgid "%s, forced by pause_at_layer [%d]"
-msgstr "%s, принудительно остановлен функцией pause_at_layer [%d]"
-
-#, python-format
-msgid "\"%s\" not hot enough"
-msgstr "\"%s\" не достаточно нагрет"
-
-msgid "Printer not homed"
-msgstr "Неизвестны начальные координаты"

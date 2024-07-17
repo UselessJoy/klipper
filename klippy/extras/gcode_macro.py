@@ -6,6 +6,7 @@
 import traceback, logging, ast, copy
 import jinja2
 import locales
+import gettext, pathlib, os
 
 ######################################################################
 # Template handling
@@ -71,7 +72,14 @@ class TemplateWrapper:
 class PrinterGCodeMacro:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.env = jinja2.Environment('{%', '%}', '{', '}')
+        self.env = jinja2.Environment('{%', '%}', '{', '}', extensions=['jinja2.ext.i18n'])
+        klipperpath = pathlib.Path(__file__).parent.parent.resolve()
+        lang_path = os.path.join(klipperpath, "locales")
+        try:
+          self.env.install_gettext_translations(gettext.translation('Klipper', localedir=lang_path, languages=[config.getsection('locale').get('lang')], fallback=True))
+        except:
+            logging.error("Can't set config translation, use base translation")
+            self.env.install_gettext_translations(gettext.translation('Klipper', localedir=lang_path, languages=['en'], fallback=True))
     def load_template(self, config, option, default=None):
         name = "%s:%s" % (config.get_name(), option)
         if default is None:

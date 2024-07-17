@@ -180,10 +180,12 @@ class VirtualSD:
         if self.autoload_bed_mesh:
             start_heater_bed_temp = self.find_start_heater_bed_temp()
             cur_profile = self.printer.lookup_object('bed_mesh').load_best_mesh(start_heater_bed_temp)
+            if re.match(r"^profile_\d+$", cur_profile):
+                cur_profile = _("profile_%d" % int(cur_profile.partition('_')[2]))
             messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Automatic loaded bed mesh %s") % cur_profile)
         elif self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
-            messages.send_message("warning", _("No mesh loaded")) if cur_profile == "" else messages.send_message("success", _("Loaded mesh profile: %s") % cur_profile)
+            messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Loaded mesh profile: %s") % cur_profile)
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False

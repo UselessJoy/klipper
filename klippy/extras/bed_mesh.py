@@ -331,6 +331,7 @@ class BedMesh:
 
     cmd_BED_MESH_CLEAR_help = _("Clear the Mesh so no z-adjustment is made")
     def cmd_BED_MESH_CLEAR(self, gcmd):
+        self.pmgr.current_profile = ""
         self.set_mesh(None)
 
     cmd_BED_MESH_OFFSET_help = _("Add X/Y offsets to the mesh lookup")

@@ -146,13 +146,6 @@ class ResonanceTester:
         self.shaper_graphs_dir = os.path.join(config_dir, ".shaper-images/")
         if not os.path.isdir(self.shaper_graphs_dir):
                 os.mkdir(self.shaper_graphs_dir)
-        self.status = {
-            'saved': self.get_saved_shaper_graphs(),
-            'tmp': self.get_tmp_shaper_graphs(),
-            'belt_tensions': self.get_belt_tensions(),
-            'active_belt_tension': self.active_belt_tension,
-            'active': self.active_shaper_graph
-        }
         if not config.get('accel_chip_x', None):
             self.accel_chip_names = [('xy', config.get('accel_chip').strip())]
         else:
@@ -279,8 +272,6 @@ class ResonanceTester:
         fig.set_size_inches(8, 6)
         belt_tension_path = os.path.join("/tmp/", csv_name.rpartition('/')[2].replace('.csv', '.png'))
         fig.savefig(belt_tension_path)
-        self.update_status()
-
 
     def plot_compare_frequency(self, datas, lognames, max_freq, axis):
       fig, ax = matplotlib.pyplot.subplots()
@@ -303,10 +294,7 @@ class ResonanceTester:
       ax.legend(loc='best', prop=fontP)
       fig.tight_layout()
       return fig
-
-
-
-
+    
     cmd_TEST_RESONANCES_help = _("Runs the resonance test for a specifed axis")
     def cmd_TEST_RESONANCES(self, gcmd):
         # Parse parameters
@@ -348,7 +336,7 @@ class ResonanceTester:
         # Parse parameters
         axis = gcmd.get("AXIS", None)
         plot_freq = gcmd.get_float("PLOT_FREQ", 200.)
-        if not axis:
+        if not axis or axis == 'all':
             calibrate_axes = [TestAxis('x'), TestAxis('y')]
         elif axis.lower() not in 'xy':
             raise gcmd.error(_("Unsupported axis '%s'") % (axis,))
@@ -392,7 +380,7 @@ class ResonanceTester:
             fig.set_size_inches(8, 6)
             shaper_path = os.path.join("/tmp/", csv_name.rpartition('/')[2].replace('.csv', '.png'))
             fig.savefig(shaper_path)
-            self.update_status()
+            self.load_shaper_graph([shaper_path[1:]])
         gcmd.respond_info(
             _("The SAVE_CONFIG command will update the printer config file\n"
             "with these parameters and restart the printer."))
@@ -404,15 +392,6 @@ class ResonanceTester:
                   'belt_tensions': self.get_belt_tensions(),
                   'active_belt_tension': self.active_belt_tension,
                   'active': self.active_shaper_graph
-        }
-    
-    def update_status(self):
-        self.status = {
-                    'saved': self.get_saved_shaper_graphs(),
-                    'tmp': self.get_tmp_shaper_graphs(),
-                    'belt_tensions': self.get_belt_tensions(),
-                    'active_belt_tension': self.active_belt_tension,
-                    'active': self.active_shaper_graph
         }
     
     def get_belt_tensions(self):
@@ -447,7 +426,7 @@ class ResonanceTester:
         # Такие пути необходимы, чтобы fluidd мог их без проблем прочитать и загрузить картинку (см. createFileUrlWithToken в исходниках fluidd)
         # где filename - имя графика
         webhook_func[action](args)
-        self.update_status()
+        
     
     def load_shaper_graph(self, args):
         # Для load аргумент должен быть либо (1), либо (2)
@@ -475,7 +454,6 @@ class ResonanceTester:
         saving_new_graph_path = f"\"{self.shaper_graphs_dir}/{args[1]}\""
         os.system(f"cp /{args[0]} {saving_new_graph_path}")
         os.system(f"rm /{args[0]}")
-        self.update_status()
     
     def remove_shaper_graph(self, args):
         # Для remove аргумент должен быть либо (1), либо (2)
@@ -496,7 +474,6 @@ class ResonanceTester:
             if args[0] == self.active_shaper_graph:
                 self.active_shaper_graph = ""
             os.system(f"rm {removing_path}")
-            self.update_status()
         else:
             self.messages.send_message("warning", _("Unsupported path for graph %s") % args[0].rpartition('/')[2])# no locale
 
@@ -512,8 +489,7 @@ class ResonanceTester:
             return
         renamed_path = f"\"{self.shaper_graphs_dir}/{args[0].rpartition('/')[2]}\"" # Поскольку в dir не хватает только имени
         os.system(f"mv {renamed_path} \"{self.shaper_graphs_dir}/{args[1]}\"")
-        self.update_status()
-        
+
     def plot_freq_response(self, name: str, calibration_data, shapers,
                        selected_shaper, max_freq):
         freqs = calibration_data.freq_bins

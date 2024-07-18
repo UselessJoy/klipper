@@ -180,8 +180,12 @@ class VirtualSD:
         if self.autoload_bed_mesh:
             start_heater_bed_temp = self.find_start_heater_bed_temp()
             cur_profile = self.printer.lookup_object('bed_mesh').load_best_mesh(start_heater_bed_temp)
-            if re.match(r"^profile_\d+$", cur_profile):
-                cur_profile = _("profile_%d" % int(cur_profile.partition('_')[2]))
+            if cur_profile:
+              logging.info(f"cur profile is {cur_profile}")
+              if re.match(r"^profile_\d+$", cur_profile):
+                  logging.info("matched profile")
+                  cur_profile = _("profile_%s") % cur_profile.partition('_')[2]
+                  logging.info(f"locale cur profile is {cur_profile}")
             messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Automatic loaded bed mesh %s") % cur_profile)
         elif self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()

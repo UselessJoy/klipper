@@ -1003,8 +1003,8 @@ msgid "Successfull save bed mesh"
 msgstr "Сетка стола успешно сохранена"
 
 #, python-format
-msgid "profile_%d"
-msgstr "Профиль_%d"
+msgid "profile_%s"
+msgstr "Профиль_%s"
 
 #, python-format
 msgid "Automatic loaded bed mesh %s"

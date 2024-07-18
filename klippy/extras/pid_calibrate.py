@@ -44,6 +44,7 @@ class PIDCalibrate:
 
     def _handle_stop_pid_calibrate(self, web_request):
          self.stop = True
+         self.is_calibrating = False
          self.printer.lookup_object('heaters').turn_off_all_heaters()
          
     def pid_calibrate(self, heater, target, write_file = 0):

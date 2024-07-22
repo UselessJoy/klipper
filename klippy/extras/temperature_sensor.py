@@ -10,7 +10,9 @@ class PrinterSensorGeneric:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.name = config.get_name().split()[-1]
-        self.locale = config.get('locale', None)
+        self.locale = {}
+        for lang in self.printer.get_supported_langs():
+            self.locale[lang] = config.get(f"locale_{lang}", None)
         pheaters = self.printer.load_object(config, 'heaters')
         self.sensor = pheaters.setup_sensor(config)
         self.min_temp = config.getfloat('min_temp', KELVIN_TO_CELSIUS,

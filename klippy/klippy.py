@@ -32,6 +32,7 @@ class Printer:
     def __init__(self, main_reactor, bglogger, start_args):
         self.bglogger = bglogger
         self.start_args = start_args
+        self.supported_langs = ['en', 'ru']
         self.reactor = main_reactor
         self.reactor.register_callback(self._connect)
         self.state_message = message_startup
@@ -56,6 +57,8 @@ class Printer:
         else:
             category = "error"
         return self.state_message, category
+    def get_supported_langs(self):
+        return self.supported_langs
     def is_shutdown(self):
         return self.in_shutdown_state
     def _set_state(self, msg):

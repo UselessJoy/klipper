@@ -62,7 +62,7 @@ class Temperature_HOST:
             self.printer.invoke_shutdown(
                 _("HOST temperature %0.1f above maximum temperature of %0.1f.")
                 % (self.temp, self.max_temp,))
-
+        self.printer.send_event("temperature_host:sample_temperature", self.temp)
         mcu = self.printer.lookup_object('mcu')
         measured_time = self.reactor.monotonic()
         self._callback(mcu.estimated_print_time(measured_time), self.temp)

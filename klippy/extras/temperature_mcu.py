@@ -46,6 +46,7 @@ class PrinterTemperatureMCU:
         return REPORT_TIME
     def adc_callback(self, read_time, read_value):
         temp = self.base_temperature + read_value * self.slope
+        self.printer.send_event("temperature_mcu:sample_temperature", temp)
         self.temperature_callback(read_time + SAMPLE_COUNT * SAMPLE_TIME, temp)
     def setup_minmax(self, min_temp, max_temp):
         self.min_temp = min_temp

@@ -12,9 +12,9 @@ class PrinterFanBack:
                                    self.fan_name,
                                    self.cmd_SET_FAN_SPEED,
                                    desc=self.cmd_SET_FAN_SPEED_help)
-        self.register_event_handler("klippy:ready", self._handle_ready)
-        self.register_event_handler("temperature_host:sample_temperature", self._on_temp)
-        self.register_event_handler("temperature_mcu:sample_temperature", self._on_temp)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        self.printer.register_event_handler("temperature_host:sample_temperature", self._on_temp)
+        self.printer.register_event_handler("temperature_mcu:sample_temperature", self._on_temp)
     
 
     def _on_temp(self, temp):

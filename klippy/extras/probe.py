@@ -112,7 +112,7 @@ class PrinterProbe:
         print_time = toolhead.get_last_move_time()
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
-        self.progressTimer = self.printer.get_reactor().register_timer(self.get_status_magnet_probe, self.printer.get_reactor().NOW)
+        self.progressTimer = self.printer.get_reactor().register_timer(self.timer_magnet_probe, self.printer.get_reactor().NOW)
        
     def run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')

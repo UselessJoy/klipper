@@ -213,7 +213,11 @@ class PrinterProbe:
             toolhead.manual_move([None, None, self.drop_z], self.speed_base)
     
     def get_status_magnet_probe(self, eventtime=None):
-        return not bool(self.mcu_probe.query_endstop(self.printer.lookup_object('toolhead').get_last_move_time()))
+        try:
+          print_time = self.printer.get_last_move_time()
+          return not bool(self.mcu_probe.query_endstop(print_time))
+        except:
+            return False
         
     def _calc_mean(self, positions):
         count = float(len(positions))

@@ -277,19 +277,22 @@ class PrinterHoming:
     def cmd_G28(self, gcmd):
         # Move to origin
         axes = []
+        probe = self.printer.lookup_object('probe')
         for pos, axis in enumerate('XYZ'):
             if gcmd.get(axis, None) is not None:
                 axes.append(pos)
         if not axes:
             axes = [2, 1, 0]
         kin = self.printer.lookup_object('toolhead').get_kinematics()
+        if probe.get_status_magnet_probe():
+            raise self.printer.command_error(
+                    _("Has active magnet probe. Take off it manually"))
         try:
             if 2 in axes:
                 homing_z = Homing(self.printer)
                 homing_z.set_axes([2])
                 kin.home(homing_z)
                 toolhead = self.printer.lookup_object('toolhead')
-                probe = self.printer.lookup_object('probe')
                 toolhead.manual_move([None, None, probe.drop_z], probe.speed_base)
                 axes.remove(2)
             if 1 in axes:

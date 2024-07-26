@@ -1792,6 +1792,9 @@ msgstr "Апробирование прервано из-за отключени
 msgid "Probe triggered prior to movement"
 msgstr "Ошибка срабатывания датчика калибровки"
 
+msgid "Has active magnet probe. Take off it manually"
+msgstr "Подключена магнитная проба. Пожалуйста, установите магнитную пробу в гнездо для парковки"
+
 # =========================END HOMING MODULE=====================#
 # ===========================HTU21D MODULE=======================#
 #, python-format

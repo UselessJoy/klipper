@@ -221,8 +221,8 @@ class PrinterProbe:
     
     def get_status_magnet_probe(self, eventtime=None):
         try:
-          #print_time = self.printer.get_last_move_time()
-          return not bool(self.mcu_probe.query_endstop(self.reactor.NOW - 1))
+          print_time = self.printer.get_last_move_time()
+          return not bool(self.mcu_probe.query_endstop(print_time))
         except:
             return False
         

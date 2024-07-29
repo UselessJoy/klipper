@@ -123,8 +123,8 @@ class PrinterProbe:
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
         self.is_using_magnet_probe = not bool(res)
-        self.magnet_checker_timer = self.reactor.register_timer(
-                    self.magnet_check, self.reactor.NOW)
+        # self.magnet_checker_timer = self.reactor.register_timer(
+        #             self.magnet_check, self.reactor.NOW)
 
     def run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')

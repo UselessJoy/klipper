@@ -284,7 +284,7 @@ class PrinterHoming:
         if not axes:
             axes = [2, 1, 0]
         kin = self.printer.lookup_object('toolhead').get_kinematics()
-        if probe.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
+        if probe.is_using_magnet_probe:
             raise self.printer.command_error(
                     _("Has active magnet probe. Take off it manually"))
         try:

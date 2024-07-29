@@ -31,7 +31,7 @@ class PrinterProbe:
         self.magnet_x = config.getfloat('magnet_x')
         self.magnet_y = config.getfloat('magnet_y')
         self.speed_base = config.getfloat('speed_base')
-        self.is_using_magnet_probe = False
+
         self.parking_magnet_y = config.getfloat('parking_magnet_y')
         self.speed_parking = config.getfloat('speed_parking')
         
@@ -112,7 +112,6 @@ class PrinterProbe:
         print_time = toolhead.get_last_move_time()
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
-        self.progressTimer = self.printer.get_reactor().register_timer(self.timer_magnet_probe, self.printer.get_reactor().NOW)
        
     def run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')
@@ -212,16 +211,10 @@ class PrinterProbe:
         if float(toolhead.get_position()[2]) < self.drop_z:
             toolhead.manual_move([None, None, self.drop_z], self.speed_base)
     
-
-    def timer_magnet_probe(self, eventtime=None):
-        self.get_status_magnet_probe()
-        return eventtime + 1
-    
-    def get_status_magnet_probe(self):
+    def get_status_magnet_probe(self, eventtime=None):
         try:
           print_time = self.printer.get_last_move_time()
-          self.is_using_magnet_probe = not bool(self.mcu_probe.query_endstop(print_time))
-          return self.is_using_magnet_probe
+          return not bool(self.mcu_probe.query_endstop(print_time))
         except:
             return False
         
@@ -382,7 +375,7 @@ class PrinterProbe:
     def get_status(self, eventtime):
         return {'last_query': self.last_state,
                 'last_z_result': self.last_z_result,
-                'is_using_magnet_probe': self.is_using_magnet_probe,
+                'is_using_magnet_probe': self.get_status_magnet_probe(),
                 'is_adjusting': self.is_adjusting}
         
     cmd_PROBE_ACCURACY_help = _("Probe Z-height accuracy at current XY position")

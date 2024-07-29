@@ -111,11 +111,15 @@ class PrinterProbe:
         
     
     def magnet_check(self, eventtime):
-        toolhead = self.printer.lookup_object('toolhead')
-        print_time = toolhead.get_last_move_time()
-        res = self.mcu_probe.query_endstop(print_time)
-        self.last_state = res
-        self.is_using_magnet_probe = not bool(res)
+        try:
+          toolhead = self.printer.lookup_object('toolhead')
+          print_time = toolhead.get_last_move_time()
+          res = self.mcu_probe.query_endstop(print_time)
+          self.last_state = res
+          self.is_using_magnet_probe = not bool(res)
+        except:
+            pass
+        return eventtime + 1
 
     def _on_ready(self):
         toolhead = self.printer.lookup_object('toolhead')
@@ -123,8 +127,8 @@ class PrinterProbe:
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
         self.is_using_magnet_probe = not bool(res)
-        # self.magnet_checker_timer = self.reactor.register_timer(
-        #             self.magnet_check, self.reactor.NOW)
+        self.magnet_checker_timer = self.reactor.register_timer(
+                    self.magnet_check, self.reactor.NOW)
 
     def run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')

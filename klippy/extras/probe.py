@@ -139,7 +139,7 @@ class PrinterProbe:
                             G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base}\n\
                             G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
                          ")
-        if not self.is_using_magnet_probe:
+        if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
             raise self.printer.command_error(_("Couldn't take probe"))
 
     def run_gcode_return_magnet(self):
@@ -154,9 +154,14 @@ class PrinterProbe:
                             G1 X{self.magnet_x_offset} F{self.speed_base}\n\
                             G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
                          ")
-        if self.is_using_magnet_probe:
+        if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
             raise self.printer.command_error(_("Couldn't return probe"))
 
+    def get_status_magnet_probe(self, toolhead):
+        print_time = toolhead.get_last_move_time()
+        self.is_using_magnet_probe = not bool(self.mcu_probe.query_endstop(print_time))
+        return self.is_using_magnet_probe
+    
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():
             self.mcu_probe.probe_prepare(hmove)
@@ -323,7 +328,7 @@ class PrinterProbe:
     def cmd_END_ADJUSTMENT(self, gcmd):
       self.is_adjusting = False
       gcode = self.printer.lookup_object('gcode')
-      if not self.is_using_magnet_probe:
+      if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
         gcode.run_script_from_command(f"G1 X{self.magnet_x_offset} F{self.speed_base}")
       else:
         self.run_gcode_return_magnet()
@@ -335,7 +340,7 @@ class PrinterProbe:
       self.drop_z_move(toolhead)
       gcode.run_script_from_command(f"G1 X{x} Y{self.parking_magnet_y} F{self.speed_parking}")
       messages = self.printer.lookup_object("messages")
-      if not self.is_using_magnet_probe:
+      if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
           messages.send_message('warning', _("Couldn't take probe"))
           gcode.run_script_from_command(f"G1 X{x} Y{y} F{self.speed_base}")
           return False
@@ -344,7 +349,7 @@ class PrinterProbe:
                             G1 X{self.magnet_x_offset} F{self.speed_parking}\n\
                             G1 Y{self.parking_magnet_y} F{self.speed_base}\n\
                          ")
-      if self.is_using_magnet_probe:
+      if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
           messages.send_message('warning', _("Couldn't return probe"))
           return False
       return True    

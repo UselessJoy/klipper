@@ -158,8 +158,11 @@ class PrinterProbe:
             raise self.printer.command_error(_("Couldn't return probe"))
 
     def get_status_magnet_probe(self, toolhead):
-        print_time = toolhead.get_last_move_time()
-        self.is_using_magnet_probe = not bool(self.mcu_probe.query_endstop(print_time))
+        try:
+          print_time = toolhead.get_last_move_time()
+          self.is_using_magnet_probe = not bool(self.mcu_probe.query_endstop(print_time))
+        except:
+            pass
         return self.is_using_magnet_probe
     
     def _handle_homing_move_begin(self, hmove):

@@ -359,7 +359,7 @@ class PrinterProbe:
         toolhead = self.printer.lookup_object('toolhead')
         # 1 - open (подключен и стол не тыкнут), 0 - triggered (отключен или стол тыкнут)
         self.drop_z_move(toolhead)
-        if not self.is_using_magnet_probe: 
+        if not self.get_status_magnet_probe(toolhead):
             self.run_gcode_get_magnet()
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = toolhead.get_status(curtime)

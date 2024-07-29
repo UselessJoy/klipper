@@ -42,6 +42,8 @@ class PrinterProbe:
         self.multi_probe_pending = False
         self.last_state = False
         self.last_z_result = 0.
+        self.reactor = self.printer.get_reactor()
+        self.is_magnet_on = False
         
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         # Infer Z position to move to during a probe
@@ -106,6 +108,12 @@ class PrinterProbe:
                                             desc=self.cmd_RETURN_MAGNET_PROBE_help)
         self.printer.register_event_handler("klippy:ready",
                                             self._on_ready)
+        self.magnet_checker_timer = self.reactor.register_timer(
+                    self.magnet_check, self.reactor.NOW)
+    
+    def magnet_check(self, eventtime):
+        self.is_magnet_on = self.get_status_magnet_probe()
+        return eventtime + 1
     
     def _on_ready(self):
         toolhead = self.printer.lookup_object('toolhead')
@@ -375,7 +383,7 @@ class PrinterProbe:
     def get_status(self, eventtime):
         return {'last_query': self.last_state,
                 'last_z_result': self.last_z_result,
-                'is_using_magnet_probe': self.get_status_magnet_probe(),
+                'is_using_magnet_probe': self.is_magnet_on,
                 'is_adjusting': self.is_adjusting}
         
     cmd_PROBE_ACCURACY_help = _("Probe Z-height accuracy at current XY position")

@@ -12,7 +12,6 @@ If the probe did not move far enough to trigger, then
 consider reducing the Z axis minimum position so the probe
 can travel further (the Z minimum position can be negative).
 """)
-
 class PrinterProbe:
     def __init__(self, config, mcu_probe):
         self.printer = config.get_printer()
@@ -28,13 +27,15 @@ class PrinterProbe:
         self.x_offset = config.getfloat('x_offset', 0.)
         self.y_offset = config.getfloat('y_offset', 0.)
         self.z_offset = config.getfloat('z_offset')
+        self.is_using_magnet_probe = False
         self.magnet_x = config.getfloat('magnet_x')
         self.magnet_y = config.getfloat('magnet_y')
         self.speed_base = config.getfloat('speed_base')
+        
 
         self.parking_magnet_y = config.getfloat('parking_magnet_y')
         self.speed_parking = config.getfloat('speed_parking')
-        
+
         self.magnet_x_offset = config.getfloat('magnet_x_offset') 
         self.drop_z = config.getfloat('drop_z')
         
@@ -42,8 +43,6 @@ class PrinterProbe:
         self.multi_probe_pending = False
         self.last_state = False
         self.last_z_result = 0.
-        self.reactor = self.printer.get_reactor()
-        self.is_magnet_on = False
         
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         # Infer Z position to move to during a probe
@@ -108,19 +107,24 @@ class PrinterProbe:
                                             desc=self.cmd_RETURN_MAGNET_PROBE_help)
         self.printer.register_event_handler("klippy:ready",
                                             self._on_ready)
+        self.reactor = self.printer.get_reactor()
         self.magnet_checker_timer = self.reactor.register_timer(
                     self.magnet_check, self.reactor.NOW)
     
     def magnet_check(self, eventtime):
-        self.is_magnet_on = self.get_status_magnet_probe()
-        return eventtime + 1
-    
+        toolhead = self.printer.lookup_object('toolhead')
+        print_time = toolhead.get_last_move_time()
+        res = self.mcu_probe.query_endstop(print_time)
+        self.last_state = res
+        self.is_using_magnet_probe = not bool(res)
+
     def _on_ready(self):
         toolhead = self.printer.lookup_object('toolhead')
         print_time = toolhead.get_last_move_time()
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
-       
+        self.is_using_magnet_probe = not bool(res)
+
     def run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')
         toolhead = self.printer.lookup_object('toolhead')
@@ -130,9 +134,9 @@ class PrinterProbe:
                             G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base}\n\
                             G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
                          ")
-        if not self.get_status_magnet_probe():
+        if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
             raise self.printer.command_error(_("Couldn't take probe"))
-        
+
     def run_gcode_return_magnet(self):
         gcode = self.printer.lookup_object('gcode')
         toolhead = self.printer.lookup_object('toolhead')
@@ -145,9 +149,9 @@ class PrinterProbe:
                             G1 X{self.magnet_x_offset} F{self.speed_base}\n\
                             G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
                          ")
-        if self.get_status_magnet_probe():
+        if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
             raise self.printer.command_error(_("Couldn't return probe"))
-        
+
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():
             self.mcu_probe.probe_prepare(hmove)
@@ -206,11 +210,11 @@ class PrinterProbe:
         return epos[:3]
     def _move(self, coord, speed):
         self.printer.lookup_object('toolhead').manual_move(coord, speed)
-    
+
     def is_magnet_probe_on(self, toolhead):
         self.drop_z_move(toolhead)
-        return self.get_status_magnet_probe()
-    
+        return self.get_status_magnet_probe(toolhead)
+
     def return_z(self):
       self.printer.lookup_object('toolhead').manual_move([None, None, self.last_z_position], self.speed_base)
     
@@ -218,14 +222,12 @@ class PrinterProbe:
         self.last_z_position = toolhead.get_position()[2]
         if float(toolhead.get_position()[2]) < self.drop_z:
             toolhead.manual_move([None, None, self.drop_z], self.speed_base)
-    
-    def get_status_magnet_probe(self, eventtime=None):
-        try:
-          print_time = self.printer.get_last_move_time()
-          return not bool(self.mcu_probe.query_endstop(print_time))
-        except:
-            return False
-        
+
+    def get_status_magnet_probe(self, toolhead):
+        print_time = toolhead.get_last_move_time()
+        self.is_using_magnet_probe = not bool(self.mcu_probe.query_endstop(print_time))
+        return self.is_using_magnet_probe
+
     def _calc_mean(self, positions):
         count = float(len(positions))
         return [sum([pos[i] for pos in positions]) / count
@@ -285,7 +287,7 @@ class PrinterProbe:
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         self.run_gcode_get_magnet()
         return
-
+    
     cmd_RETURN_MAGNET_PROBE_help = _("Command to return magnet probe")
     def cmd_RETURN_MAGNET_PROBE(self, gcmd):
         self.printer.lookup_object('homing').run_G28_if_unhomed()
@@ -322,12 +324,11 @@ class PrinterProbe:
     def cmd_END_ADJUSTMENT(self, gcmd):
       self.is_adjusting = False
       gcode = self.printer.lookup_object('gcode')
-      if not self.get_status_magnet_probe():
+      if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
         gcode.run_script_from_command(f"G1 X{self.magnet_x_offset} F{self.speed_base}")
       else:
         self.run_gcode_return_magnet()
       
-
     def run_gcode_check_magnet(self, x, y):
       toolhead = self.printer.lookup_object('toolhead')
       gcode = self.printer.lookup_object('gcode')
@@ -335,7 +336,7 @@ class PrinterProbe:
       self.drop_z_move(toolhead)
       gcode.run_script_from_command(f"G1 X{x} Y{self.parking_magnet_y} F{self.speed_parking}")
       messages = self.printer.lookup_object("messages")
-      if not self.get_status_magnet_probe():
+      if not self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
           messages.send_message('warning', _("Couldn't take probe"))
           gcode.run_script_from_command(f"G1 X{x} Y{y} F{self.speed_base}")
           return False
@@ -344,7 +345,7 @@ class PrinterProbe:
                             G1 X{self.magnet_x_offset} F{self.speed_parking}\n\
                             G1 Y{self.parking_magnet_y} F{self.speed_base}\n\
                          ")
-      if self.get_status_magnet_probe():
+      if self.get_status_magnet_probe(self.printer.lookup_object('toolhead')):
           messages.send_message('warning', _("Couldn't return probe"))
           return False
       return True    
@@ -378,14 +379,15 @@ class PrinterProbe:
         print_time = toolhead.get_last_move_time()
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
+        self.is_using_magnet_probe = not bool(res)
         gcmd.respond_info(_("probe: %s") % (["open", "TRIGGERED"][not not res],))
-        
+
     def get_status(self, eventtime):
         return {'last_query': self.last_state,
                 'last_z_result': self.last_z_result,
-                'is_using_magnet_probe': self.is_magnet_on,
+                'is_using_magnet_probe': self.is_using_magnet_probe,
                 'is_adjusting': self.is_adjusting}
-        
+
     cmd_PROBE_ACCURACY_help = _("Probe Z-height accuracy at current XY position")
     def cmd_PROBE_ACCURACY(self, gcmd):
         speed = gcmd.get_float("PROBE_SPEED", self.speed, above=0.)
@@ -480,7 +482,6 @@ class PrinterProbe:
                 "The SAVE_CONFIG command will update the printer config file\n"
                 "with the above and restart the printer.")
                 % (self.name, new_calibrate))
-
 # Endstop wrapper that enables probe specific features
 class ProbeEndstopWrapper:
     def __init__(self, config):
@@ -548,7 +549,6 @@ class ProbeEndstopWrapper:
             self.raise_probe()
     def get_position_endstop(self):
         return self.position_endstop
-
 # Helper code that can probe a series of points and report the
 # position at each point.
 class ProbePointsHelper:
@@ -656,6 +656,5 @@ class ProbePointsHelper:
             return
         self.results.append(kin_pos)
         self._manual_probe_start()
-
 def load_config(config):
     return PrinterProbe(config, ProbeEndstopWrapper(config))

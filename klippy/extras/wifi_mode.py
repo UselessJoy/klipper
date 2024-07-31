@@ -3,6 +3,7 @@ import subprocess
 import NetworkManager
 from dbus.mainloop.glib import DBusGMainLoop
 import locales
+from sdbus_block import networkmanager
 
 class WifiMode:
     def __init__(self, config):
@@ -16,21 +17,35 @@ class WifiMode:
                                    self._handle_set_wifi_mode)
         webhooks.register_endpoint("wifi_mode/set_hotspot",
                                    self._handle_set_hotspot)
+        self.nm = networkmanager.NetworkManager()
         self.wifi_dev = NetworkManager.NetworkManager.GetDeviceByIpIface('wlan0')
         self.wifi_dev.OnStateChanged(self.on_state_changed)
+        self.wlan_device = self.get_wireless_interfaces()[0]
 
+    def get_wireless_interfaces(self):
+        devices = {path: networkmanager.NetworkDeviceGeneric(path) for path in self.nm.get_devices()}
+        return [
+            networkmanager.NetworkDeviceWireless(path)
+            for path, device in devices.items()
+            if device.device_type == networkmanager.enums.DeviceType.WIFI
+        ]
     
     def on_state_changed(self, nm, interface, signal, old_state, new_state, reason):
         if new_state == NetworkManager.NM_DEVICE_STATE_ACTIVATED:
             self.wifiMode = 'AP' if self.is_hotspot() else 'Default'
     
+
+    def get_connected_ap(self):
+        if self.wlan_device.active_access_point == "/":
+            return None
+        return networkmanager.AccessPoint(self.wlan_device.active_access_point)
+    
     def is_hotspot(self):
         try:
-            if self.wifi_dev.SpecificDevice().ActiveAccessPoint.Mode == NetworkManager.NM_802_11_MODE_AP:
-                return True
+            #NetworkManager.NM_802_11_MODE_AP:
+            return self.get_connected_ap().mode == 3
         except:
-            pass
-        return False
+          return False
     
     def find_hotspot_connection(self) -> str:
         for con in NetworkManager.Settings.ListConnections():

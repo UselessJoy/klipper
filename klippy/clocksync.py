@@ -93,10 +93,10 @@ class ClockSync:
                               sent_time, self.clock_est[2], clock - exp_clock,
                               math.sqrt(self.prediction_variance))
                 return
-            logging.info("Resetting prediction variance %.3f:"
-                         " freq=%d diff=%d stddev=%.3f",
-                         sent_time, self.clock_est[2], clock - exp_clock,
-                         math.sqrt(self.prediction_variance))
+            # logging.info("Resetting prediction variance %.3f:"
+            #              " freq=%d diff=%d stddev=%.3f",
+            #              sent_time, self.clock_est[2], clock - exp_clock,
+            #              math.sqrt(self.prediction_variance))
             self.prediction_variance = (.001 * self.mcu_freq)**2
         else:
             self.last_prediction_time = sent_time

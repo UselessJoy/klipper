@@ -272,16 +272,15 @@ class BedMesh:
         for name in profiles:
             if not 'at_bed_mesh_temperature' in profiles[name]:
                 continue
-            int_temp = int(profiles[name]['at_bed_mesh_temperature'])
             if not best_diff:
-                best_temp = int_temp
+                best_temp = profiles[name]['at_bed_mesh_temperature']
                 best_diff = abs(best_temp - target)
                 best_profile = name
                 best_profiles.append(name)
                 continue
-            cur_diff = abs(int_temp - target)
+            cur_diff = abs(profiles[name]['at_bed_mesh_temperature'] - target)
             if cur_diff < best_diff:
-                best_temp = int_temp
+                best_temp = profiles[name]['at_bed_mesh_temperature']
                 best_diff = cur_diff
                 best_profile = name
                 best_profiles.append(name)
@@ -1428,6 +1427,7 @@ class ProfileManager:
         profiles = dict(self.profiles)
         profiles[prof_name] = profile = {}
         profile['at_bed_mesh_temperature'] = f"{self.printer.lookup_object('heater_bed').get_heater().get_temp(self.printer.get_reactor().monotonic())[0]:.2f}"
+        profile['at_bed_mesh_temperature'] = float(profile['at_bed_mesh_temperature'])
         profile['calibrating_datetime'] = f"{datetime.now().timestamp():.1f}"
         profile['points'] = probed_matrix
         profile['mesh_params'] = collections.OrderedDict(mesh_params)

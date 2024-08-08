@@ -38,9 +38,7 @@ class PrinterFanBack:
         
     def _handle_ready(self):
         self.fan.set_speed_from_command(.8)
-        
-    def get_status(self, eventtime):
-        return self.fan.get_status(eventtime)
+
     def cmd_SET_FAN_SPEED(self, gcmd):
         speed = gcmd.get_float('SPEED', 0.)
         self.fan.set_speed_from_command(speed)

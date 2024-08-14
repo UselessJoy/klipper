@@ -58,11 +58,11 @@ class PrinterFanBack:
           setting_speed = .8
         self.fan.set_speed_from_command(setting_speed)
       else:
-        for i, config_temp in enumerate(self.config_temps):
+        for config_temp in self.config_temps:
           if temp <= config_temp:
-              self.fan.set_speed_from_command(self.config_temps[temp])
+              self.fan.set_speed_from_command(self.config_temps[config_temp])
               return
-        self.fan.set_speed_from_command(self.config_temps.keys()[-1])
+        self.fan.set_speed_from_command(next(reversed(self.config_temps.values())))
       
         
     def _handle_ready(self):

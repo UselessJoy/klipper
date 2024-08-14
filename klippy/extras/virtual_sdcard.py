@@ -177,7 +177,7 @@ class VirtualSD:
         #   probe_object.run_gcode_return_magnet()
         # probe_object.return_z()
         messages = self.printer.lookup_object('messages')
-        if self.autoload_bed_mesh:
+        if self.autoload_bed_mesh and not self.printer.lookup_object('bed_mesh').pmgr.get_current_profile():
             start_heater_bed_temp = self.find_start_heater_bed_temp()
             cur_profile = self.printer.lookup_object('bed_mesh').load_best_mesh(start_heater_bed_temp)
             if cur_profile:
@@ -543,7 +543,7 @@ class VirtualSD:
             line: str = lines.pop()
             if line.startswith('M190') or line.startswith('M109'):
                 return int(line.split(" ")[1][1:])
-            if line.find('CURRENT_LAYER=1') != -1: # типо после данной команды дальше температуру устанавливать нет смысла
+            if line.find('CURRENT_LAYER=1') != -1: # типо после данной команды дальше температуру искать нет смысла
                 return 0
             next_file_position = file_position + len(line.encode()) + 1       
             file_position = next_file_position

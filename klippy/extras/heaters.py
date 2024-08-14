@@ -219,7 +219,7 @@ class ControlPID:
                 if abs(temp - target_temp) < best_diff:
                     best_diff = abs(temp - target_temp)
                     best_pid_temp = temp
-            self.Kp, self.Ki, self.Kd = (k / PID_PARAM_BASE for k in self.pid_mass[best_pid_temp])
+            self.Kp, self.Ki, self.Kd = ((k / PID_PARAM_BASE) for k in self.pid_mass[best_pid_temp])
             
             
     def temperature_update(self, read_time, temp, target_temp):

@@ -1552,6 +1552,12 @@ msgid "Sets the speed of a fan"
 msgstr "Устанавливает скорость вращения вентилятора"
 
 # ======================END FAN_GENERIC MODULE===================#
+
+# ========================FAN_BACK MODULE=====================#
+msgid "Must set temps and speeds"
+msgstr "Необходимо установить температуры и соответствующие для них скорости вентилятора"
+# ======================END FAN_BACK MODULE===================#
+
 # ==================FILAMENT_SWITCH_SENSOR MODULE================#
 msgid "Query the status of the Filament Sensor"
 msgstr "Запрос состояния датчика филамента"

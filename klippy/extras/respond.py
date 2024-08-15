@@ -53,7 +53,7 @@ class HostResponder:
           elif respond_type == 'command':
             gcmd.respond_raw(str(msg).upper())
           else:
-            gcmd.respond_error(msg, False)
+            gcmd.error(msg, False)
           
         # if(no_space):
         #     gcmd.respond_raw("%s%s" % (prefix, msg))

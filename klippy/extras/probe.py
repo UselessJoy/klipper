@@ -111,6 +111,8 @@ class PrinterProbe:
         
     
     def magnet_check(self, eventtime):
+        if self.printer.lookup_object('virtual_sdcard').is_active():
+            return eventtime + 1
         try:
           toolhead = self.printer.lookup_object('toolhead')
           print_time = toolhead.get_last_move_time()

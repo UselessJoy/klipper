@@ -168,9 +168,7 @@ class VirtualSD:
             while self.work_timer is not None and not self.cmd_from_sd:
                 self.reactor.pause(self.reactor.monotonic() + .001)
     def do_resume(self):
-        safety_printing_object = self.printer.lookup_object('safety_printing')
-        if safety_printing_object.safety_enabled:
-            safety_printing_object.raise_error_if_open()
+        self.try_check_open()
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         # probe_object = self.printer.lookup_object('probe')
         # if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
@@ -181,11 +179,8 @@ class VirtualSD:
             start_heater_bed_temp = self.find_start_heater_bed_temp()
             cur_profile = self.printer.lookup_object('bed_mesh').load_best_mesh(start_heater_bed_temp)
             if cur_profile:
-              logging.info(f"cur profile is {cur_profile}")
               if re.match(r"^profile_\d+$", cur_profile):
-                  logging.info("matched profile")
                   cur_profile = _("profile_%s") % cur_profile.partition('_')[2]
-                  logging.info(f"locale cur profile is {cur_profile}")
             messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Automatic loaded bed mesh %s") % cur_profile)
         elif self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
@@ -252,9 +247,7 @@ class VirtualSD:
         self._reset_file()
     cmd_SDCARD_PRINT_FILE_help = _("Loads a SD file and starts the print. May include files in subdirectories.")
     def cmd_SDCARD_PRINT_FILE(self, gcmd):
-        safety_printing_object = self.printer.lookup_object('safety_printing')
-        if safety_printing_object.safety_enabled:
-            safety_printing_object.raise_error_if_open()
+        self.try_check_open()
         if self.work_timer is not None:
             raise gcmd.error(_("SD busy"))
         self._reset_file()
@@ -272,12 +265,18 @@ class VirtualSD:
     def cmd_SDCARD_PASS_FILE(self, gcmd):
         self.show_interrupt = False
         self.print_stats.reset()
-            
+
+    def try_check_open(self):
+        try:
+          safety_printing_object = self.printer.lookup_object('safety_printing')
+          if safety_printing_object.safety_enabled:
+              safety_printing_object.raise_error_if_open()
+        except:
+            pass 
+          
     def cmd_SDCARD_RUN_FILE(self, gcmd):
         self.show_interrupt = False
-        safety_printing_object = self.printer.lookup_object('safety_printing')
-        if safety_printing_object.safety_enabled:
-            safety_printing_object.raise_error_if_open()
+        self.try_check_open()
         gcmd.respond_raw(_("Restart file"))
         self.load_saved_parameters()
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)

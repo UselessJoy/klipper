@@ -409,7 +409,7 @@ class PrinterConfig:
         if save_immediatly:
             self.save_config(need_restart, need_backup)
 
-    def set(self, section: str, option, value, save_immediatly = False) -> None:
+    def set(self, section: str, option = None, value = None, save_immediatly = False) -> None:
         """
         Метод устанавливает для указанной опции option в секции section значение value, если указанная секция существует. 
         Иначе секция добавляется в словарь измененных/добавляемых секций в конфигурации. Если секция находилась в словаре 

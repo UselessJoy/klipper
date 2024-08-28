@@ -398,15 +398,18 @@ class PrinterConfig:
         создания бэкапа при сохранении соответственно. 
         """
         for section in setting_sections:
-            for option in setting_sections[section]:
-                self.set(section, option, setting_sections[section][option], save_immediatly)
+            if not setting_sections[section]:
+                self.set(section, save_immediatly=save_immediatly)
+            else:
+              for option in setting_sections[section]:
+                  self.set(section, option, setting_sections[section][option], save_immediatly)
         
         for section in removing_sections:
             self.remove_section(section)
         if save_immediatly:
             self.save_config(need_restart, need_backup)
 
-    def set(self, section: str, option: str, value, save_immediatly = False) -> None:
+    def set(self, section: str, option, value, save_immediatly = False) -> None:
         """
         Метод устанавливает для указанной опции option в секции section значение value, если указанная секция существует. 
         Иначе секция добавляется в словарь измененных/добавляемых секций в конфигурации. Если секция находилась в словаре 
@@ -414,17 +417,18 @@ class PrinterConfig:
         """
         if section in self.status_remove_sections:
             self.status_remove_sections.remove(section)
-        svalue = str(value)
         pending = dict(self.pendingSaveItems)
         if not section in pending or pending[section] is None:
             pending[section] = {}
         else:
             pending[section] = dict(pending[section])
-        pending[section][option] = svalue
+        if option and value:
+          svalue = str(value)
+          pending[section][option] = svalue
         self.pendingSaveItems = pending
         if not save_immediatly:
             self.haveUnsavedChanges = True
-        logging.info("save_config: set [%s] %s = %s", section, option, svalue)
+        #logging.info("save_config: set [%s] %s = %s", section, option, svalue)
         
     def remove_section(self, section: str, save_immediatly = False):
         """

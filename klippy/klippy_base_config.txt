@@ -1,0 +1,442 @@
+[include pause_resume.cfg]
+
+[include timelapse.cfg]
+
+[mcu]
+
+[mcu rpi]
+serial: /tmp/klipper_host_mcu
+
+[locale]
+lang: ru
+
+[gcode_arcs]
+resolution: 1.0
+
+[screws_tilt_adjust]
+screw1: -15,0
+screw1_name: Передний левый винт
+screw2: 280,0
+screw2_name: Передний правый винт
+screw3: 280, 195
+screw3_name: Задний правый винт
+screw4: -15, 195
+screw4_name: Задний левый винт
+horizontal_move_z: 7.0
+speed: 500
+screw_thread: CW-M4
+
+[stepper_x]
+step_pin: PE3
+dir_pin: !PE2
+enable_pin: !PE4
+microsteps: 32
+rotation_distance: 40
+endstop_pin: PA15
+position_endstop: -15
+position_min: -15.2
+position_max: 305
+homing_speed: 80
+homing_retract_dist: 5
+homing_retract_speed: 50
+second_homing_speed: 20
+
+[stepper_y]
+step_pin: PE0
+dir_pin: !PB9
+enable_pin: !PE1
+microsteps: 32
+rotation_distance: 40
+endstop_pin: PD2
+position_endstop: 0
+position_min: -0.2
+position_max: 215
+homing_speed: 80
+homing_retract_dist: 5
+homing_retract_speed: 50
+second_homing_speed: 20
+
+[stepper_z]
+step_pin: PB5
+dir_pin: PB4
+enable_pin: !PB8
+microsteps: 32
+rotation_distance: 2
+endstop_pin: PC8
+position_endstop: 1.477
+position_max: 295
+position_min: -10
+homing_speed: 20
+homing_retract_dist: 3
+homing_retract_speed: 20
+second_homing_speed: 3
+
+[extruder]
+step_pin: PD6
+dir_pin: PD3
+enable_pin: !PB3
+microsteps: 32
+rotation_distance: 22.5
+nozzle_diameter: 0.400
+filament_diameter: 1.750
+heater_pin: PE5
+sensor_type: EPCOS 100K B57560G104F
+sensor_pin: PC1
+control: pid
+min_temp: 0
+max_temp: 280
+min_extrude_temp: 22
+pressure_advance: 0.03
+max_extrude_only_distance: 300
+max_extrude_only_velocity: 30
+
+[heater_bed]
+heater_pin: PA0
+sensor_type: EPCOS 100K B57560G104F
+sensor_pin: PC0
+control: pid
+min_temp: 0
+max_temp: 130
+
+[tmc2209 stepper_x]
+uart_pin: PD5
+run_current: 1
+hold_current: 0.5
+interpolate: False
+stealthchop_threshold: 999999
+
+[tmc2209 stepper_y]
+uart_pin: PD7
+run_current: 1
+hold_current: 0.5
+interpolate: False
+stealthchop_threshold: 999999
+
+[tmc2209 stepper_z]
+uart_pin: PD4
+run_current: 0.8
+hold_current: 0.5
+interpolate: False
+
+[tmc2209 extruder]
+uart_pin: PD9
+run_current: 1.0
+hold_current: 0.5
+interpolate: False
+
+[printer]
+kinematics: corexy
+max_velocity: 500
+max_accel: 6000
+max_z_velocity: 20
+max_z_accel: 30
+max_accel_to_decel: 6000
+square_corner_velocity: 5
+
+[bed_mesh]
+speed: 3000
+horizontal_move_z: 5
+mesh_min: -15,0
+mesh_max: 285, 185
+probe_count: 6,6
+fade_start: 1
+fade_end: 10
+
+[fan]
+locale_ru: Обдув модели
+locale_en: Fan
+pin: PB1
+
+[fan_generic camera]
+locale_ru: Вентиляция камеры
+locale_en: Camera
+pin: PA1
+cycle_time: 0.3
+kick_start_time: 0.1
+off_below: 0.3
+
+[heater_fan hotend]
+locale_ru: Обдув экструдера
+locale_en: Hotend
+pin: PC14
+max_power: 1
+shutdown_speed: 0
+
+[fan_back back]
+pin: PA3
+max_power: 1
+cycle_time: 0.05
+kick_start_time: 0.5
+shutdown_speed: 1
+off_below: 0
+
+[virtual_sdcard]
+path: /home/orangepi/printer_data
+rebuild: confirm
+autoload_bed_mesh: False
+watch_bed_mesh: False
+
+[save_variables]
+filename: /home/orangepi/printer_data/state.txt
+
+[pause_resume]
+recover_velocity: 5
+pause_velocity: 200
+resume_velocity: 500
+
+[neopixel my_neopixel]
+locale_ru: Подсветка
+locale_en: LED
+pin: PB2
+chain_count: 14
+color_order: GRB
+initial_red: 0.6
+initial_green: 0.2
+initial_blue: 0.2
+initial_white: 0.0
+
+[led_effect DEFAULT]
+autostart: true
+frame_rate: 1
+leds: 
+	neopixel:my_neopixel (1-14)
+layers: static  1 0 screen (0.6,0.2,0.2)
+
+[led_effect PAUSED]
+autostart: false
+frame_rate: 1
+leds: 
+	neopixel:my_neopixel (1-14)
+layers: 
+	static  1 0 screen (0.95,0.5,0.0)
+
+[led_effect WARNING]
+autostart: false
+frame_rate: 24
+leds: 
+	neopixel:my_neopixel (1-14)
+layers: 
+	breathing      1  0     difference (0.95, 0.5, 0.0)
+
+[led_effect ERROR]
+autostart: false
+frame_rate: 24
+leds: 
+	neopixel:my_neopixel (1-14)
+layers: 
+	breathing      1  0     difference (0.95, 0.0, 0.0)
+run_on_error: true
+
+[led_effect COMPLETE]
+autostart: false
+frame_rate: 24
+leds: 
+	neopixel:my_neopixel (1-14)
+layers: 
+	breathing      1  0     difference (0.0, 0.95, 0.0)
+
+[led_effect EXTRUDER]
+leds: 
+	neopixel:my_neopixel (1-14)
+autostart: false
+frame_rate: 24
+heater: extruder
+layers: 
+	heater  1 0 top    (0,0,1),(0.1,0,0.9),(0.2,0.0,0.8),(0.3,0,0.7),(0.4,0,0.6),(0.5,0,0.5),(0.6,0.0,0.4),(0.7,0.0,0.3),(0.8,0.0,0.2),(0.9,0.0,0.1),(1,0.0,0),(1,0.0,0)
+
+[led_effect HEATER_BED]
+leds: 
+	neopixel:my_neopixel (1-14)
+autostart: false
+frame_rate: 24
+heater: heater_bed
+layers: 
+	heater  1 0 top    (0,0,1),(0.1,0,0.9),(0.2,0.0,0.8),(0.3,0,0.7),(0.4,0,0.6),(0.5,0,0.5),(0.6,0.0,0.4),(0.7,0.0,0.3),(0.8,0.0,0.2),(0.9,0.0,0.1),(1,0.0,0),(1,0.0,0)
+
+[led_effect EXTRUDER_LEFT]
+leds: 
+	neopixel:my_neopixel (1-7)
+autostart: false
+frame_rate: 24
+heater: extruder
+layers: 
+	heater  1 0 top    (0,0,1),(0.1,0,0.9),(0.2,0.0,0.8),(0.3,0,0.7),(0.4,0,0.6),(0.5,0,0.5),(0.6,0.0,0.4),(0.7,0.0,0.3),(0.8,0.0,0.2),(0.9,0.0,0.1),(1,0.0,0),(1,0.0,0)
+
+[led_effect BED_RIGHT]
+leds: 
+	neopixel:my_neopixel (8-14)
+autostart: false
+frame_rate: 24
+heater: heater_bed
+layers: 
+	heater  1 0 top    (0,0,1),(0.1,0,0.9),(0.2,0.0,0.8),(0.3,0,0.7),(0.4,0,0.6),(0.5,0,0.5),(0.6,0.0,0.4),(0.7,0.0,0.3),(0.8,0.0,0.2),(0.9,0.0,0.1),(1,0.0,0),(1,0.0,0)
+
+[temperature_sensor Orange_Pi]
+locale_ru: ЦПУ
+locale_en: Orange Pi
+sensor_type: temperature_host
+min_temp: 10
+max_temp: 100
+
+[temperature_sensor MKS]
+locale_ru: Плата
+locale_en: MKS
+sensor_type: temperature_mcu
+min_temp: 10
+max_temp: 100
+
+[probe]
+pin: PC4
+z_offset: 2.650
+speed: 5
+sample_retract_dist: 2
+x_offset: 20.5
+y_offset: 22.5
+magnet_x: -12.7
+magnet_y: 215.0
+speed_base: 3000
+parking_magnet_y: 180
+speed_parking: 1500
+magnet_x_offset: 20
+drop_z: 7
+
+[adxl345]
+cs_pin: PD10
+spi_software_sclk_pin: PC6
+spi_software_mosi_pin: PE14
+spi_software_miso_pin: PE15
+axes_map: -y, -z, -x
+
+[resonance_tester]
+accel_chip: adxl345 #ADXL
+probe_points: 160,88,20
+max_freq: 120
+
+[power_button]
+pin: !rpi:gpiochip1/gpio122
+
+[gcode_macro LOAD_FILAMENT]
+macro_locale: Заправить филамент
+param_locale: SPEED.Скорость заправки
+gcode: 
+	{% set speed = params.SPEED|default(300) %}
+	{% set max_velocity = printer.configfile.settings['extruder'].max_extrude_only_velocity %}
+	SAVE_GCODE_STATE NAME=load_state
+	G91
+	G92 E0
+	G1 E5 F300 # purge
+	G1 E65 F{60*(max_velocity-10)} # fast-load
+	G1 E10 F300 # purge
+	RESTORE_GCODE_STATE NAME=load_state
+
+[gcode_macro UNLOAD_FILAMENT]
+macro_locale: Ретракт филаметна
+param_locale: SPEED.Скорость_ретракта
+gcode: 
+	{% set speed = params.SPEED|default(300) %}
+	{% set max_velocity = printer.configfile.settings['extruder'].max_extrude_only_velocity %}
+	SAVE_GCODE_STATE NAME=unload_state
+	G91
+	G92 E0
+	G1 E5 F300 # purge
+	G1 E-60 F{60*max_velocity} # fast-unload
+	RESTORE_GCODE_STATE NAME=unload_state
+
+[gcode_macro M486]
+gcode: 
+	{% if 'exclude_object' not in printer %}
+	{action_raise_error("[exclude_object] is not enabled")}
+	{% endif %}
+	
+	{% if 'T' in params %}
+	EXCLUDE_OBJECT RESET=1
+	
+	{% for i in range(params.T | int) %}
+	EXCLUDE_OBJECT_DEFINE NAME={i}
+	{% endfor %}
+	{% endif %}
+	
+	{% if 'C' in params %}
+	EXCLUDE_OBJECT CURRENT=1
+	{% endif %}
+	
+	{% if 'P' in params %}
+	EXCLUDE_OBJECT NAME={params.P}
+	{% endif %}
+	
+	{% if 'S' in params %}
+	{% if params.S == '-1' %}
+	{% if printer.exclude_object.current_object %}
+	EXCLUDE_OBJECT_END NAME={printer.exclude_object.current_object}
+	{% endif %}
+	{% else %}
+	EXCLUDE_OBJECT_START NAME={params.S}
+	{% endif %}
+	{% endif %}
+	
+	{% if 'U' in params %}
+	EXCLUDE_OBJECT RESET=1 NAME={params.U}
+	{% endif %}
+
+[gcode_macro M201]
+gcode: 
+	{% set x = params.X|default(0)|float %}
+	{% set y = params.Y|default(0)|float %}
+	{% set z = params.Z|default(0)|float %}
+	{% set e = params.E|default(0)|float %}
+	SET_VELOCITY_LIMIT ACCEL_X={x} ACCEL_Y={y} ACCEL_Z={z} ACCEL_E={e}
+
+[gcode_macro M203]
+gcode: 
+	{% set x = params.X|default(0)|float %}
+	{% set y = params.Y|default(0)|float %}
+	{% set z = params.Z|default(0)|float %}
+	{% set e = params.E|default(0)|float %}
+	SET_VELOCITY_LIMIT VELOCITY_X={x} VELOCITY_Y={y} VELOCITY_Z={z} VELOCITY_E={e}
+
+[gcode_macro M205]
+gcode: 
+	{% set x = params.X|default(0)|float %}
+	{% set y = params.Y|default(0)|float %}
+	{% set z = params.Z|default(0)|float %}
+	{% set e = params.E|default(0)|float %}
+	SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY_X={x} SQUARE_CORNER_VELOCITY_Y={y} SQUARE_CORNER_VELOCITY_Z={z} SQUARE_CORNER_VELOCITY_E={e}
+
+[gcode_macro M900]
+gcode: 
+	{% set k = params.K|default(0)|float %}
+	SET_PRESSURE_ADVANCE ADVANCE={k}
+
+[force_move]
+enable_force_move: True
+
+[input_shaper]
+
+[autooff]
+autooff: False
+off_extruder_temp: 90
+
+[safety_printing]
+doors_pin: !PA13
+hood_pin: !PA4
+luft_timeout: 3.0
+safety_enabled: False
+show_respond: False
+
+[filament_watcher]
+
+[firmware_retraction]
+
+[exclude_object]
+
+[gcode_move]
+
+[messages]
+
+[wifi_mode]
+
+[self_diagnosis]
+
+[led_control]
+
+[motor_checker]

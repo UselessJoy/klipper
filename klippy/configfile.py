@@ -304,9 +304,24 @@ class PrinterConfig:
         sfile = io.StringIO()
         config.fileconfig.write(sfile)
         return sfile.getvalue().strip()
-    def read_config(self, filename: str) -> ConfigWrapper:
+    def read_config(self, filename: str, parse_includes=True) -> ConfigWrapper:
         return self._build_config_wrapper(self._read_config_file(filename),
-                                          filename)
+                                          filename, parse_includes)
+    
+    def compare_base_config(self, config: ConfigWrapper):
+        klipperpath = os.path.dirname(__file__)
+        filepath = os.path.join(klipperpath, "klippy_base_config.txt")
+        base_config: ConfigWrapper = self.read_config(filepath, parse_includes=False)
+        missed_sections = {}
+        for section in base_config.fileconfig.sections():
+            if not (config.has_section(section) or section.startswith('include ')):
+                missed_sections[section] = {}
+                for option in base_config.fileconfig.options(section):
+                    missed_sections[section][option] = base_config.fileconfig.get(section, option)
+        logging.info(missed_sections)
+        if missed_sections:
+          self.update_config(missed_sections, save_immediatly=True, need_restart=True)
+
     def read_main_config(self, parse_includes=True) -> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']
         data = self._read_config_file(filename)
@@ -315,6 +330,7 @@ class PrinterConfig:
         autosave_data = self._strip_duplicates(autosave_data, regular_config)
         self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
+        self.compare_base_config(cfg)
         return cfg
     def check_unused_options(self, config: ConfigWrapper):
         fileconfig = config.fileconfig

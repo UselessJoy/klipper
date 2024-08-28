@@ -40,10 +40,10 @@ class SafetyPrinting:
         
     def _handle_paused(self):
         self.send_pause = False   
-    
-    
+
     def endstops_callback(self, eventtime, state):
         self.endstops_state = state
+        self.printer.send_event("safety_printing:endstops_state", state)
         virtual_sdcard_object = self.printer.lookup_object("virtual_sdcard")
         pause_resume_object = self.printer.lookup_object('pause_resume')
         sd_state = virtual_sdcard_object.print_stats.state
@@ -99,6 +99,9 @@ class SafetyPrinting:
             self.gcode.respond_info(_("Doors are open"))
         else:
             self.gcode.respond_info(_("Doors and hood are open"))
+    
+    def get_endstops_state(self):
+        return self.endstops_state
     
     def _handle_set_safety_printing(self, web_request):
         self.safety_enabled: bool = web_request.get_boolean('safety_enabled')

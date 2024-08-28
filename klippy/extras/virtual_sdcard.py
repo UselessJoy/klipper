@@ -9,6 +9,57 @@ import re
 import locales
 import subprocess
 VALID_GCODE_EXTS = ['gcode', 'g', 'gco']
+READ_SIZE = 1024 * 1024  # 1 MiB 
+SUPPORTED_SLICERS = {
+  "PrusaSlicer": {
+    "name": 
+        {r"PrusaSlicer\s(.*)\son",
+        r"SuperSlicer\s(.*)\son",
+        r"OrcaSlicer\s(.*)\son",
+        r"MomentSlicer\s(.*)\son",
+        r"SliCR-3D\s(.*)\son",
+        r"BambuStudio[^ ]*\s(.*)\n",
+        r"A3dp-Slicer\s(.*)\son",
+        r"Slic3r\sPrusa\sEdition\s(.*)\son",
+        r"Slic3r\s(\d.*)\son"}
+    ,
+    "filament_type": {r";\sfilament_type\s=\s(%S)"}
+  },
+  "Cura": {
+    "name": 
+        {r"Cura_SteamEngine\s(.*)"}
+    ,
+    "filament_type": {r";Filament\stype\s=\s(%S)"}
+  },
+  "Simplify3D": {
+    "name": 
+        {r"Simplify3D\(R\)\sVersion\s(.*)"}
+    ,
+    "filament_type": {r";\s+makerBotModelMaterial,(%S)"}
+  },
+  "IdeaMaker": {
+    "name": 
+        {r"\sideaMaker\s(.*),"}
+    ,
+    "filament_type": 
+        {r";Filament\sType\s.\d:\s(%S)", 
+        r";Filament\stype\s=\s(%S)"}
+  },
+  "IceSL": {
+    "name": 
+        {r"<IceSL\s(.*)>"}
+    ,
+    "filament_type": 
+        {r";\sfilament_type\s:\s+(%S)"}
+  }
+}
+
+def regex_find_string(pattern: str, data: str):
+    pattern = pattern.replace(r"(%S)", r"(.*)")
+    match = re.search(pattern, data)
+    if match:
+        return match.group(1).strip('"')
+    return None
 
 class VirtualSD:
     def __init__(self, config):
@@ -22,6 +73,7 @@ class VirtualSD:
         else:
           sd = os.path.join(path, 'gcodes')
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))
+        self.header_data = self.footer_data = None
         self.media_dirname = "/media"
         self.rebuild_choise = config.get('rebuild')
         stepper_z = config.getsection('stepper_z')
@@ -193,6 +245,7 @@ class VirtualSD:
         led_control.set_start_print_effect()
         self.work_timer = self.reactor.register_timer(
             self.work_handler, self.reactor.NOW)
+         
     def do_cancel(self):
         if self.current_file is not None:
             self.do_pause()
@@ -203,6 +256,7 @@ class VirtualSD:
             self.current_file = None
             self.print_stats.note_cancel()
         self.file_position = self.file_size = 0.
+        self.header_data = self.footer_data = None
         self.run_gcode_on_cancel()
         
     def run_gcode_on_cancel(self):
@@ -223,6 +277,7 @@ class VirtualSD:
             self._remove_file()
             ####    END NEW    ####
         self.file_position = self.file_size = 0.
+        self.header_data = self.footer_data = None
         self.print_stats.reset()
         self.printer.send_event("virtual_sdcard:reset_file")
     cmd_SDCARD_RESET_FILE_help = _("Clears a loaded SD File. Stops the print if necessary")
@@ -363,6 +418,8 @@ class VirtualSD:
             f.seek(0, os.SEEK_END)
             fsize = f.tell()
             f.seek(0)
+            self._load_footer_data(f, fsize)
+            f.seek(0)
         except:
             logging.exception("virtual_sdcard file open")
             raise gcmd.error(_("Unable to open file"))
@@ -372,6 +429,30 @@ class VirtualSD:
         self.file_position = file_position
         self.file_size = fsize
         self.print_stats.set_current_file(filename)
+
+    def _load_footer_data(self, f: io.TextIOWrapper, size: int):
+      self.header_data = f.read(READ_SIZE)
+      if size > READ_SIZE * 2:
+          f.seek(size - READ_SIZE)
+          self.footer_data = f.read()
+      elif size > READ_SIZE:
+          remaining = size - READ_SIZE
+          self.footer_data = self.header_data[remaining - READ_SIZE:] + f.read()
+      else:
+          self.footer_data = self.header_data
+
+    def get_filament_type(self):
+        if not (self.header_data and self.footer_data):
+            return ""
+        for sliser in SUPPORTED_SLICERS:
+            for r_name in SUPPORTED_SLICERS[sliser]['name']:
+                if re.search(r_name, self.header_data):
+                    for r_filament in SUPPORTED_SLICERS[sliser]['filament_type']:
+                      ft = regex_find_string(r_filament, self.footer_data)
+                      if ft:
+                          return ft
+        return ""
+              
     def cmd_M24(self, gcmd):
         # Start/resume SD print
         self.do_resume()

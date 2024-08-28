@@ -23,6 +23,7 @@ class PrinterFanGeneric:
     def cmd_SET_FAN_SPEED(self, gcmd):
         speed = gcmd.get_float('SPEED', 0.)
         self.fan.set_speed_from_command(speed)
+        self.printer.send_event("fan_generic:set_fan_speed", speed)
 
 def load_config_prefix(config):
     return PrinterFanGeneric(config)

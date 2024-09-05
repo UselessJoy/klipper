@@ -61,7 +61,6 @@ class IdleTimeout:
             eventtime)
         # idle_time = est_print_time - print_time
         if not lookahead_empty:# or idle_time < 1.:
-            self.gcode.respond_info("Toolhead is busy on check idle")
             # Toolhead is busy
             return eventtime + self.idle_timeout
         # if idle_time < self.idle_timeout:

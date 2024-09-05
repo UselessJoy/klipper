@@ -438,5 +438,3 @@ show_respond: False
 [self_diagnosis]
 
 [led_control]
-
-[motor_checker]

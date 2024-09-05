@@ -9,7 +9,7 @@ import sys, os, glob, re, time, logging, configparser, io
 import locales
 locales.set_locale()
 error = configparser.Error
-
+DEPRECATED_SECTIONS = ['motor_checker']
 class sentinel:
     pass
 
@@ -320,7 +320,7 @@ class PrinterConfig:
                     missed_sections[section][option] = base_config.fileconfig.get(section, option)
         logging.info(missed_sections)
         if missed_sections:
-          self.update_config(missed_sections, save_immediatly=True, need_restart=True)
+          self.update_config(setting_sections=missed_sections, removing_sections=DEPRECATED_SECTIONS, save_immediatly=True, need_restart=True)
 
     def read_main_config(self, parse_includes=True) -> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']

@@ -225,6 +225,9 @@ msgstr "Считано %f: %s"
 msgid "Option '%s' in section '%s' must be specified"
 msgstr "Необходимо указать параметр '%s' в разделе '%s'"
 
+msgid "No data changed"
+msgstr "Нечего сохранять"
+
 #, python-format
 msgid "Unable to parse option '%s' in section '%s'"
 msgstr "Не удается разобрать параметр '%s' в разделе '%s'"

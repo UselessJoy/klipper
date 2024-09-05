@@ -68,10 +68,10 @@ class Fan:
         self.mcu_fan.set_pwm(print_time, value)
         self.last_fan_time = print_time
         self.last_fan_value = value
-    def set_speed_from_command(self, value):
+    def set_speed_from_command(self, value, must_send_idle_event=True):
         toolhead = self.printer.lookup_object('toolhead')
         toolhead.register_lookahead_callback((lambda pt:
-                                              self.set_speed(pt, value)))
+                                              self.set_speed(pt, value)), must_send_idle_event)
     def _handle_request_restart(self, print_time):
         self.set_speed(print_time, 0.)
 

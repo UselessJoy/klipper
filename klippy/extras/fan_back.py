@@ -25,11 +25,6 @@ class PrinterFanBack:
              raise self.printer.config_error(
                 _("Must set temps and speeds"))
           self.config_temps = dict(sorted(buff.items()))
-        gcode = self.printer.lookup_object("gcode")
-        gcode.register_mux_command("SET_FAN_SPEED", "FAN",
-                                   self.fan_name,
-                                   self.cmd_SET_FAN_SPEED,
-                                   desc=self.cmd_SET_FAN_SPEED_help)
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.printer.register_event_handler("temperature_host:sample_temperature", self._on_host_temp)
         self.printer.register_event_handler("temperature_mcu:sample_temperature", self._on_mcu_temp)
@@ -49,28 +44,28 @@ class PrinterFanBack:
 
     def set_speed(self, temp):
       if temp >= 60:
-         self.fan.set_speed_from_command(1)
-         return
+        if self.fan.last_fan_value != 1.:
+          self.fan.set_speed_from_command(1., False)
+        return
       if self.linear:
         if temp >= 55:
           setting_speed = (80 + (temp - 40)) / 100
         else:
           setting_speed = .8
-        self.fan.set_speed_from_command(setting_speed)
+        if self.fan.last_fan_value != setting_speed:
+          self.fan.set_speed_from_command(setting_speed, False)
       else:
         for config_temp in self.config_temps:
           if temp <= config_temp:
-              self.fan.set_speed_from_command(self.config_temps[config_temp])
+              if self.fan.last_fan_value != self.config_temps[config_temp]:
+                self.fan.set_speed_from_command(self.config_temps[config_temp], False)
               return
-        self.fan.set_speed_from_command(next(reversed(self.config_temps.values())))
+        if self.fan.last_fan_value != next(reversed(self.config_temps.values())):
+          self.fan.set_speed_from_command(next(reversed(self.config_temps.values())), False)
       
         
     def _handle_ready(self):
-        self.fan.set_speed_from_command(.8)
-
-    def cmd_SET_FAN_SPEED(self, gcmd):
-        speed = gcmd.get_float('SPEED', 0.)
-        self.fan.set_speed_from_command(speed)
+        self.fan.set_speed_from_command(.8, False)
     
     def get_status(self, eventtime):
        return {'last_fan_value': self.fan.last_fan_value}

@@ -22,7 +22,7 @@ class IdleTimeout:
         self.gcode = self.printer.lookup_object('gcode')
         self.toolhead = self.timeout_timer = None
         self.printer.register_event_handler("klippy:ready", self.handle_ready)
-        self.idle_timeout = config.getfloat('timeout', 600., above=0.)
+        self.idle_timeout = config.getfloat('timeout', 900., above=0.)
         gcode_macro = self.printer.load_object(config, 'gcode_macro')
         self.idle_gcode = gcode_macro.load_template(config, 'gcode',
                                                     DEFAULT_IDLE_GCODE)
@@ -54,17 +54,20 @@ class IdleTimeout:
         self.state = "Idle"
         self.printer.send_event("idle_timeout:idle", print_time)
         return self.reactor.NEVER
+
     def check_idle_timeout(self, eventtime):
         # Make sure toolhead class isn't busy
         print_time, est_print_time, lookahead_empty = self.toolhead.check_busy(
             eventtime)
-        idle_time = est_print_time - print_time
-        if not lookahead_empty or idle_time < 1.:
+        # idle_time = est_print_time - print_time
+        if not lookahead_empty:# or idle_time < 1.:
+            self.gcode.respond_info("Toolhead is busy on check idle")
             # Toolhead is busy
             return eventtime + self.idle_timeout
-        if idle_time < self.idle_timeout:
-            # Wait for idle timeout
-            return eventtime + self.idle_timeout - idle_time
+        # if idle_time < self.idle_timeout:
+        #     # Wait for idle timeout
+        #     self.gcode.respond_info("Wait for idle timeout on check idle")
+        #     return eventtime + self.idle_timeout - idle_time
         if self.gcode.get_mutex().test():
             # Gcode class busy
             return eventtime + 1.

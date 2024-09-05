@@ -16,6 +16,7 @@ class PrinterProbe:
     def __init__(self, config, mcu_probe):
         self.printer = config.get_printer()
         self.config = config
+        self.vsd = None
         self.name = config.get_name()
         self.sta_probe = False
         self.is_adjusting = False
@@ -108,14 +109,13 @@ class PrinterProbe:
         self.printer.register_event_handler("klippy:ready",
                                             self._on_ready)
         self.reactor = self.printer.get_reactor()
-        
     
-    def magnet_check(self, eventtime):
-        if self.printer.lookup_object('virtual_sdcard').is_active():
-            return eventtime + 1
+    def _magnet_check(self, eventtime):
         try:
+          if self.vsd.is_active():
+              return eventtime + 1
           toolhead = self.printer.lookup_object('toolhead')
-          print_time = toolhead.get_last_move_time()
+          print_time = toolhead.get_last_move_time(False)
           res = self.mcu_probe.query_endstop(print_time)
           self.last_state = res
           self.is_using_magnet_probe = not bool(res)
@@ -125,12 +125,13 @@ class PrinterProbe:
 
     def _on_ready(self):
         toolhead = self.printer.lookup_object('toolhead')
+        self.vsd = self.printer.lookup_object('virtual_sdcard')
         print_time = toolhead.get_last_move_time()
         res = self.mcu_probe.query_endstop(print_time)
         self.last_state = res
         self.is_using_magnet_probe = not bool(res)
         self.magnet_checker_timer = self.reactor.register_timer(
-                    self.magnet_check, self.reactor.NOW)
+                    self._magnet_check, self.reactor.NOW)
 
     def run_gcode_get_magnet(self):
         gcode = self.printer.lookup_object('gcode')
@@ -251,8 +252,6 @@ class PrinterProbe:
         return self._calc_mean(z_sorted[middle-1:middle+1])
         
     def run_probe(self, gcmd):
-        self.printer.send_event("probe:z_move")
-       # time.sleep(0.1)
         speed = gcmd.get_float("PROBE_SPEED", self.speed, above=0.)
         lift_speed = self.get_lift_speed(gcmd)
         sample_count = gcmd.get_int("SAMPLES", self.sample_count, minval=1)
@@ -521,6 +520,7 @@ class ProbeEndstopWrapper:
         self.query_endstop = self.mcu_endstop.query_endstop
         # multi probes state
         self.multi = 'OFF'
+
     def _handle_mcu_identify(self):
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         for stepper in kin.get_steppers():
@@ -609,7 +609,6 @@ class ProbePointsHelper:
         toolhead.manual_move([None, None, horizontal_move], speed)
         # Check if done probing
         if len(self.results) >= len(self.probe_points):
-            toolhead.get_last_move_time()
             res = self.finalize_callback(self.probe_offsets, self.results)
             if res != "retry":
                 if return_probe:

@@ -176,7 +176,6 @@ class PrinterConfig:
         self.status_remove_sections = []
         self.status_settings = {}
         self.status_warnings = []
-        self.modules_required_reboot_on_change = []
         self.haveUnsavedChanges = False
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command("SAVE_CONFIG", self.cmd_SAVE_CONFIG,
@@ -313,16 +312,19 @@ class PrinterConfig:
         filepath = os.path.join(klipperpath, "klippy_base_config.txt")
         base_config: ConfigWrapper = self.read_config(filepath, parse_includes=False)
         missed_sections = {}
+        deprecated_sections = []
         for section in base_config.fileconfig.sections():
             if not (config.has_section(section) or section.startswith('include ')):
                 missed_sections[section] = {}
                 for option in base_config.fileconfig.options(section):
                     missed_sections[section][option] = base_config.fileconfig.get(section, option)
-        logging.info(missed_sections)
-        if missed_sections:
-          self.update_config(setting_sections=missed_sections, removing_sections=DEPRECATED_SECTIONS, save_immediatly=True, need_restart=True)
+        for section in DEPRECATED_SECTIONS:
+            if config.has_section(section):
+                deprecated_sections.append(section)
+        if missed_sections or deprecated_sections:
+          self.update_config(setting_sections=missed_sections, removing_sections=deprecated_sections, save_immediatly=True, need_restart=True)
 
-    def read_main_config(self, parse_includes=True) -> ConfigWrapper:
+    def read_main_config(self, parse_includes=True, compare=True) -> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']
         data = self._read_config_file(filename)
         regular_data, autosave_data = self._find_autosave_data(data)
@@ -330,7 +332,8 @@ class PrinterConfig:
         autosave_data = self._strip_duplicates(autosave_data, regular_config)
         self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
-        self.compare_base_config(cfg)
+        if compare:
+          self.compare_base_config(cfg)
         return cfg
     def check_unused_options(self, config: ConfigWrapper):
         fileconfig = config.fileconfig
@@ -440,7 +443,7 @@ class PrinterConfig:
             del pending_save[section]
             self.pendingSaveItems = pending_save
             return
-        config = self.read_main_config(parse_includes=False)
+        config = self.read_main_config(parse_includes=False, compare=False)
         if (not section in self.status_remove_sections and section in config.fileconfig.sections()):
             self.status_remove_sections.append(section)
         if not save_immediatly:

@@ -10,12 +10,13 @@ class FilamentWatcher:
         self.printer = config.get_printer()
         self.show_message = False
         self.last_fan_speed = .0
-        self.vsd = self.printer.lookup_object('virtual_sdcard')
+        self.vsd = None
         self.printer.register_event_handler("klippy:ready",
                                             self._on_ready)
         
 
     def _on_ready(self):
+        self.vsd = self.printer.lookup_object('virtual_sdcard')
         self.printer.register_event_handler("print_stats:printing", self._handle_printing)
         self.printer.register_event_handler("print_stats:cancelled", self._handle_stop_printing)
         self.printer.register_event_handler("print_stats:complete", self._handle_stop_printing)

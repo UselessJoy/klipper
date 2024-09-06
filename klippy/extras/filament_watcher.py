@@ -56,11 +56,16 @@ class FilamentWatcher:
             self.show_message = False
     
     def is_PLA_printing(self):
-        return self.vsd.is_active() and self.vsd.get_filament_type() == 'PLA'
+        if self.vsd:
+          return self.vsd.is_active() and self.vsd.get_filament_type() == 'PLA'
+        return None
 
     def get_status(self, eventtime):
+        ft = None
+        if self.vsd:
+            ft = self.vsd.get_filament_type()
         return {
-            'filament_type': self.vsd.get_filament_type(),
+            'filament_type': ft,
             'show_message': self.show_message
         }
 

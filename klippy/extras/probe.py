@@ -126,8 +126,11 @@ class PrinterProbe:
     def _on_ready(self):
         toolhead = self.printer.lookup_object('toolhead')
         self.vsd = self.printer.lookup_object('virtual_sdcard')
-        print_time = toolhead.get_last_move_time()
-        res = self.mcu_probe.query_endstop(print_time)
+        try:
+          print_time = toolhead.get_last_move_time()
+          res = self.mcu_probe.query_endstop(print_time)
+        except:
+            res = False
         self.last_state = res
         self.is_using_magnet_probe = not bool(res)
         self.magnet_checker_timer = self.reactor.register_timer(

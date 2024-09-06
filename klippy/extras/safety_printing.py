@@ -21,7 +21,7 @@ class SafetyPrinting:
         self.luft_timer = None
         self.last_eventtime = 0
         self.send_pause = self.send_resume = False
-        self.messages = self.printer.lookup_object("messages")
+        self.messages = None
         buttons = self.printer.load_object(config, "buttons")
         doors_pin = config.get("doors_pin")
         hood_pin = config.get("hood_pin")
@@ -33,6 +33,10 @@ class SafetyPrinting:
                                    self._handle_set_luft_timeout)
         self.printer.register_event_handler("print_stats:printing", self._handle_printing)
         self.printer.register_event_handler("print_stats:paused", self._handle_paused)
+        self.printer.register_event_handler("klippy:ready", self._on_ready)
+    
+    def _on_ready(self):
+        self.messages = self.printer.lookup_object("messages")
     
     def _handle_printing(self):
         self.send_resume = False

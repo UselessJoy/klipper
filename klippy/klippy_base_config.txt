@@ -61,10 +61,10 @@ step_pin: PB5
 dir_pin: PB4
 enable_pin: !PB8
 microsteps: 32
-rotation_distance: 2
+rotation_distance: 8
 endstop_pin: PC8
 position_endstop: 1.477
-position_max: 295
+position_max: 290
 position_min: -10
 homing_speed: 20
 homing_retract_dist: 3

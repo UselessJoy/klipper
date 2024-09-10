@@ -282,19 +282,19 @@ class PrinterHoming:
             if gcmd.get(axis, None) is not None:
                 axes.append(pos)
         if not axes:
-            axes = [2, 1, 0]
+            axes = [1, 0, 2]
         kin = self.printer.lookup_object('toolhead').get_kinematics()
         if probe.get_is_using_magnet_probe():
             raise self.printer.command_error(
                     _("Has active magnet probe. Take off it manually"))
         try:
-            if 2 in axes:
-                homing_z = Homing(self.printer)
-                homing_z.set_axes([2])
-                kin.home(homing_z)
-                toolhead = self.printer.lookup_object('toolhead')
-                toolhead.manual_move([None, None, probe.drop_z], probe.speed_base)
-                axes.remove(2)
+            # if 2 in axes:
+            #     homing_z = Homing(self.printer)
+            #     homing_z.set_axes([2])
+            #     kin.home(homing_z)
+            #     toolhead = self.printer.lookup_object('toolhead')
+            #     toolhead.manual_move([None, None, probe.drop_z], probe.speed_base)
+            #     axes.remove(2)
             if 1 in axes:
               homing_y = Homing(self.printer)
               homing_y.set_axes([1])

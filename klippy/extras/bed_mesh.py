@@ -806,11 +806,10 @@ class BedMeshCalibrate:
 
     cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")         
     def cmd_BED_MESH_CALIBRATE(self, gcmd: GCodeCommand):
-        profs = []
+        profs = self.bedmesh.pmgr.get_profiles()
         try:
             self._profile_name = gcmd.get('PROFILE')
         except:
-            profs = self.bedmesh.pmgr.get_profiles()
             i = 0
             while f"profile_{i}" in profs:
                 i = i + 1

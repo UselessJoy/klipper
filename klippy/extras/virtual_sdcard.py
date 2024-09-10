@@ -261,7 +261,7 @@ class VirtualSD:
         
     def run_gcode_on_cancel(self):
       pos = self.printer.lookup_object('toolhead').get_position()
-      # self.gcode.run_script_from_command(f"G1 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
+      self.gcode.run_script_from_command(f"G1 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
       self.gcode.run_script_from_command(f"G28 Y")
       self.gcode.run_script_from_command(f"G28 X")
             

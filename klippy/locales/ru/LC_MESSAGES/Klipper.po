@@ -1245,6 +1245,14 @@ msgid "Unable to save to profile [%s], the bed has not been probed"
 msgstr "Не удалось сохранить в профиле [%s], слой не был апробирован"
 
 #, python-format
+msgid "bed_mesh (add_profile): Profile name already exist [%s]"
+msgstr "Калибровка стола: профиль уже существует [%s]"
+
+#, python-format
+msgid "bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]"
+msgstr "Калибровка стола (BED_MESH_CALIBRATE): профиль уже существует [%s]"
+
+#, python-format
 msgid "Bed Mesh state has been saved to profile [%s]."
 msgstr "Состояние сетки стола сохранено в профиле [%s]"
 

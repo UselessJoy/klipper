@@ -361,7 +361,7 @@ class PrinterProbe:
           return False
       return True    
       
-    def on_start_probe(self):
+    def on_start_probe(self, correcting_probe=False):
         was_homed = self.printer.lookup_object('homing').run_G28_if_unhomed()
         toolhead = self.printer.lookup_object('toolhead')
         # 1 - open (подключен и стол не тыкнут), 0 - triggered (отключен или стол тыкнут)
@@ -371,7 +371,10 @@ class PrinterProbe:
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = toolhead.get_status(curtime)
         if not self.multi_probe_pending:
-          pos = [(toolhead_status['axis_maximum'][i] - toolhead_status['axis_minimum'][i])/2 for i in range(0, 2)]
+          if correcting_probe:
+            pos = [(toolhead_status['axis_maximum'][i])/2 - offset for i,offset in enumerate([self.x_offset, self.y_offset])]
+          else:
+            pos = [toolhead_status['axis_maximum'][i]/2 for i in range(0, 2)]
           pos.append(self.drop_z)
         else:
             pos = toolhead.get_position()
@@ -461,11 +464,11 @@ class PrinterProbe:
         manual_probe.verify_no_manual_probe(self.printer)
         # Perform initial probe
         lift_speed = self.get_lift_speed(gcmd)
-        self.on_start_probe()
+        self.on_start_probe(correcting_probe=True)
         toolhead_status = self.printer.lookup_object('toolhead').get_status(self.printer.get_reactor().monotonic())
-        x_pos = gcmd.get_float("X_POSITION", (toolhead_status['axis_maximum'][0] - toolhead_status['axis_minimum'][0])/2)
-        y_pos = gcmd.get_float("Y_POSITION", (toolhead_status['axis_maximum'][1] - toolhead_status['axis_minimum'][1])/2)
-        self._move([x_pos, y_pos, None], self.speed_base)
+        # x_pos = gcmd.get_float("X_POSITION", (toolhead_status['axis_maximum'][0])/2)
+        # y_pos = gcmd.get_float("Y_POSITION", (toolhead_status['axis_maximum'][1])/2)
+        # self._move([x_pos, y_pos, None], self.speed_base)
         curpos = self.run_probe(gcmd)
         # Move away from the bed
         self.probe_calibrate_z = self.last_z_result = curpos[2]

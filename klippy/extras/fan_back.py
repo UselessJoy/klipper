@@ -43,15 +43,15 @@ class PrinterFanBack:
       self.set_speed(temp)
 
     def set_speed(self, temp):
-      if temp >= 60:
+      if temp >= 70:
         if self.fan.last_fan_value != 1.:
           self.fan.set_speed_from_command(1., False)
         return
       if self.linear:
-        if temp >= 55:
+        if temp >= 65:
           setting_speed = (80 + (temp - 40)) / 100
         else:
-          setting_speed = .8
+          setting_speed = .7
         if self.fan.last_fan_value != setting_speed:
           self.fan.set_speed_from_command(setting_speed, False)
       else:
@@ -65,7 +65,7 @@ class PrinterFanBack:
       
         
     def _handle_ready(self):
-        self.fan.set_speed_from_command(.8, False)
+        self.fan.set_speed_from_command(.7, False)
     
     def get_status(self, eventtime):
        return {'last_fan_value': self.fan.last_fan_value}

@@ -425,8 +425,12 @@ class PrinterConfig:
             pending[section] = {}
         else:
             pending[section] = dict(pending[section])
-        if option and value:
-          svalue = str(value)
+        if option:
+          try:
+              svalue = str(value)
+          except Exception as e:
+              logging.error(f"Can't convert to string format: {e}. Value is {value}")
+              svalue = ""
           pending[section][option] = svalue
         self.pendingSaveItems = pending
         if not save_immediatly:

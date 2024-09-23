@@ -24,35 +24,39 @@ class PIDCalibrate:
     def cmd_CALIBRATE_HEATER_PID(self, gcmd):
         self.stop = False
         heater_name = gcmd.get('HEATER')
+        pheaters = self.printer.lookup_object('heaters')
+        try:
+            heater = pheaters.lookup_heater(heater_name)
+        except self.printer.config_error as e:
+            raise self.gcode.error(str(e))
         temperatures = gcmd.get_list_str('TEMPERATURES')
         pid_config = {}
+        pid_dev_dict = {}
         self.is_calibrating = True
         for temp in temperatures:
             if self.stop:
                 break
             gcmd.respond_info(f"{_('Heating %s to') % _(heater_name)} {temp}")
-            Kp, Ki, Kd = self.pid_calibrate(heater_name, float(temp))
+            Kp, Ki, Kd = self.pid_calibrate(pheaters, heater, float(temp))
+            pid_dev_dict[float(temp)] = [Kp, Ki, Kd]
             pid_config[f"pid_{temp}"] = f"{Kp:.3f}, {Ki:.3f}, {Kd:.3f}"
         if not self.stop:
           saving_section = {heater_name: pid_config}
           self.printer.lookup_object('configfile').update_config(saving_section, save_immediatly = True)
           self.printer.lookup_object('messages').send_message("success", _("End PID calibrate, new data saved"))
         else:
-          self.printer.lookup_object('messages').send_message("", _("pid_calibrate interrupted"))
+          self.printer.lookup_object('messages').send_message("suggestion", _("pid_calibrate interrupted"))
         self.stop = False
         self.is_calibrating = False
+        if hasattr(heater.control, "update_pid_mass"):
+          heater.control.update_pid_mass(pid_dev_dict)
 
     def _handle_stop_pid_calibrate(self, web_request):
          self.stop = True
          self.is_calibrating = False
          self.printer.lookup_object('heaters').turn_off_all_heaters()
          
-    def pid_calibrate(self, heater, target, write_file = 0):
-        pheaters = self.printer.lookup_object('heaters')
-        try:
-            heater = pheaters.lookup_heater(heater)
-        except self.printer.config_error as e:
-            raise self.gcode.error(str(e))
+    def pid_calibrate(self, pheaters, heater, target, write_file = 0):
         self.printer.lookup_object('toolhead').get_last_move_time()
         calibrate = ControlAutoTune(heater, target)
         old_control = heater.set_control(calibrate)

@@ -155,16 +155,21 @@ class GCodeMove:
         pass
     def cmd_M82(self, gcmd):
         # Use absolute distances for extrusion
-        self.absolute_extrude = True
+        self.set_absolute_extrude(True)
     def cmd_M83(self, gcmd):
         # Use relative distances for extrusion
-        self.absolute_extrude = False
+        self.set_absolute_extrude(False)
+    def set_absolute_extrude(self, is_absolute_extrude):
+        self.absolute_extrude = is_absolute_extrude
     def cmd_G90(self, gcmd):
         # Use absolute coordinates
-        self.absolute_coord = True
+        self.set_absolute_coord(True)
     def cmd_G91(self, gcmd):
         # Use relative coordinates
-        self.absolute_coord = False
+        self.set_absolute_coord(False)
+    def set_absolute_coord(self, is_absolute):
+        self.absolute_coord = is_absolute
+
     def cmd_G92(self, gcmd):
         # Set position
         offsets = [ gcmd.get_float(a, None) for a in 'XYZE' ]

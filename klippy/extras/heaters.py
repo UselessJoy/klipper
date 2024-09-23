@@ -221,7 +221,9 @@ class ControlPID:
                     best_pid_temp = temp
             self.Kp, self.Ki, self.Kd = ((k / PID_PARAM_BASE) for k in self.pid_mass[best_pid_temp])
             
-            
+    def update_pid_mass(self, pid_mass):
+      self.pid_mass = {**self.pid_mass, **pid_mass}
+
     def temperature_update(self, read_time, temp, target_temp):
         time_diff = read_time - self.prev_temp_time
         # Calculate change of temperature
@@ -351,9 +353,9 @@ class PrinterHeaters:
         self.is_waiting = False
         
     def turn_off_all_heaters(self, print_time=0.):
-        self.printer.send_event("heaters:stop_heating")
         for heater in self.heaters.values():
             heater.set_temp(0.)
+        self.printer.send_event("heaters:stop_heating")
     cmd_TURN_OFF_HEATERS_help = _("Turn off all heaters")
     def cmd_TURN_OFF_HEATERS(self, gcmd):
         self.turn_off_all_heaters()

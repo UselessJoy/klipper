@@ -1,21 +1,19 @@
 import logging
 import locales
-
 LED_EFFECTS = {
-            "error": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=ERROR\n",
-            "print_error": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=ERROR\n",
-            "set_led": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=DEFAULT RED=%.3f GREEN=%.3f BLUE=%.3f\n",
-            "extruder_heating": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=EXTRUDER\n",
-            "bed_heating": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=HEATER_BED\n",
-            "stop_heating": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=DEFAULT\n",
-            "extruder_bed_heating": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=EXTRUDER_LEFT\nSET_LED_EFFECT EFFECT=BED_RIGHT\n",
-            "disabled": "STOP_LED_EFFECTS\n",
-            "enabled": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=DEFAULT\n",
-            "printing": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=DEFAULT\n",
-            "interrupt": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=WARNING\n",
-            "paused": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=PAUSED\n",
-            "cancelled": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=DEFAULT\n",
-            "complete": "STOP_LED_EFFECTS\nSET_LED_EFFECT EFFECT=COMPLETE\n",
+            "error": ["ERROR"],
+            "print_error": ["ERROR"],
+            "set_led": ["DEFAULT"],
+            "extruder_heating": ["EXTRUDER"],
+            "bed_heating": ["HEATER_BED"],
+            "stop_heating": ["DEFAULT"],
+            "extruder_bed_heating": ["EXTRUDER_LEFT", "BED_RIGHT"],
+            "enabled": ["DEFAULT"],
+            "printing": ["DEFAULT"],
+            "interrupt": ["WARNING"],
+            "paused": ["PAUSED"],
+            "cancelled": ["DEFAULT"],
+            "complete": ["COMPLETE"],
         }
 
 class LedControl:
@@ -54,6 +52,7 @@ class LedControl:
     def _handle_control(self):
         self.extruder = self.printer.lookup_object('extruder')
         self.heater_bed = self.printer.lookup_object('heater_bed')
+        self.led_effect = self.printer.lookup_object('led_effect')
         self.printer.register_event_handler("gcode:command_error", self._handle_error)
         self.printer.register_event_handler("led:set_led", self._handle_led)
         self.printer.register_event_handler("extruder:heating", self._handle_extruder_heating)
@@ -130,8 +129,8 @@ class LedControl:
             self.timer = None
             self.last_eventtime = None
             if not self.is_printing:
-                    self.gcode.run_script_from_command(LED_EFFECTS["enabled"])
-                    self.now_effect = "enabled"
+              self.now_effect = "enabled"
+              self.led_effect.run_effect(LED_EFFECTS['enabled'])
     
     def _handle_shutdown(self):
         self.enabled = False
@@ -146,12 +145,12 @@ class LedControl:
     
     def _handle_disabled(self):
         self.enabled = False
-        self.gcode.run_script_from_command(LED_EFFECTS["disabled"])
         if self.timer:
             self.reset_timer()
         if self.printing_timer:
             self.reset_printing_timer()
         self.now_effect = "disabled"
+        self.led_effect.stop_all_effects()
     
     def _handle_error(self):
         self.run_if_enabled("error")
@@ -201,16 +200,16 @@ class LedControl:
                             self.reset_printing_timer()   
                     if event != "cancelled":
                         self.create_ten_seconds_timer()
-                    self.gcode.run_script_from_command(LED_EFFECTS[event])
+                    self.led_effect.run_effect(LED_EFFECTS[event])
                     self.now_effect = event
                 elif event in ["paused", "printing", "extruder_bed_heating", "set_led"]:
                     if event == "set_led":
                         if not self.paused:
                             self.set_led_on_printing = True
-                            self.gcode.run_script_from_command((LED_EFFECTS[event] % (self.rgb[0], self.rgb[1], self.rgb[2])))
+                            self.led_effect.run_effect(LED_EFFECTS[event], self.rgb[0], self.rgb[1], self.rgb[2])
                     else:
                         self.paused = True if event == "paused" else False
-                        self.gcode.run_script_from_command(LED_EFFECTS[event])
+                        self.led_effect.run_effect(LED_EFFECTS[event])
                     self.now_effect = event
             else:
                 if event in ["error", "print_error", "interrupt", "complete"]:
@@ -219,7 +218,7 @@ class LedControl:
                     self.reset_timer()
                     
                 if event == "set_led":
-                    self.gcode.run_script_from_command((LED_EFFECTS[event] % (self.rgb[0], self.rgb[1], self.rgb[2])))
+                    self.led_effect.run_effect(LED_EFFECTS[event], self.rgb[0], self.rgb[1], self.rgb[2])
                     self.now_effect = event
                     return
                 #Target temp may be 0
@@ -232,8 +231,8 @@ class LedControl:
                         self.now_event = "bed_heating"
                     else:
                         self.now_event = "enabled"
-                self.gcode.run_script_from_command(LED_EFFECTS[self.now_event])
                 self.now_effect = self.now_event
+                self.led_effect.run_effect(LED_EFFECTS[self.now_effect])
     
     def get_status(self, eventtime):
         return {

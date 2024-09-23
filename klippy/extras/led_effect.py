@@ -288,9 +288,10 @@ class ledFrameHandler:
             return None, None
 
     def cmd_STOP_LED_EFFECTS(self, gcmd):
-        ledParam = gcmd.get('LEDS', "")
-        stopAll = (ledParam == "")
+        self.stop_all_effects(gcmd.get('LEDS', ""), gcmd.get_float('FADETIME', 0.0))
 
+    def stop_all_effects(self, ledParam="", fadetime=0.0):
+        stopAll = (ledParam == "")
         for effect in self.effects:
             stopEffect = stopAll
             if not stopAll:
@@ -298,8 +299,7 @@ class ledFrameHandler:
                     chainName, ledIndices = self.parse_chain(ledParam)
                     chain = self.printer.lookup_object(chainName)
                 except Exception as e:
-                    raise gcmd.error(_("Unknown LED '%s'") % (ledParam,))
-
+                    raise self.gcode.error(_("Unknown LED '%s'") % (ledParam,))
                 if ledIndices == [] and chain in effect.ledChains: 
                     stopEffect = True
                 else:
@@ -309,9 +309,18 @@ class ledFrameHandler:
 
             if stopEffect:
                 if effect.enabled:
-                    effect.set_fade_time(gcmd.get_float('FADETIME', 0.0))
+                    effect.set_fade_time(fadetime)
                 effect.set_enabled(False)
 
+    def run_effect(self, setting_effects = [], red=None, green=None, blue=None):
+        self.stop_all_effects()
+        # поменять массив эффектов на словарь
+        for effect in self.effects:
+            for sf in setting_effects:
+              if effect.name == sf:
+                  effect.set_led_effect(red, green, blue)
+                  break
+            
 def load_config(config):
     return ledFrameHandler(config)
 
@@ -536,27 +545,31 @@ class ledEffect:
         green = gcmd.get_float('GREEN', None, minval=0., maxval=1.)
         blue = gcmd.get_float('BLUE', None, minval=0., maxval=1.)
         parmFadeTime = gcmd.get_float('FADETIME', 0.0)
+        stop = gcmd.get_int('STOP', 0)
+        replace = gcmd.get_int('REPLACE',0)
+        self.set_led_effect(red, green, blue, parmFadeTime, stop, replace)
+    
+    def set_led_effect(self, red=None, green=None, blue=None, fadetime=0.0, stop=0, replace=0):
         ####      NEW      ####
         if red != None or green !=None or blue != None :
             self.set_color(float(red), float(green), float(blue))
         if self.heater:
             self.handler.updateHeaterTemp(self.heater)
         ####    END NEW    ####
-        if gcmd.get_int('STOP', 0) >= 1:
+        if stop >= 1:
             if self.enabled:
-                self.set_fade_time(parmFadeTime)
+                self.set_fade_time(fadetime)
             self.set_enabled(False)
         else:
-            if gcmd.get_int('REPLACE',0) >= 1:
+            if replace >= 1:
                 for led in self.leds:
                     for effect in self.handler.effects:
                         if effect is not self and led in effect.leds:
                             if effect.enabled:
-                                effect.set_fade_time(parmFadeTime)
+                                effect.set_fade_time(fadetime)
                             effect.set_enabled(False)
-
             if not self.enabled:
-                self.set_fade_time(parmFadeTime)
+                self.set_fade_time(fadetime)
             self.set_enabled(True)
 
     def _handle_shutdown(self):

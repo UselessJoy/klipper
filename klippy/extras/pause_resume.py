@@ -118,9 +118,7 @@ class PauseResume:
         if not self.is_paused:
             gcmd.respond_info(_("Print is not paused, resume aborted"))
             return
-        safety = self.printer.lookup_object('safety_printing')
-        if safety.safety_enabled:
-            safety.raise_error_if_open()
+        self.printer.lookup_object('safety_printing').raise_error_if_open()      
         velocity = gcmd.get_float('VELOCITY', self.recover_velocity)
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=PAUSE_STATE MOVE=1 MOVE_SPEED=%.4f"

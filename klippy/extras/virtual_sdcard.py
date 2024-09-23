@@ -220,12 +220,8 @@ class VirtualSD:
             while self.work_timer is not None and not self.cmd_from_sd:
                 self.reactor.pause(self.reactor.monotonic() + .001)
     def do_resume(self):
-        self.try_check_open()
+        self.printer.lookup_object('safety_printing').raise_error_if_open()
         self.printer.lookup_object('homing').run_G28_if_unhomed()
-        # probe_object = self.printer.lookup_object('probe')
-        # if probe_object.is_magnet_probe_on(self.printer.lookup_object('toolhead')):
-        #   probe_object.run_gcode_return_magnet()
-        # probe_object.return_z()
         messages = self.printer.lookup_object('messages')
         if self.autoload_bed_mesh and not self.printer.lookup_object('bed_mesh').pmgr.get_current_profile():
             start_heater_bed_temp = self.find_start_heater_bed_temp()
@@ -302,7 +298,7 @@ class VirtualSD:
         self._reset_file()
     cmd_SDCARD_PRINT_FILE_help = _("Loads a SD file and starts the print. May include files in subdirectories.")
     def cmd_SDCARD_PRINT_FILE(self, gcmd):
-        self.try_check_open()
+        self.printer.lookup_object('safety_printing').raise_error_if_open()
         if self.work_timer is not None:
             raise gcmd.error(_("SD busy"))
         self._reset_file()
@@ -320,18 +316,10 @@ class VirtualSD:
     def cmd_SDCARD_PASS_FILE(self, gcmd):
         self.show_interrupt = False
         self.print_stats.reset()
-
-    def try_check_open(self):
-        try:
-          safety_printing_object = self.printer.lookup_object('safety_printing')
-          if safety_printing_object.safety_enabled:
-              safety_printing_object.raise_error_if_open()
-        except:
-            pass 
           
     def cmd_SDCARD_RUN_FILE(self, gcmd):
         self.show_interrupt = False
-        self.try_check_open()
+        self.printer.lookup_object('safety_printing').raise_error_if_open()
         gcmd.respond_raw(_("Restart file"))
         self.load_saved_parameters()
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)

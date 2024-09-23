@@ -22,6 +22,8 @@ class SafetyPrinting:
         self.last_eventtime = 0
         self.send_pause = self.send_resume = False
         self.messages = None
+
+        self.vsd = self.pause_resume = None
         buttons = self.printer.load_object(config, "buttons")
         doors_pin = config.get("doors_pin")
         hood_pin = config.get("hood_pin")
@@ -37,6 +39,8 @@ class SafetyPrinting:
     
     def _on_ready(self):
         self.messages = self.printer.lookup_object("messages")
+        self.vsd = self.printer.lookup_object("virtual_sdcard")
+        self.pause_resume = self.printer.lookup_object('pause_resume')
     
     def _handle_printing(self):
         self.send_resume = False
@@ -48,17 +52,16 @@ class SafetyPrinting:
     def endstops_callback(self, eventtime, state):
         self.endstops_state = state
         self.printer.send_event("safety_printing:endstops_state", state)
-        virtual_sdcard_object = self.printer.lookup_object("virtual_sdcard")
-        pause_resume_object = self.printer.lookup_object('pause_resume')
-        sd_state = virtual_sdcard_object.print_stats.state
         if self.safety_enabled:
+            
+            sd_state = self.vsd.print_stats.state
             if sd_state in ["paused", "printing"]:
                 if self.endstops_state == ALL_PRESSED:
                     self.reset_luft_timer()
-                    if pause_resume_object.is_paused and not pause_resume_object.manual_pause and not self.send_resume and not virtual_sdcard_object.is_active():
+                    if self.pause_resume.is_paused and not self.pause_resume.manual_pause and not self.send_resume and not self.vsd.is_active():
                         self.send_resume = True
                         self.gcode.run_script("RESUME")
-                elif not pause_resume_object.manual_pause:
+                elif not self.pause_resume.manual_pause:
                     if not self.luft_timer:
                         self.last_eventtime = eventtime
                         self.luft_timer = self.reactor.register_timer(self.is_luft_timer, self.reactor.NOW)
@@ -67,8 +70,7 @@ class SafetyPrinting:
 
     def is_luft_timer(self, eventtime):
         if abs(eventtime - self.last_eventtime) > self.luft_timeout:
-            pause_resume_object = self.printer.lookup_object('pause_resume')
-            if self.endstops_state != ALL_PRESSED and not pause_resume_object.is_paused and not pause_resume_object.manual_pause:
+            if self.endstops_state != ALL_PRESSED and not self.pause_resume.is_paused and not self.pause_resume.manual_pause:
                 self.luft_overload = True
                 if not self.send_pause:
                     self.send_pause = True
@@ -85,15 +87,16 @@ class SafetyPrinting:
             self.last_eventtime = 0
     
     def raise_error_if_open(self):
-        if self.endstops_state == ALL_PRESSED:
-            return     
-        if self.endstops_state == ONLY_DOORS_PRESSED:
-            raise self.gcode.error(_("Printing is paused. Must close hood")) 
-        elif self.endstops_state == ONLY_HOOD_PRESSED:
-            raise self.gcode.error(_("Printing is paused. Must close doors"))
-        else:
-            raise self.gcode.error(_("Printing is paused. Must close doors and hood"))
-    
+        if self.safety_enabled:
+          if self.endstops_state == ALL_PRESSED:
+              return     
+          if self.endstops_state == ONLY_DOORS_PRESSED:
+              raise self.gcode.error(_("Printing is paused. Must close hood")) 
+          elif self.endstops_state == ONLY_HOOD_PRESSED:
+              raise self.gcode.error(_("Printing is paused. Must close doors"))
+          else:
+              raise self.gcode.error(_("Printing is paused. Must close doors and hood"))
+      
     def respond_status(self):
         if self.endstops_state == ALL_PRESSED:
             self.gcode.respond_info(_("All closed"))
@@ -108,6 +111,7 @@ class SafetyPrinting:
         return self.endstops_state
     
     def _handle_set_safety_printing(self, web_request):
+        logging.info(f"get {web_request.get_boolean('safety_enabled')}")
         self.safety_enabled: bool = web_request.get_boolean('safety_enabled')
         configfile: PrinterConfig = self.printer.lookup_object('configfile')
         safety_section = {"safety_printing": {"safety_enabled": self.safety_enabled}}

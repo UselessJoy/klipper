@@ -259,57 +259,48 @@ class PrinterHoming:
         curtime = self.printer.get_reactor().monotonic()
         kin_status = toolhead.get_kinematics().get_status(curtime)
         if kin_status['homed_axes'] == "":
-            gcode = self.printer.lookup_object('gcode')
-            self.cmd_G28(gcode.create_gcode_command("G28", "G28", {}))
+            self.home()
             return True
-        homed_axes_r = re.compile(f"[{kin_status['homed_axes']}]")
-        unhomed_axes = homed_axes_r.sub("", "xyz").strip()
-        home_command_parameters = {}
-        if unhomed_axes != "":
-            for axis in unhomed_axes:
-                home_command_parameters[axis.upper()] = "0"
-            if len(home_command_parameters) > 0:
-                gcode = self.printer.lookup_object('gcode')
-                self.cmd_G28(gcode.create_gcode_command("G28", "G28", home_command_parameters))
-                return True
+        homed_axis_r = re.compile(f"[{kin_status['homed_axes']}]")
+        unhomed_axis = homed_axis_r.sub("", "xyz").strip()
+        axis = []
+        if unhomed_axis != "":
+            axis = [p for p,axes in enumerate(unhomed_axis)]
+            self.home(axis)
+            return True
         return False
                 
     def cmd_G28(self, gcmd):
         # Move to origin
-        axes = []
-        probe = self.printer.lookup_object('probe')
-        for pos, axis in enumerate('XYZ'):
-            if gcmd.get(axis, None) is not None:
-                axes.append(pos)
-        if not axes:
-            axes = [1, 0, 2]
-        kin = self.printer.lookup_object('toolhead').get_kinematics()
-        if probe.get_is_using_magnet_probe():
+        axis = []
+        for p,axes in enumerate('XYZ'):
+            if gcmd.get(axes, None) is not None:
+                axis.append(p)
+        self.home(axis)
+    
+    def home(self, axis = []):
+        if self.printer.lookup_object('probe').get_is_using_magnet_probe():
             raise self.printer.command_error(
                     _("Has active magnet probe. Take off it manually"))
         try:
-            # if 2 in axes:
-            #     homing_z = Homing(self.printer)
-            #     homing_z.set_axes([2])
-            #     kin.home(homing_z)
-            #     toolhead = self.printer.lookup_object('toolhead')
-            #     toolhead.manual_move([None, None, probe.drop_z], probe.speed_base)
-            #     axes.remove(2)
-            if 1 in axes:
+            if not axis:
+              axis = [1, 0, 2]
+            kin = self.printer.lookup_object('toolhead').get_kinematics()
+            if 1 in axis:
               homing_y = Homing(self.printer)
               homing_y.set_axes([1])
               kin.home(homing_y)
-              axes.remove(1)
-            if len(axes) > 0:
+              axis.remove(1)
+            if len(axis) > 0:
                 homing_state = Homing(self.printer)
-                homing_state.set_axes(axes)
+                homing_state.set_axes(axis)
                 kin.home(homing_state)
         except self.printer.command_error:
             if self.printer.is_shutdown():
                 raise self.printer.command_error(
                     _("Homing failed due to printer shutdown"))
             self.printer.lookup_object('stepper_enable').motor_off()
-            raise
+            raise   
 
 def load_config(config):
     return PrinterHoming(config)

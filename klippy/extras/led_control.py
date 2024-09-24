@@ -19,9 +19,8 @@ LED_EFFECTS = {
 class LedControl:
     def __init__(self, config):
         self.printer = config.get_printer()
+        self.print_stats = self.heaters = None
         self.gcode = self.printer.lookup_object('gcode')
-        self.print_stats = self.printer.lookup_object('print_stats')
-        self.heaters = self.printer.lookup_object('heaters')
         self.reactor = self.printer.get_reactor()
         self.timer = None
         self.printing_timer = None
@@ -53,6 +52,8 @@ class LedControl:
         self.extruder = self.printer.lookup_object('extruder')
         self.heater_bed = self.printer.lookup_object('heater_bed')
         self.led_effect = self.printer.lookup_object('led_effect')
+        self.print_stats = self.printer.lookup_object('print_stats')
+        self.heaters = self.printer.lookup_object('heaters')
         self.printer.register_event_handler("gcode:command_error", self._handle_error)
         self.printer.register_event_handler("led:set_led", self._handle_led)
         self.printer.register_event_handler("extruder:heating", self._handle_extruder_heating)

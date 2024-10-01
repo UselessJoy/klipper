@@ -220,6 +220,8 @@ class ControlPID:
                     best_diff = abs(temp - target_temp)
                     best_pid_temp = temp
             self.Kp, self.Ki, self.Kd = ((k / PID_PARAM_BASE) for k in self.pid_mass[best_pid_temp])
+            self.temp_integ_max = self.heater_max_power / self.Ki
+            self.prev_temp = self.heater.last_temp
             
     def update_pid_mass(self, pid_mass):
       self.pid_mass = {**self.pid_mass, **pid_mass}

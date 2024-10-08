@@ -38,6 +38,7 @@ class IdleTimeout:
         return { "state": self.state, "printing_time": printing_time }
     def handle_ready(self):
         self.toolhead = self.printer.lookup_object('toolhead')
+        self.print_stats = self.printer.lookup_object('print_stats')
         self.timeout_timer = self.reactor.register_timer(self.timeout_handler)
         self.printer.register_event_handler("toolhead:sync_print_time",
                                             self.handle_sync_print_time)
@@ -71,6 +72,8 @@ class IdleTimeout:
             # Gcode class busy
             return eventtime + 1.
         # Idle timeout has elapsed
+        if self.print_stats.state == 'paused':
+            return eventtime + self.idle_timeout
         return self.transition_idle_state(eventtime)
     def timeout_handler(self, eventtime):
         if self.printer.is_shutdown():

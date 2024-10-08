@@ -92,9 +92,7 @@ class VibrationPulseTest:
         old_max_accel = toolhead_info['max_accel']
         old_max_accel_to_decel = toolhead_info['max_accel_to_decel']
         max_accel = self.freq_end * self.accel_per_hz
-        self.gcode.run_script_from_command(
-                "SET_VELOCITY_LIMIT ACCEL=%.3f ACCEL_TO_DECEL=%.3f" % (
-                    max_accel, max_accel))
+        toolhead.set_velocity_limit(accel=max_accel, accel_to_decel=max_accel)
         input_shaper = self.printer.lookup_object('input_shaper', None)
         if input_shaper is not None and not gcmd.get_int('INPUT_SHAPING', 0):
             input_shaper.disable_shaping()
@@ -120,9 +118,7 @@ class VibrationPulseTest:
             if math.floor(freq) > math.floor(old_freq):
                 gcmd.respond_info(_("Testing frequency %.0f Hz") % (freq,))
         # Restore the original acceleration values
-        self.gcode.run_script_from_command(
-                "SET_VELOCITY_LIMIT ACCEL=%.3f ACCEL_TO_DECEL=%.3f" % (
-                    old_max_accel, old_max_accel_to_decel))
+        toolhead.set_velocity_limit(accel=old_max_accel, accel_to_decel=old_max_accel_to_decel)
         # Restore input shaper if it was disabled for resonance testing
         if input_shaper is not None:
             input_shaper.enable_shaping()

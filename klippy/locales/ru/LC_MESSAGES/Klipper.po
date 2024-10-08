@@ -3009,7 +3009,7 @@ msgid "Printing is paused. Must close doors and hood"
 msgstr "Печать приостановлена. Крышка и дверцы должны быть закрыты"
 
 msgid "Printing with PLA filament. Please, turn on camera fan or disable safety printing and open doors or hood"
-msgstr "Печать с PLA филаметом. Пожалуйста, включите вентиляцию камера или отключите безопасную печать и откройте крышку либо дверцы"
+msgstr "Печать с PLA филаментом. Пожалуйста, включите вентиляцию камеры или откройте дверцы либо крышку, предварительно отключив безопасную печать (если она включена)"
 
 msgid "Printing is paused. Must close doors"
 msgstr "Печать приостановлена. Необходимо закрыть дверцы"

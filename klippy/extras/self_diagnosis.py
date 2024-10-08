@@ -1,7 +1,7 @@
 import os, logging, pathlib
 import locales
 
-class AudioMessages:
+class SelfDiagnosis:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
@@ -34,4 +34,4 @@ class AudioMessages:
                                 "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=65\n")
     
 def load_config(config):
-    return AudioMessages(config)
+    return SelfDiagnosis(config)

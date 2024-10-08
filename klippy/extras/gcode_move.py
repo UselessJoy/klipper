@@ -9,6 +9,7 @@ class GCodeMove:
     def __init__(self, config):
         self.printer = printer = config.get_printer()
         self.last_param_e = 0
+        self.probe_object = None
         printer.register_event_handler("klippy:ready", self._handle_ready)
         printer.register_event_handler("klippy:shutdown", self._handle_shutdown)
         printer.register_event_handler("toolhead:set_position",
@@ -51,6 +52,7 @@ class GCodeMove:
         self.move_transform = self.move_with_transform = None
         self.position_with_transform = (lambda: [0., 0., 0., 0.])
     def _handle_ready(self):
+        self.probe_object = self.printer.lookup_object('probe')
         self.is_printer_ready = True
         if self.move_transform is None:
             toolhead = self.printer.lookup_object('toolhead')
@@ -120,10 +122,16 @@ class GCodeMove:
                     v = float(params[axis])
                     if not self.absolute_coord:
                         # value relative to position of last move
+                        if v < 0:
+                          if axis == 'Z' and self.probe_object.is_using_magnet_probe:
+                            raise gcmd.error(_("Has active magnet probe. Take off it manually"))
                         self.last_position[pos] += v
                     else:
+                        if self.last_position[pos] > v + self.base_position[pos]:
+                          if axis == 'Z' and self.probe_object.is_using_magnet_probe:
+                              raise gcmd.error(_("Has active magnet probe. Take off it manually"))
                         # value relative to base coordinate position
-                        self.last_position[pos] = v + self.base_position[pos]
+                        self.last_position[pos] = v + self.base_position[pos]                
             if 'E' in params:
                 self.last_param_e = float(params['E'])
                 v = float(params['E']) * self.extrude_factor
@@ -173,6 +181,8 @@ class GCodeMove:
     def cmd_G92(self, gcmd):
         # Set position
         offsets = [ gcmd.get_float(a, None) for a in 'XYZE' ]
+        self.set_offsets(offsets)
+    def set_offsets(self, offsets):
         for i, offset in enumerate(offsets):
             if offset is not None:
                 if i == 3:

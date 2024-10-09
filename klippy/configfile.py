@@ -307,10 +307,14 @@ class PrinterConfig:
         return self._build_config_wrapper(self._read_config_file(filename),
                                           filename, parse_includes)
     
-    def compare_base_config(self, config: ConfigWrapper):
+    def create_base_config_wrapper(self, file):
         klipperpath = os.path.dirname(__file__)
-        filepath = os.path.join(klipperpath, "klippy_base_config.txt")
-        base_config: ConfigWrapper = self.read_config(filepath, parse_includes=False)
+        filepath = os.path.join(klipperpath, file)
+        cfg = self.read_config(filepath, parse_includes=False)
+        return cfg
+    
+    def compare_base_config(self, config: ConfigWrapper):
+        base_config: ConfigWrapper = self.create_base_config_wrapper("klippy_base_config.txt")
         missed_sections = {}
         deprecated_sections = []
         for section in base_config.fileconfig.sections():
@@ -324,6 +328,16 @@ class PrinterConfig:
         if missed_sections or deprecated_sections:
           self.update_config(setting_sections=missed_sections, removing_sections=deprecated_sections, save_immediatly=True, need_restart=True)
 
+    def compare_pause_resume_config(self):
+        base_pause_resume_config: ConfigWrapper = self.create_base_config_wrapper("pause_resume_base.txt")
+        apath = '/home/orangepi/printer_data/config/pause_resume.cfg'
+        data = self._read_config_file(apath)
+        pause_resume_config: ConfigWrapper = self._build_config_wrapper(data, apath, False)
+        current_resume = pause_resume_config.fileconfig.get('gcode_macro RESUME', 'gcode')
+        base_resume = base_pause_resume_config.fileconfig.get('gcode_macro RESUME', 'gcode')
+        if current_resume != base_resume:
+            self.update_config({'gcode_macro RESUME': {'gcode': base_resume}}, save_immediatly=True, need_restart=True, cfgname=apath)
+            
     def read_main_config(self, parse_includes=True, compare=True) -> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']
         data = self._read_config_file(filename)
@@ -333,7 +347,8 @@ class PrinterConfig:
         self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
         if compare:
-          self.compare_base_config(cfg)
+          self.compare_base_config(cfg) 
+          self.compare_pause_resume_config()  
         return cfg
     def check_unused_options(self, config: ConfigWrapper):
         fileconfig = config.fileconfig
@@ -393,7 +408,7 @@ class PrinterConfig:
                 'save_config_pending_items': self.pendingSaveItems}
     
     def update_config(self, setting_sections: dict = {}, removing_sections: list = [], 
-                      save_immediatly = True, need_restart = False, need_backup = False) -> None:
+                      save_immediatly = True, need_restart = False, need_backup = False, cfgname = "") -> None:
         """
         Метод добавляет в словарь измененных/добавляемых секций и список удаляемых секций словарь
         setting_sections и список removing_sections соответственно и создает новый конфигурационный файл в зависимости от параметра
@@ -410,7 +425,7 @@ class PrinterConfig:
         for section in removing_sections:
             self.remove_section(section)
         if save_immediatly:
-            self.save_config(need_restart, need_backup)
+            self.save_config(need_restart, need_backup, cfgname)
 
     def set(self, section: str, option = None, value = None, save_immediatly = False) -> None:
         """
@@ -502,7 +517,7 @@ class PrinterConfig:
     
     # Новый сейв конфиг. Может сохранять данные либо с бэкапом, либо без, аналогично с перезагрузкой
     # Сейв конфиг делает полный апдейт (изменяет существующие параметры, удаляет их и записывает новые)
-    def save_config(self, need_restart: bool, need_backup: bool) -> None:
+    def save_config(self, need_restart: bool, need_backup: bool, cfgname: str = "") -> None:
         """
         Метод записывает в конфигурационный файл новые параметры конфигурации, устанавливаемые в зависимости от списка удаляемых секций и словаря измененных/добавленных секций. 
         Параметры need_restart и need_backup указывают на необходимость перезагрузки после сохранения и создания бэкапа при сохранении соответственно. 
@@ -513,7 +528,8 @@ class PrinterConfig:
             logging.exception(msg)
             raise gcode.error(msg)
         #Read in and validate current config file
-        cfgname = self.printer.get_start_args()['config_file']
+        if not cfgname:
+          cfgname = self.printer.get_start_args()['config_file']
         try:
             data = self._read_config_file(cfgname)
             data_option_comments, remain_comments = self.comments_to_option_value(data)

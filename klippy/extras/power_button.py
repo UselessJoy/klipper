@@ -26,7 +26,7 @@ class PowerButton:
         self.last_eventtime = eventtime
         if self.last_state:
           if not self.luft_timer:
-            self.luft_timer = self.reactor.register_timer(self.is_luft_timer, self.reactor.NOW)
+            self.luft_timer = self.reactor.register_timer(self.is_luft_timer, self.reactor.NOW + 0.1)
         else:
           self.reset_luft_timer()
 

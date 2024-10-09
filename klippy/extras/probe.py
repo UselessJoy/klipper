@@ -605,7 +605,7 @@ class ProbePointsHelper:
             res = self.finalize_callback(self.probe_offsets, self.results)
             if res != "retry":
                 if return_probe:
-                    self.printer.lookup_object('probe').run_gcode_return_magnet()
+                    self.printer.lookup_object('probe').return_magnet_probe()
                 return True
             self.results = []
         # Move to next XY probe point

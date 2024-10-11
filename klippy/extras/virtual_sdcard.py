@@ -621,7 +621,6 @@ class VirtualSD:
     def rebuild_begin_print(self, eventtime):
         self.reactor.unregister_timer(self.work_timer)
         self.print_stats.note_start()
-        gcode_mutex = self.gcode.get_mutex()
         partial_input = ""
         lines = []
         file = io.open(self.file_path(), "r", newline='')
@@ -633,12 +632,6 @@ class VirtualSD:
         partial_input = lines.pop()
         lines.reverse()
         line = lines.pop()
-        #self.reactor.pause(self.reactor.NOW)
-        # self.gcode.run_script(
-        #                         "M104 S150\n"
-        #                         "M140 S50\n"
-        #                         "M109 S150\n"
-        #                         "M190 S50\n")
         while not line.startswith('G28') or not data:
             if not lines:
                 # Read more data
@@ -651,9 +644,6 @@ class VirtualSD:
                 except:
                     logging.exception("virtual_sdcard read")
                     break
-            # if gcode_mutex.test():
-            #    # self.reactor.pause(self.reactor.monotonic() + 0.100)
-            #     continue
             self.cmd_from_sd = True
             self.gcode.run_script(line)
             next_file_position = file_position + len(line.encode()) + 1       
@@ -674,7 +664,7 @@ class VirtualSD:
           "G90\n"
           "G28 X Y\n"
           "G0 X%f Y%f Z%f F6000\n"
-          "G92 E%f\n"
+          # "G92 E%f\n"
           % (lead_z, 
             self.last_coord[1], self.last_coord[2], self.last_coord[0], self.last_coord[3])
         )

@@ -112,6 +112,13 @@ class GCodeMove:
     def reset_last_position(self):
         if self.is_printer_ready:
             self.last_position = self.position_with_transform()
+    
+    def stop_z_with_probe(self, z_move):
+        if self.probe_object.is_using_magnet_probe:
+          if self.absolute_coord:
+              return z_move < 50
+          else:
+            return self.last_position[2] + z_move < 50
     # G-Code movement commands
     def cmd_G1(self, gcmd):
         # Move
@@ -123,12 +130,14 @@ class GCodeMove:
                     if not self.absolute_coord:
                         # value relative to position of last move
                         if v < 0:
-                          if axis == 'Z' and self.probe_object.is_using_magnet_probe:
-                            raise gcmd.error(_("Has active magnet probe. Take off it manually"))
+                          if axis == 'Z':
+                            if self.stop_z_with_probe(v):
+                              raise gcmd.error(_("Has active magnet probe. Take off it manually"))
                         self.last_position[pos] += v
                     else:
                         if self.last_position[pos] > v + self.base_position[pos]:
-                          if axis == 'Z' and self.probe_object.is_using_magnet_probe:
+                          if axis == 'Z':
+                            if self.stop_z_with_probe(v):
                               raise gcmd.error(_("Has active magnet probe. Take off it manually"))
                         # value relative to base coordinate position
                         self.last_position[pos] = v + self.base_position[pos]                

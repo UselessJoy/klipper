@@ -314,7 +314,7 @@ class PrinterConfig:
         return cfg
     
     def compare_base_config(self, config: ConfigWrapper):
-        base_config: ConfigWrapper = self.create_base_config_wrapper("klippy_base_config.txt")
+        base_config: ConfigWrapper = self.create_base_config_wrapper("printer_base.cfg")
         missed_sections = {}
         deprecated_sections = []
         for section in base_config.fileconfig.sections():
@@ -329,14 +329,16 @@ class PrinterConfig:
           self.update_config(setting_sections=missed_sections, removing_sections=deprecated_sections, save_immediatly=True, need_restart=True)
 
     def compare_pause_resume_config(self):
-        base_pause_resume_config: ConfigWrapper = self.create_base_config_wrapper("pause_resume_base.txt")
-        apath = '/home/orangepi/printer_data/config/pause_resume.cfg'
-        data = self._read_config_file(apath)
-        pause_resume_config: ConfigWrapper = self._build_config_wrapper(data, apath, False)
+        base_pause_resume_config: ConfigWrapper = self.create_base_config_wrapper("pause_resume_base.cfg")
+        base_confg_path:str = self.printer.get_start_args()['config_file']
+        config_dir = os.path.dirname(base_confg_path)
+        pause_resume_path =  config_dir + '/pause_resume.cfg'
+        data = self._read_config_file(pause_resume_path)
+        pause_resume_config: ConfigWrapper = self._build_config_wrapper(data, pause_resume_path, False)
         current_resume = pause_resume_config.fileconfig.get('gcode_macro RESUME', 'gcode')
         base_resume = base_pause_resume_config.fileconfig.get('gcode_macro RESUME', 'gcode')
         if current_resume != base_resume:
-            self.update_config({'gcode_macro RESUME': {'gcode': base_resume}}, save_immediatly=True, need_restart=True, cfgname=apath)
+            self.update_config({'gcode_macro RESUME': {'gcode': base_resume}}, save_immediatly=True, need_restart=True, cfgname=pause_resume_path)
             
     def read_main_config(self, parse_includes=True, compare=True) -> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']

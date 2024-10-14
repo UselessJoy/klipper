@@ -235,6 +235,7 @@ class SerialReader:
     def register_response(self, callback, name, oid=None):
         with self.lock:
             if callback is None:
+              if (name, oid) in self.handlers:
                 del self.handlers[name, oid]
             else:
                 self.handlers[name, oid] = callback

@@ -17,9 +17,7 @@ class PrinterProbe:
         self.printer = config.get_printer()
         self.config = config
         self.name = config.get_name()
-        self.sta_probe = False
         self.is_adjusting = False
-        self.coord_right = False
         self.mcu_probe = mcu_probe
         self.speed = config.getfloat('speed', 5.0, above=0.)
         self.lift_speed = config.getfloat('lift_speed', self.speed, above=0.)
@@ -115,10 +113,12 @@ class PrinterProbe:
         try:
           if self.vsd.is_active():
               return eventtime + 1
-          print_time = self.toolhead.get_last_move_time(False)
-          res = self.mcu_probe.query_endstop(print_time)
-          self.last_state = res
-          self.is_using_magnet_probe = not bool(res)
+          gc_mutex = self.printer.lookup_object('gcode').get_mutex()
+          with gc_mutex:
+            print_time = self.toolhead.get_last_move_time(False)
+            res = self.mcu_probe.query_endstop(print_time)
+            self.last_state = res
+            self.is_using_magnet_probe = not bool(res)
         except:
             pass
         return eventtime + 1

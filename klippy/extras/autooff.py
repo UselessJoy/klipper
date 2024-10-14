@@ -33,7 +33,7 @@ class Autooff:
         else:
             self.reactor.unregister_timer(self.timer)
             return self.reactor.NEVER
-        return eventtime + 1
+        return eventtime + 1.
     
     def get_status(self, eventtime):
         return {

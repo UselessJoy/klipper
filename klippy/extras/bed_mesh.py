@@ -265,7 +265,6 @@ class BedMesh:
     def load_best_mesh(self, target) -> str | None:
         if target == 0:
             return
-        logging.info("Loading best bed mesh")
         best_profile = best_diff = best_temp = best_time = None
         best_profiles = []
         profiles = self.pmgr.get_profiles()
@@ -283,11 +282,9 @@ class BedMesh:
                 best_temp = profiles[name]['at_bed_mesh_temperature']
                 best_diff = cur_diff
                 best_profile = name
-                best_profiles.append(name)
-        logging.info(f"Best profile is {best_profile}")     
+                best_profiles.append(name)  
         if len(best_profiles) == 0:
             return
-        logging.info(f"List of best profiles {best_profiles}")    
         if len(best_profiles) > 1:
             for pr in best_profiles:
                 if not 'calibrating_datetime' in profiles[pr]:
@@ -299,9 +296,6 @@ class BedMesh:
                 if best_time < profiles[pr]['calibrating_datetime']:
                     best_time = profiles[pr]['calibrating_datetime']
                     best_profile = pr
-        logging.info(f"End of best profile {best_profile}")  
-        # mesh_params = profiles[best_profile]['mesh_params']
-        # z_mesh = ZMesh(mesh_params)
         if best_profile:
             self.pmgr.load_profile(best_profile)
         return best_profile

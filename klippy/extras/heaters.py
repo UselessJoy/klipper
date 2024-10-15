@@ -358,6 +358,7 @@ class PrinterHeaters:
     def turn_off_all_heaters(self, print_time=0.):
         for heater in self.heaters.values():
             heater.set_temp(0.)
+        self.is_waiting = False
         self.printer.send_event("heaters:stop_heating")
     cmd_TURN_OFF_HEATERS_help = _("Turn off all heaters")
     def cmd_TURN_OFF_HEATERS(self, gcmd):

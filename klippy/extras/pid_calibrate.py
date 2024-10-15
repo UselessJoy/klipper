@@ -17,6 +17,7 @@ class PIDCalibrate:
         self.gcode = self.printer.lookup_object('gcode')       
         self.gcode.register_command('CALIBRATE_HEATER_PID', self.cmd_CALIBRATE_HEATER_PID,
                                desc=self.cmd_CALIBRATE_HEATER_PID_help)
+        self.printer.register_event_handler('klippy:shutdown', self.set_no_calibrate_status)
         webhooks = self.printer.lookup_object('webhooks')
         webhooks.register_endpoint("pid_calibrate/stop_pid_calibrate", self._handle_stop_pid_calibrate)
     
@@ -46,19 +47,22 @@ class PIDCalibrate:
           self.printer.lookup_object('messages').send_message("success", _("End PID calibrate, new data saved"))
         else:
           self.printer.lookup_object('messages').send_message("suggestion", _("pid_calibrate interrupted"))
-        self.stop = False
         self.is_calibrating = False
-        if hasattr(heater.control, "update_pid_mass"):
+        if hasattr(heater.control, "update_pid_mass") and not self.stop:
+          self.stop = False
           heater.control.update_pid_mass(pid_dev_dict)
 
+    def set_no_calibrate_status(self):
+        self.stop = True
+        self.is_calibrating = False
+        
     def _handle_stop_pid_calibrate(self, web_request):
-         self.stop = True
-         self.is_calibrating = False
+         self.set_no_calibrate_status()
          self.printer.lookup_object('heaters').turn_off_all_heaters()
-         
+
     def pid_calibrate(self, pheaters, heater, target, write_file = 0):
         self.printer.lookup_object('toolhead').get_last_move_time()
-        calibrate = ControlAutoTune(heater, target)
+        calibrate = ControlAutoTune(self, heater, target)
         old_control = heater.set_control(calibrate)
         try:
               pheaters.set_temperature(heater, target, True)
@@ -77,7 +81,8 @@ class PIDCalibrate:
         return {'is_calibrating': self.is_calibrating}
 
 class ControlAutoTune:
-    def __init__(self, heater, target):
+    def __init__(self, pid_calibrate, heater, target):
+        self.pid_calibrate = pid_calibrate
         self.heater = heater
         self.heater_max_power = heater.get_max_power()
         self.calibrate_temp = target
@@ -105,11 +110,17 @@ class ControlAutoTune:
         if self.heating and temp >= target_temp:
             self.heating = False
             self.check_peaks()
-            self.heater.alter_target(self.calibrate_temp - TUNE_PID_DELTA)
+            if not self.pid_calibrate.stop:
+              self.heater.alter_target(self.calibrate_temp - TUNE_PID_DELTA)
+            else:
+              self.heating = False
         elif not self.heating and temp <= target_temp:
             self.heating = True
             self.check_peaks()
-            self.heater.alter_target(self.calibrate_temp)
+            if not self.pid_calibrate.stop:
+              self.heater.alter_target(self.calibrate_temp)
+            else:
+              self.heating = False
         # Check if this temperature is a peak and record it if so
         if self.heating:
             self.set_pwm(read_time, self.heater_max_power)

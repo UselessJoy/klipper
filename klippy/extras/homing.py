@@ -279,7 +279,7 @@ class PrinterHoming:
         self.home(axis)
     
     def home(self, axis = []):
-        if self.printer.lookup_object('probe').get_is_using_magnet_probe():
+        if self.printer.lookup_object('probe').is_probe_active():
             raise self.printer.command_error(
                     _("Has active magnet probe. Take off it manually"))
         try:

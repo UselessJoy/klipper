@@ -114,7 +114,7 @@ class GCodeMove:
             self.last_position = self.position_with_transform()
     
     def stop_z_with_probe(self, z_move):
-        if self.probe_object.is_using_magnet_probe:
+        if self.probe_object.is_probe_active():
           if self.absolute_coord:
               return z_move < 50
           else:

@@ -196,6 +196,7 @@ class PrinterMotionReport:
         dtrapq = self.trapqs.get('toolhead')
         if dtrapq is None:
             return
+        # !Отсюда взять координаты на восстановление печати
         pos, velocity = dtrapq.get_trapq_position(shutdown_time)
         if pos is not None:
             logging.info("Requested toolhead position at shutdown time %.6f: %s"

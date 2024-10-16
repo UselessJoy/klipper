@@ -27,7 +27,7 @@ class SafetyPrinting:
         buttons = self.printer.load_object(config, "buttons")
         doors_pin = config.get("doors_pin")
         hood_pin = config.get("hood_pin")
-        buttons.register_buttons([doors_pin, hood_pin], self.endstops_callback)
+        buttons.register_buttons([doors_pin, hood_pin], self.on_state_change)
         webhooks = self.printer.lookup_object("webhooks")
         webhooks.register_endpoint("safety_printing/set_safety_printing",
                                    self._handle_set_safety_printing)
@@ -49,7 +49,7 @@ class SafetyPrinting:
     def _handle_paused(self):
         self.send_pause = False   
 
-    def endstops_callback(self, eventtime, state):
+    def on_state_change(self, eventtime, state):
         self.endstops_state = state
         self.printer.send_event("safety_printing:endstops_state", state)
         if self.safety_enabled:

@@ -80,18 +80,7 @@ class MCU_buttons:
                     state = (button & mask) >> shift
                     self.reactor.register_async_callback(
                         (lambda et, c=callback, bt=btime, s=state: c(bt, s)))
-            
-    # def handle_button(self, eventtime, button):
-    #     button ^= self.invert
-    #     changed = button ^ self.last_button
-    #     for mask, shift, callback in self.callbacks:
-    #         if changed & mask:
-    #             callback(eventtime, (button & mask) >> shift)
-    #     self.last_button = button
-
-
-
-
+                    
 ######################################################################
 # ADC button tracking
 ######################################################################

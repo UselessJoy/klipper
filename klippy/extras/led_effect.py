@@ -333,7 +333,7 @@ class ledEffect:
         self.config       = config
         self.printer      = config.get_printer()
         self.gcode        = self.printer.lookup_object('gcode')
-        self.handler      = self.printer.load_object(config, 'led_effect')
+        self.handler: ledFrameHandler = self.printer.load_object(config, 'led_effect')
         self.frameRate    = 1.0 / config.getfloat('frame_rate', 
                                         default=24, minval=1, maxval=60)
         self.enabled      = False

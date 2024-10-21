@@ -112,7 +112,6 @@ class PrinterProbe:
     def is_probe_active(self):
       res = False
       try:
-          self.toolhead.wait_moves()
           print_time = self.toolhead.get_last_move_time(False)
           res = not bool(self.mcu_probe.query_endstop(print_time))
       except Exception as e:

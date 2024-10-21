@@ -646,7 +646,7 @@ class VirtualSD:
                     break
             self.cmd_from_sd = True
             self.gcode.run_script(line)
-            next_file_position = file_position + len(line.encode()) + 1       
+            next_file_position = file_position + len(line.encode()) + 1 
             file_position = next_file_position
             file.seek(file_position)
             self.cmd_from_sd = False

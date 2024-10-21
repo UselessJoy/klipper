@@ -42,7 +42,8 @@ class PrinterProbe:
         self.probe_calibrate_z = 0.
         self.multi_probe_pending = False
         self.last_z_result = 0.
-        
+        self.is_printer_homing = False
+
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         # Infer Z position to move to during a probe
         if config.has_section('stepper_z'):
@@ -119,7 +120,7 @@ class PrinterProbe:
       return res
     
     def __probe_status_timer_for_get_status_function(self, eventtime):
-        if not self.vsd.is_active():
+        if not self.vsd.is_active() and not self.is_printer_homing:
           with self.mutex:
             self.is_using_magnet_probe = self.is_probe_active()
         return eventtime + 1
@@ -161,6 +162,7 @@ class PrinterProbe:
         if self.mcu_probe in hmove.get_mcu_endstops():
             self.mcu_probe.probe_finish(hmove)
     def _handle_home_rails_begin(self, homing_state, rails):
+        self.is_printer_homing = True
         endstops = [es for rail in rails for es, name in rail.get_endstops()]
         if self.mcu_probe in endstops:
             self.multi_probe_begin()
@@ -168,6 +170,7 @@ class PrinterProbe:
         endstops = [es for rail in rails for es, name in rail.get_endstops()]
         if self.mcu_probe in endstops:
             self.multi_probe_end()
+        self.is_printer_homing = False
     def _handle_command_error(self):
         try:
             self.multi_probe_end()

@@ -27,7 +27,6 @@ class LedControl:
         self.rgb = [0,0,0]
         self.last_eventtime = None
         self.luft_temp = 3.
-        self.now_event = ""
         self.now_effect = ""
         self.is_printing = False
         self.paused = False
@@ -190,8 +189,7 @@ class LedControl:
         self.run_if_enabled("printing")
     
     def run_if_enabled(self, event):
-        if self.enabled:
-            self.now_event = event 
+        if self.enabled and self.now_effect != event:
             if self.is_printing:
                 if event in ["error", "print_error", "interrupt", "complete", "cancelled"]:
                     if event in ["print_error", "cancelled", "complete"]:
@@ -222,22 +220,21 @@ class LedControl:
                     self.led_effect.run_effect(LED_EFFECTS[event], self.rgb[0], self.rgb[1], self.rgb[2])
                     self.now_effect = event
                     return
-                #Target temp may be 0
                 elif event in ["extruder_heating", "bed_heating"]:
                     if self.last_ex_target > 0 and self.last_hb_target > 0:
-                        self.now_event = "extruder_bed_heating"
+                        event = "extruder_bed_heating"
                     elif self.last_ex_target > 0:
-                        self.now_event = "extruder_heating"
+                        event = "extruder_heating"
                     elif self.last_hb_target > 0:
-                        self.now_event = "bed_heating"
+                        event = "bed_heating"
                     else:
-                        self.now_event = "enabled"
-                self.now_effect = self.now_event
+                        event = "enabled"
+                self.now_effect = event
                 self.led_effect.run_effect(LED_EFFECTS[self.now_effect])
     
     def get_status(self, eventtime):
         return {
-            'led_status': self.now_event,
+            'led_status': self.now_effect,
             'enabled': self.enabled
         }
 

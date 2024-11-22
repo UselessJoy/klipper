@@ -114,12 +114,12 @@ class PrinterProbe:
       res = False
       try:
           print_time = self.toolhead.get_last_move_time(False)
-          res = not bool(self.mcu_probe.query_endstop(print_time))
+          res = not bool(self.mcu_probe.query_endstop(print_time + 0.1))
       except Exception as e:
         logging.error(f"Error on is_probe_active: {e}\nThis often means what toolkead still not initialized")
       return res
     
-    def __probe_status_timer_for_get_status_function(self, eventtime):
+    def __update_is_using_magnet_probe_field(self, eventtime):
         if not self.vsd.is_active() and not self.is_printer_homing:
           with self.mutex:
             self.is_using_magnet_probe = self.is_probe_active()
@@ -130,7 +130,7 @@ class PrinterProbe:
         self.gcode_move = self.printer.lookup_object('gcode_move')
         self.toolhead = self.printer.lookup_object('toolhead')
         self.magnet_checker_timer = self.reactor.register_timer(
-                    self.__probe_status_timer_for_get_status_function, self.reactor.NOW + 1)
+                    self.__update_is_using_magnet_probe_field, self.reactor.NOW + 0.1)
 
     def take_magnet_probe(self):
         self.gcode_move.set_absolute_coord(True)

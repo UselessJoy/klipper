@@ -656,15 +656,13 @@ class VirtualSD:
         if "z" not in kin_status['homed_axes']:
           self.gcode.run_script(f"SET_KINEMATIC_POSITION Z={self.last_coord[0]}\n")
         lead_z = 7 if self.max_z - self.last_coord[0] > 7 else self.max_z
-        self.gcode.run_script(f"\
-          G92 E0\n\
-          G1 F2100 E-1\n\
-          G91\n\
-          G0 Z{lead_z}\n\
-          G90\n\
-          G28 X Y\n\
-          G0 X{self.last_coord[1]} Y{self.last_coord[2]} Z{self.last_coord[0]} F6000\n\
-        ")
+        self.gcode.run_script(f"""G92 E0
+                                  G1 F2100 E-1
+                                  G91
+                                  G0 Z{lead_z}
+                                  G90
+                                  G28 X Y
+                                  G0 X{self.last_coord[1]} Y{self.last_coord[2]} Z{self.last_coord[0]} F6000""")
         self.work_timer = None
         try:
             self.work_timer = self.reactor.register_timer(

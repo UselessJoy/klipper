@@ -2350,7 +2350,7 @@ msgstr "horizontal_move_z не может быть меньше z_offset про�
 msgid ""
 "horizontal_move_z can't be less than "
 "probe's z_offset"
-msgstr "horizontal_move_z в секции [bed_mesh] не может быть меньше чем"
+msgstr "horizontal_move_z в секции [bed_mesh] не может быть меньше чем "
 "z_offset в секции [probe]"
 # =========================END PROBE MODULE======================#
 # =====================QUAD_GANTRY_LEVEL MODULE==================#
@@ -2874,6 +2874,8 @@ msgid "HOST temperature %0.1f above maximum temperature of %0.1f."
 msgstr ""
 "Температура основного устройства на %0.1f выше максимальной температуры на %0.1f."
 
+msgid "High CPU temperature. Check the cooling of the electronics compartment or shutdown"
+msgstr "Высокая температура ЦПУ. Проверьте охлаждение отсека электроники или завершите работу"
 # ====================END TEMPERATURE_HOST MODULE=================#
 # ======================TEMPERATURE_MCU MODULE====================#
 #, python-format

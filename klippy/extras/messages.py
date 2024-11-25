@@ -45,7 +45,7 @@ class Messages:
         message = web_request.get_str('message')
         self.send_message(message_type, message, True)
         
-    def send_message(self, message_type, message, from_webhooks=False):
+    def send_message(self, message_type, message, from_webhooks=False, respond=True):
         self.reset_open_timer()
         self.message_type = message_type
         self.last_eventtime = self.reactor.monotonic()
@@ -55,7 +55,8 @@ class Messages:
             self.current_message = message
         self.timer = self.reactor.register_timer(self.open_timer, self.reactor.NOW)
         self.is_open = True
-        self.gcode.respond_msg(self.current_message, f"({self.message_type})", True)
+        if respond:
+          self.gcode.respond_msg(self.current_message, f"({self.message_type})", True)
         
     def open_timer(self, eventtime):
         if abs(eventtime - self.last_eventtime) > 10:

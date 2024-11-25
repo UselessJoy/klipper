@@ -46,7 +46,7 @@ class PIDCalibrate:
           self.printer.lookup_object('configfile').update_config(saving_section, save_immediatly = True)
           self.printer.lookup_object('messages').send_message("success", _("End PID calibrate, new data saved"))
         else:
-          self.printer.lookup_object('messages').send_message("suggestion", _("pid_calibrate interrupted"))
+          self.printer.lookup_object('messages').send_message("suggestion", _("pid_calibrate interrupted"), respond=False)
         self.is_calibrating = False
         if hasattr(heater.control, "update_pid_mass") and not self.stop:
           self.stop = False

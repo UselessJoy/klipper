@@ -54,7 +54,7 @@ class PauseResume:
         messages = self.printer.lookup_object("messages")
         if safety.safety_enabled:
             if safety.send_pause:
-                messages.send_message('warning', 'wait_for_pause')
+                messages.send_message('warning', _("Printer already go to pause"))
                 return
         self.manual_pause = True
         self.gcode.run_script("PAUSE")
@@ -64,7 +64,7 @@ class PauseResume:
         messages = self.printer.lookup_object("messages")
         if safety.safety_enabled:
             if safety.send_resume:
-                messages.send_message('warning', 'wait_for_resume')
+                messages.send_message('warning', _("Printer already wait go to resume"))
                 return
         self.manual_pause = False
         self.gcode.run_script("RESUME")

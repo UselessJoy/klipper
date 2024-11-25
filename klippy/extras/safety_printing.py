@@ -35,6 +35,12 @@ class SafetyPrinting:
                                    self._handle_set_luft_timeout)
         self.printer.register_event_handler("print_stats:printing", self._handle_printing)
         self.printer.register_event_handler("print_stats:paused", self._handle_paused)
+
+        self.printer.register_event_handler("print_stats:interrupt", self._handle_clear_pause_resume)
+        self.printer.register_event_handler("print_stats:cancelled", self._handle_clear_pause_resume)
+        self.printer.register_event_handler("print_stats:complete", self._handle_clear_pause_resume)
+        self.printer.register_event_handler("print_stats:error", self._handle_clear_pause_resume)
+
         self.printer.register_event_handler("klippy:ready", self._on_ready)
     
     def _on_ready(self):
@@ -49,6 +55,9 @@ class SafetyPrinting:
     def _handle_paused(self):
         self.send_pause = False   
 
+    def _handle_clear_pause_resume(self):
+        self.send_pause = self.send_resume = False   
+        
     def on_state_change(self, eventtime, state):
         self.endstops_state = state
         self.printer.send_event("safety_printing:endstops_state", state)

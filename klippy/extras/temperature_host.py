@@ -5,6 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 import logging
+import os
 import locales
 HOST_REPORT_TIME = 1.0
 RPI_PROC_TEMP_FILE = "/sys/class/thermal/thermal_zone0/temp"
@@ -15,7 +16,7 @@ class Temperature_HOST:
         self.reactor = self.printer.get_reactor()
         self.name = config.get_name().split()[-1]
         self.path = config.get("sensor_path", RPI_PROC_TEMP_FILE)
-
+        self.message_time = 0
         self.temp = self.min_temp = self.max_temp = 0.0
 
         self.printer.add_object("temperature_host " + self.name, self)
@@ -58,10 +59,17 @@ class Temperature_HOST:
             self.printer.invoke_shutdown(
                 _("HOST temperature %0.1f below minimum temperature of %0.1f.")
                 % (self.temp, self.min_temp,))
+        if (self.temp > (self.max_temp - 10)) and not self.message_time:
+            self.message_time = eventtime
+            self.printer.lookup_object('messages').send_message('warning', _("High CPU temperature. Check the cooling of the electronics compartment or shutdown"))
+        elif abs(eventtime - self.message_time) > 9:
+            self.message_time = 0
         if self.temp > self.max_temp:
             self.printer.invoke_shutdown(
                 _("HOST temperature %0.1f above maximum temperature of %0.1f.")
                 % (self.temp, self.max_temp,))
+            os.system("systemctl poweroff")
+        
         self.printer.send_event("temperature_host:sample_temperature", self.temp)
         mcu = self.printer.lookup_object('mcu')
         measured_time = self.reactor.monotonic()

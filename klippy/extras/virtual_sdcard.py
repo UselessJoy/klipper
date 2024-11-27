@@ -237,8 +237,11 @@ class VirtualSD:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
         self.printer.send_event("virtual_sdcard:printing")
-        led_control = self.printer.lookup_object("led_control")
-        led_control.set_start_print_effect()
+        try:
+          led_control = self.printer.lookup_object("led_control")
+          led_control.set_start_print_effect()
+        except:
+          pass
         self.work_timer = self.reactor.register_timer(
             self.work_handler, self.reactor.NOW)
          

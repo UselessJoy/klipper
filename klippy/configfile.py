@@ -9,7 +9,7 @@ import sys, os, glob, re, time, logging, configparser, io
 import locales
 locales.set_locale()
 error = configparser.Error
-DEPRECATED_SECTIONS = ['motor_checker']
+DEPRECATED_SECTIONS = ['motor_checker', 'wifi_mode']
 class sentinel:
     pass
 

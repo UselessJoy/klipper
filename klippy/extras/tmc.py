@@ -227,6 +227,7 @@ class TMCErrorCheck:
 
 class TMCCommandHelper:
     def __init__(self, config, mcu_tmc, current_helper):
+        self.config = config
         self.printer = config.get_printer()
         self.stepper_name = ' '.join(config.get_name().split()[1:])
         self.name = config.get_name().split()[-1]
@@ -276,10 +277,13 @@ class TMCCommandHelper:
         self.quite_mode: bool = web_request.get_boolean('quite_mode')
         
         reg_name = self.fields.lookup_register("en_spreadcycle", None)
-        reg_val = self.fields.set_field("en_spreadcycle", int(self.quite_mode))
+        reg_val = self.fields.set_field("en_spreadcycle", not self.quite_mode)
         
-        print_time = self.printer.lookup_object('toolhead').get_last_move_time()
-        self.mcu_tmc.set_register(reg_name, reg_val, print_time)
+        tpwmthrs = TMCtstepHelper(self.mcu_tmc, 999999 if self.quite_mode else 0, self.stepper)
+        reg_t = self.fields.lookup_register("tpwmthrs", None)
+        val_t = self.fields.set_field("tpwmthrs", tpwmthrs)
+        self.mcu_tmc.set_register(reg_t,val_t, None)
+        self.mcu_tmc.set_register(reg_name, reg_val, None)
         configfile = self.printer.lookup_object('configfile')
         tmc_section = {f"{self.type} {self.name}": {"stealthchop_threshold": 999999 if self.quite_mode else 0}}
         configfile.update_config(setting_sections=tmc_section, save_immediatly=True)

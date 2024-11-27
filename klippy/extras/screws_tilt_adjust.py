@@ -156,7 +156,7 @@ class ScrewsTiltAdjust:
         try:
             if not self.direction: 
                 self.calibrating_screw = self.screws[self.base_screw]
-                probe_screw = probe.ProbePointsHelper(self.config, self.on_base_screw_finalize, default_points=[self.calibrating_screw['coord']])
+                probe_screw = probe.ProbePointsHelper(self.config, self.on_base_screw_finalize, default_points=[self.calibrating_screw['coord'], self.calibrating_screw['coord']])
                 probe_screw.start_probe(gcmd, False)
             elif len(self.results) == 0:
                 self.probe_helper.start_probe(gcmd, False)
@@ -214,7 +214,7 @@ class ScrewsTiltAdjust:
         return direction
       
     def on_base_screw_finalize(self, offsets, positions):
-        self.z_base = positions[0][2]
+        self.z_base = positions[1][2]
         is_clockwise_thread = (self.thread & 1) == 0
         sign = "CW" if is_clockwise_thread else "CCW"
         if self.calibrating_screw['prefix'] in self.results:

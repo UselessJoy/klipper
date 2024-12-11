@@ -23,6 +23,7 @@ class ScrewsTiltAdjust:
         self.stop_screw = self.stop_calibrate = self.is_calibrating = False
         self.max_diff_error = False
         self.success = False
+        self.multi_tap = False
         self.adjusted_screws = 0
         # Read config
         for i in range(99):
@@ -153,18 +154,25 @@ class ScrewsTiltAdjust:
         self.calibrating_screw = None
         self.stop_screw = self.stop_calibrate = False
         self.direction = self.get_direction(gcmd)
+        self.multi_tap = False
+        adjusting = False
+        self.adjusted_screws = 0
         try:
-            if not self.direction: 
-                self.calibrating_screw = self.screws[self.base_screw]
-                probe_screw = probe.ProbePointsHelper(self.config, self.on_base_screw_finalize, default_points=[self.calibrating_screw['coord'], self.calibrating_screw['coord']])
-                probe_screw.start_probe(gcmd, False)
-            elif len(self.results) == 0:
-                self.probe_helper.start_probe(gcmd, False)
-
-            self.calibrating_screws = self.screws.copy()
-            self.calibrating_screws.pop(self.base_screw)
-            self.adjusted_screws = 0
+            self.find_highest_screw(gcmd, False)
+            logging.info(f"highest base screw is {self.base_screw}")
             while not self.stop_calibrate:
+                if not adjusting:
+                  if not self.direction: 
+                      self.calibrating_screw = self.screws[self.base_screw]
+                      probe_screw = probe.ProbePointsHelper(self.config, self.on_base_screw_finalize, default_points=[self.calibrating_screw['coord']])
+                      probe_screw.start_probe(gcmd, False)
+                  elif len(self.results) == 0:
+                      self.probe_helper.start_probe(gcmd, False)
+
+                  self.calibrating_screws = self.screws.copy()
+                  self.calibrating_screws.pop(self.base_screw)
+                  adjusting = True
+
                 if self.next_screw:
                     self.calibrating_screw = self.calibrating_screws[self.next_screw]
                     self.next_screw = None
@@ -177,9 +185,11 @@ class ScrewsTiltAdjust:
                 probe_screw.start_probe(gcmd, False)
                 if self.adjusted_screws == len(self.calibrating_screws):
                     self.adjusted_screws = 0
-                    points = [self.calibrating_screws[name]['coord'] for name in self.calibrating_screws]
-                    probe_recheck_screws = probe.ProbePointsHelper(self.config, self.on_recheck_finalize, default_points=points)
-                    probe_recheck_screws.start_probe(gcmd, False)
+                    adjusting = False
+                    if not self.multi_tap:
+                        self.success = True
+                        self.stop_calibrate = True
+                    self.multi_tap = False
             if self.success:
                 self.success = False
                 messages.send_message("success", _("Successfull calibrated screws!"))
@@ -192,17 +202,66 @@ class ScrewsTiltAdjust:
         self.calibrating_screws = None
         self.is_calibrating = False
     
-    def on_recheck_finalize(self, offsets, positions):
-        for i, screw in enumerate(self.calibrating_screws):
-            z = positions[i][2]
-            if screw != self.base_screw:
-                sign, full_turns, minutes, diff = self.calculate_adjust(positions[i][2])
-                self.results[self.calibrating_screws[screw]['prefix']].update({'z': z, 'sign': sign, 'adjust':"%02d:%02d" % (full_turns, minutes)})
-                if not (full_turns == 0 and minutes <= self.minutes_deviation):
-                    return
-        self.success = True
-        self.stop_calibrate = True
+    def find_highest_screw(self, gmcd, return_probe):
+        points = [self.screws[name]['coord'] for name in self.screws]
+        probe_helper = probe.ProbePointsHelper(self.config,
+                                                    self._highest_i_finalize,
+                                                    default_points=points)
+        probe_helper.start_probe(gmcd, return_probe)
     
+    def _highest_i_finalize(self, offsets, positions: list[tuple]):
+        logging.info(f"positions {positions}")
+        max_z = positions[0][2]
+        screw_iter = iter(self.screws)
+        for position in positions:
+            next_screw = next(screw_iter)
+            if max_z < position[2]:
+                max_z = position[2]
+                self.base_screw = next_screw
+                self.i_base = int(self.base_screw[-1])
+                logging.info(f"highest position {position[2]} on screw {self.base_screw}")
+        logging.info(f"find highest screw {self.base_screw}")
+            
+    def probe_finalize(self, offsets, positions: list[tuple]):
+        self.max_diff_error = False
+        is_clockwise_thread = (self.thread & 1) == 0
+        screw_diff = []
+        self.i_base, self.z_base = self.find_base_screw(is_clockwise_thread, positions)
+        # Provide the user some information on how to read the results
+        self.gcode.respond_info(_("01:20 means 1 full turn and 20 minutes, "
+                                "CW=clockwise, CCW=counter-clockwise"))
+        for i, screw in enumerate(self.screws):
+            z = positions[i][2]
+            coord, name = self.screws[screw]['coord'], self.screws[screw]['name']
+            if self.screws[screw]['prefix'] in self.results:
+                del self.results[self.screws[screw]['prefix']]
+            if screw == self.base_screw:
+                # Show the results
+                self.gcode.respond_info(
+                    "%s : x=%.1f, y=%.1f, z=%.5f" %
+                    (name + ' (base)', coord[0], coord[1], z))
+                sign = "CW" if is_clockwise_thread else "CCW"
+                self.results[self.screws[screw]['prefix']] = {'x': coord[0], 'y': coord[1],'z': z, 
+                    'sign': sign, 'adjust': '00:00', 'is_base': True
+                }
+            else:
+                # Calculate how knob must be adjusted for other positions
+                sign, full_turns, minutes, diff = self.calculate_adjust(positions[i][2])
+                screw_diff.append(abs(diff))
+                # Show the results
+                self.gcode.respond_info(
+                    "%s : x=%.1f, y=%.1f, z=%.5f : adjust %s %02d:%02d" %
+                    (name, coord[0], coord[1], z, sign, full_turns, minutes))
+                self.results[self.screws[screw]['prefix']] = {'x': coord[0], 'y': coord[1],'z': z, 
+                    'sign': sign, 'adjust':"%02d:%02d" % (full_turns, minutes), 'is_base': False
+                }
+        if self.max_diff and any((d > self.max_diff) for d in screw_diff):
+            self.max_diff_error = True
+            raise self.gcode.error(
+                _("bed level exceeds configured limits ({}mm)! " 
+                "Adjust screws and restart print.").format(self.max_diff))
+        self.printer.send_event("screw_tilt_adjust:end_probe", self.results)
+
     def get_direction(self, gcmd):
         direction = gcmd.get("DIRECTION", default=None)
         if direction is not None:
@@ -214,7 +273,7 @@ class ScrewsTiltAdjust:
         return direction
       
     def on_base_screw_finalize(self, offsets, positions):
-        self.z_base = positions[1][2]
+        self.z_base = positions[0][2]
         is_clockwise_thread = (self.thread & 1) == 0
         sign = "CW" if is_clockwise_thread else "CCW"
         if self.calibrating_screw['prefix'] in self.results:
@@ -233,12 +292,13 @@ class ScrewsTiltAdjust:
             }
             if not (full_turns == 0 and minutes <= self.minutes_deviation):
                 self.gcode.respond_info(_("adjust %s %02d:%02d") % (sign, full_turns, minutes))# no locale
+                self.multi_tap = True
                 return "retry"
-            self.gcode.respond_info(_("Successfull calibrated screw %s") % self.calibrating_screw['name'])# no locale
-            self.adjusted_screws = self.adjusted_screws + 1
+            self.gcode.respond_info(_("Successfull calibrated screw %s") % self.calibrating_screw['name'])
+            self.adjusted_screws += 1
         else:
             self.stop_screw = False
-            self.gcode.respond_info(_("Current screw calibrating stoped"))# no locale
+            self.gcode.respond_info(_("Current screw calibrating stoped"))
     
     def calculate_adjust(self, z_screw):
         is_clockwise_thread = (self.thread & 1) == 0
@@ -277,7 +337,7 @@ class ScrewsTiltAdjust:
         return i_base, z_base
             
     def get_status(self, eventtime):
-        # Копируем ruslts, поскольку может вылететь 400-я ошибка во время запроса (видимо, из-за одновременного изменения данных)
+        # Копируем results, поскольку может вылететь 400-я ошибка во время запроса (видимо, из-за одновременного изменения данных)
         return{
                 'error': self.max_diff_error,
                 'results': self.results.copy(),

@@ -49,7 +49,7 @@ class PrinterFanBack:
         return
       if self.linear:
         if temp > 65:
-          setting_speed = (80 + (temp - 65)) / 100
+          setting_speed = .8
         else:
           setting_speed = .7
         if self.fan.last_fan_value != setting_speed:

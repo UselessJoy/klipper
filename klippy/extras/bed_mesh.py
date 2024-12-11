@@ -132,8 +132,6 @@ class BedMesh:
         # Register transform
         gcode_move = self.printer.load_object(config, 'gcode_move')
         gcode_move.set_move_transform(self)
-        # initialize status dict
-        self.update_status()
         
     def handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
@@ -174,7 +172,6 @@ class BedMesh:
         # cache the current position before a transform takes place
         gcode_move = self.printer.lookup_object('gcode_move')
         gcode_move.reset_last_position()
-        self.update_status()
         
     def get_z_factor(self, z_pos):
         z_pos += self.tool_offset
@@ -235,17 +232,15 @@ class BedMesh:
         self.last_position[:] = newpos
         
     def get_status(self, eventtime=None):
-        return self.status
-
-    def update_status(self):
-        self.status = {
+        status = {
             "profile_name": "",
             "mesh_min": (0., 0.),
             "mesh_max": (0., 0.),
             "probed_matrix": [[]],
             "mesh_matrix": [[]],
             "profiles": self.pmgr.get_profiles(),
-            "unsaved_profiles": self.pmgr.get_unsaved_profiles()
+            "unsaved_profiles": self.pmgr.get_unsaved_profiles(),
+            "is_calibrating": self.bmc.is_calibrating
         }
         if self.z_mesh is not None:
             params = self.z_mesh.get_mesh_params()
@@ -253,11 +248,12 @@ class BedMesh:
             mesh_max = (params['max_x'], params['max_y'])
             probed_matrix = self.z_mesh.get_probed_matrix()
             mesh_matrix = self.z_mesh.get_mesh_matrix()
-            self.status['profile_name'] = self.pmgr.get_current_profile()
-            self.status['mesh_min'] = mesh_min
-            self.status['mesh_max'] = mesh_max
-            self.status['probed_matrix'] = probed_matrix
-            self.status['mesh_matrix'] = mesh_matrix
+            status['profile_name'] = self.pmgr.get_current_profile()
+            status['mesh_min'] = mesh_min
+            status['mesh_max'] = mesh_max
+            status['probed_matrix'] = probed_matrix
+            status['mesh_matrix'] = mesh_matrix
+        return status
 
     def get_mesh(self) -> ZMesh:
         return self.z_mesh
@@ -359,6 +355,7 @@ class BedMeshCalibrate:
         self.zero_ref_pos = config.getfloatlist(
             "zero_reference_position", None, count=2
         )
+        self.is_calibrating = False
         self.zero_reference_mode = ZrefMode.DISABLED
         self.faulty_regions = []
         self.savePermanently = False
@@ -376,6 +373,10 @@ class BedMeshCalibrate:
         self.gcode.register_command(
             'BED_MESH_CALIBRATE', self.cmd_BED_MESH_CALIBRATE,
             desc=self.cmd_BED_MESH_CALIBRATE_help)
+        self.gcode.register_async_command(
+            'ASYNC_STOP_BED_MESH_CALIBRATE', self.cmd_ASYNC_STOP_BED_MESH_CALIBRATE,
+            desc=self.cmd_ASYNC_STOP_BED_MESH_CALIBRATE_help
+        )
     def _generate_points(self, error, probe_method="automatic"):
         x_cnt = self.mesh_config['x_count']
         y_cnt = self.mesh_config['y_count']
@@ -411,6 +412,9 @@ class BedMeshCalibrate:
                 if self.radius is None:
                     # rectangular bed, append
                     points.append((pos_x, pos_y))
+                    if len(points) == 1:
+                        # Если это первая точка, то добавляем ее второй раз, чтобы первую не учитывать
+                        points.append((pos_x, pos_y))
                 else:
                     # round bed, check distance from origin
                     dist_from_origin = math.sqrt(pos_x*pos_x + pos_y*pos_y)
@@ -811,13 +815,22 @@ class BedMeshCalibrate:
         if self._profile_name in profs:
             raise self.gcode.error(
                 _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name) 
-        self.savePermanently: bool = gcmd.get_boolean('SAVE_PERMANENTLY', False)
+        self.savePermanently = gcmd.get_boolean('SAVE_PERMANENTLY', False)
         self.bedmesh.set_mesh(None)
         self.update_config(gcmd)
+        self.is_calibrating = True
         self.probe_helper.start_probe(gcmd)
-        
-    def probe_finalize(self, offsets, positions):
+
+    cmd_ASYNC_STOP_BED_MESH_CALIBRATE_help=_("Stop bed mesh calibrating")
+    def cmd_ASYNC_STOP_BED_MESH_CALIBRATE(self, gmcd: GCodeCommand):
+        if not self.is_calibrating:
+            return
+        self.probe_helper.stop_probe()
+        self.is_calibrating = False
+
+    def probe_finalize(self, offsets, positions: list):
         x_offset, y_offset, z_offset = offsets
+        positions.pop(0)
         positions = [[round(p[0], 2), round(p[1], 2), p[2]]
                      for p in positions]
         if self.zero_reference_mode == ZrefMode.PROBE:
@@ -942,6 +955,7 @@ class BedMeshCalibrate:
         self.bedmesh.set_mesh(z_mesh)
         self.gcode.respond_info(_("Mesh Bed Leveling Complete"))
         self.bedmesh.add_profile(self._profile_name, self.savePermanently)
+        self.is_calibrating = False
      
     def _dump_points(self, probed_pts, corrected_pts, offsets):
         # logs generated points with offset applied, points received
@@ -1431,8 +1445,6 @@ class ProfileManager:
         self.current_profile = prof_name
         if savePermanently:
             self.save_profile(prof_name)
-        else:
-            self.bedmesh.update_status()
     
     def save_profile(self, prof_name):
         profile = self.profiles.get(prof_name, None)
@@ -1469,7 +1481,6 @@ class ProfileManager:
             unsaved = list(self.unsaved_profiles)
             unsaved.remove(prof_name)
             self.unsaved_profiles = unsaved
-        self.bedmesh.update_status()
         msg_obj = self.printer.lookup_object("messages")
         msg_obj.send_message("success", _("Successfull save bed mesh"))
         
@@ -1501,7 +1512,6 @@ class ProfileManager:
                 unsaved = list(self.unsaved_profiles)
                 unsaved.remove(prof_name)
                 self.unsaved_profiles = unsaved
-            self.bedmesh.update_status()
             self.gcode.respond_info(
                 _("Profile [%s] removed \n") % (prof_name))
         if prof_name == self.current_profile:

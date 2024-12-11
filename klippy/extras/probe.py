@@ -145,13 +145,15 @@ class PrinterProbe:
     def return_magnet_probe(self):
         self.gcode_move.set_absolute_coord(True)
         self.drop_z_move()
-        if float(self.toolhead.get_position()[1]) < self.parking_magnet_y:
-            self.gcode.run_script_from_command(f"G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_base}")
+        if float(self.toolhead.get_position()[1]) > self.parking_magnet_y:
+            # Возвращение на парковочный Y
+            self.gcode.run_script_from_command(f"G1 Y{self.parking_magnet_y} F{self.speed_base}")
         self.gcode.run_script_from_command(f"\
-                            G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_parking}\n\
-                            G1 X{self.magnet_x_offset} F{self.speed_base}\n\
-                            G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
-                         ")
+          G1 X{self.magnet_x} F{self.speed_base}\n\
+          G1 Y{self.magnet_y} F{self.speed_parking}\n\
+          G1 X{self.magnet_x_offset} F{self.speed_base}\n\
+          G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
+        ")
         if self.is_probe_active():
             raise self.printer.command_error(_("Couldn't return probe"))
     
@@ -236,7 +238,7 @@ class PrinterProbe:
         # even number of samples
         return self._calc_mean(z_sorted[middle-1:middle+1])
         
-    def run_probe(self, gcmd):
+    def run_probe(self, gcmd, delete_first_position=False):
         speed = gcmd.get_float("PROBE_SPEED", self.speed, above=0.)
         lift_speed = self.get_lift_speed(gcmd)
         sample_count = gcmd.get_int("SAMPLES", self.sample_count, minval=1)
@@ -272,6 +274,8 @@ class PrinterProbe:
             self.multi_probe_end()
         # Calculate and return result
         if samples_result == 'median':
+            if delete_first_position:
+              positions.pop(0)
             return self._calc_median(positions)
         return self._calc_mean(positions)
     
@@ -439,7 +443,7 @@ class PrinterProbe:
         # Perform initial probe
         lift_speed = self.get_lift_speed(gcmd)
         self.on_start_probe(correcting_probe=True)
-        curpos = self.run_probe(gcmd)
+        curpos = self.run_probe(gcmd, delete_first_position=True)
         # Move away from the bed
         self.probe_calibrate_z = self.last_z_result = curpos[2]
         curpos[2] += 5.
@@ -542,6 +546,7 @@ class ProbePointsHelper:
     def __init__(self, config, finalize_callback, default_points=None, hz = 7., hzs = 7.):
         self.printer = config.get_printer()
         self.config = config
+        self.stop = False
         self.finalize_callback = finalize_callback
         self.probe_points = default_points
         self.name = config.get_name()
@@ -601,7 +606,10 @@ class ProbePointsHelper:
                 nextpos[1] -= self.probe_offsets[1]
         toolhead.manual_move(nextpos, self.speed)
         return False
-        
+
+    def stop_probe(self):
+      self.stop = True
+
     def start_probe(self, gcmd, return_probe = True):
         manual_probe.verify_no_manual_probe(self.printer)
         # Lookup objects
@@ -622,13 +630,16 @@ class ProbePointsHelper:
                              " probe's z_offset"))
         probe.multi_probe_begin()
         self.printer.lookup_object('probe').on_start_probe()
-        while 1:
+        while not self.stop:
             self.printer.send_event("probe:xy_move")
             done = self._move_next(return_probe)
             if done:
                 break
             pos = probe.run_probe(gcmd)
             self.results.append(pos)
+        if self.stop:
+            self.printer.lookup_object('toolhead').manual_move([None, None, self.horizontal_move_z], self.lift_speed)
+        self.stop = False
         probe.multi_probe_end()
         
     def _manual_probe_start(self):

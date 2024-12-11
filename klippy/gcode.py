@@ -99,7 +99,7 @@ class GCodeCommand:
                         maxval=maxval, above=above, below=below)
                         
     def get_boolean(self, name, default=sentinel, minval=None, maxval=None) -> bool:
-        return self.get(name, default, parser=bool, minval=minval, maxval=maxval)
+        return self.get(name, default, parser=True, minval=minval, maxval=maxval)
         
     def get_list_str(self, name, default=sentinel, sep=',') -> str:
         return re.sub(' ', '', self.get(name, default)).split(sep)

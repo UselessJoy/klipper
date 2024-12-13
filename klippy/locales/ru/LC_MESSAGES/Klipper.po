@@ -2555,6 +2555,18 @@ msgstr "Неподдерживаемый путь для графика %s"
 msgid "Graph %s doesn't saved"
 msgstr "График %s не сохранен"
 
+msgid "Frequency responses comparison"
+msgstr "Сравнение частотных характеристик"
+
+msgid "Frequency (Hz)"
+msgstr "Частота (Гц)"
+
+msgid "Left belt"
+msgstr "Левый ремень"
+
+msgid "Right belt"
+msgstr "Правый ремень"
+
 # ===================END RESONANCE_TESTER MODULE=================#
 # ==========================RESPOND MODULE=======================#
 msgid "Echo the message prepended with a prefix"

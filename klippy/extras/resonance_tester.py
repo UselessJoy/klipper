@@ -264,16 +264,16 @@ class ResonanceTester:
                                                 helper, None, belts[belt]['data'])
           gcmd.respond_info(
                   _("Resonances data written to %s file") % (csv_name,))
-        fig: Figure = self.plot_compare_frequency([belts['left']['data'], belts['right']['data']], ['Left belt', 'Right belt'], plot_freq, 'all')# no locale
+        fig: Figure = self.plot_compare_frequency([belts['left']['data'], belts['right']['data']], [_("Left belt"), _("Right belt")], plot_freq, 'all')# no locale
         fig.set_size_inches(8, 6)
         belt_tension_path = os.path.join("/tmp/", csv_name.rpartition('/')[2].replace('.csv', '.png'))
         fig.savefig(belt_tension_path)
 
     def plot_compare_frequency(self, datas, lognames, max_freq, axis):
       fig, ax = matplotlib.pyplot.subplots()
-      ax.set_title('Frequency responses comparison')
-      ax.set_xlabel('Frequency (Hz)')
-      ax.set_ylabel('Power spectral density')
+      ax.set_title(_("Frequency responses comparison"))
+      ax.set_xlabel(_("Frequency (Hz)"))
+      ax.set_ylabel(_("Power spectral density"))
 
       for data, logname in zip(datas, lognames):
           freqs = data.freq_bins

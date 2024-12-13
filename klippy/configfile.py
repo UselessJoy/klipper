@@ -653,7 +653,7 @@ class PrinterConfig:
       config_dir = os.path.dirname(cfgname)
       latest_backup = ''
       for filename in os.listdir(config_dir):
-        if os.path.isfile(filename) and filename.endswith('.backup'):
+        if os.path.isfile(filename) and filename.endswith('.backup') and filename.startswith('printer'):
           if not latest_backup:
             latest_backup = filename
           else:

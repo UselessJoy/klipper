@@ -77,7 +77,7 @@ class ManualProbe:
             "with the above and restart the printer.") % (z_pos,))
         configfile = self.printer.lookup_object('configfile')
         configfile.set('stepper_z', 'position_endstop', "%.3f" % (z_pos,))
-        
+
     cmd_Z_ENDSTOP_CALIBRATE_help = _("Calibrate a Z endstop")
     def cmd_Z_ENDSTOP_CALIBRATE(self, gcmd):
         was_homed =self.printer.lookup_object('homing').run_G28_if_unhomed()
@@ -90,7 +90,7 @@ class ManualProbe:
         ManualProbeHelper(self.printer, self.config, gcmd, self.z_endstop_finalize)
         
     def cmd_Z_OFFSET_APPLY_ENDSTOP(self,gcmd):
-        offset = self.gcode_move.get_status()['homing_origin'].z
+        offset = -1*self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
         if offset == 0:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))

@@ -18,6 +18,7 @@ class ManualProbe:
                                     desc=self.cmd_MANUAL_PROBE_help)
         # Endstop value for cartesian printers with separate Z axis
         zconfig = config.getsection('stepper_z')
+        self.z_min, self.z_max = (zconfig.getfloat('position_min'), zconfig.getfloat('position_max'))
         self.z_position_endstop = zconfig.getfloat('position_endstop', None,
                                                    note_valid=False)
         # Endstop values for linear delta printers with vertical A,B,C towers
@@ -53,30 +54,37 @@ class ManualProbe:
     def manual_probe_finalize(self, kin_pos):
         if kin_pos is not None:
             self.gcode.respond_info("Z position is %.3f" % (kin_pos[2],))
+
     def reset_status(self):
         self.status = {
             'is_active': False,
             'z_position': None,
             'z_position_lower': None,
             'z_position_upper': None,
-            'command': None
+            'command': None,
+            'z_position_endstop': self.z_position_endstop
         }
+
+    def update_status(self, dict):
+      for field in dict:
+        if field in self.status:
+          self.status[field] = dict[field]
+
     def get_status(self, eventtime):
         return self.status
+
     cmd_MANUAL_PROBE_help = _("Start manual probe helper script")
     def cmd_MANUAL_PROBE(self, gcmd):
         ManualProbeHelper(self.printer, self.config, gcmd, self.manual_probe_finalize)
-        
+
+    def in_range_min_max(self, z_pos):
+        check_pos = self.z_position_endstop - z_pos
+        return check_pos > self.z_min and check_pos < self.z_max
     def z_endstop_finalize(self, kin_pos):
         if kin_pos is None:
             return
-        z_pos = self.z_position_endstop - kin_pos[2]
-        self.gcode.respond_info(
-            _("stepper_z: position_endstop: %.3f\n"
-            "The SAVE_CONFIG command will update the printer config file\n"
-            "with the above and restart the printer.") % (z_pos,))
-        configfile = self.printer.lookup_object('configfile')
-        configfile.set('stepper_z', 'position_endstop', "%.3f" % (z_pos,))
+        self.z_position_endstop -= kin_pos[2]
+        self.save_z_position_endstop()
 
     cmd_Z_ENDSTOP_CALIBRATE_help = _("Calibrate a Z endstop")
     def cmd_Z_ENDSTOP_CALIBRATE(self, gcmd):
@@ -90,19 +98,21 @@ class ManualProbe:
         ManualProbeHelper(self.printer, self.config, gcmd, self.z_endstop_finalize)
         
     def cmd_Z_OFFSET_APPLY_ENDSTOP(self,gcmd):
-        offset = -1*self.gcode_move.get_status()['homing_origin'].z
-        configfile = self.printer.lookup_object('configfile')
-        if offset == 0:
+        babystep_offset = -1*self.gcode_move.get_status()['homing_origin'].z
+        if babystep_offset == 0:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
-            new_calibrate = self.z_position_endstop + offset
-            configfile.set('stepper_z', 'position_endstop',
-                "%.3f" % (new_calibrate,))
-            self.gcode.respond_info(
-                _("stepper_z: position_endstop: %.3f\n"
-                "The SAVE_CONFIG command will update the printer config file\n"
-                "with the above and restart the printer.") % (new_calibrate))
-            
+            self.z_position_endstop += babystep_offset
+            self.save_z_position_endstop()
+
+    def save_z_position_endstop(self):
+      configfile = self.printer.lookup_object('configfile')
+      configfile.update_config({'stepper_z': {'position_endstop': f"{self.z_position_endstop:.3f}"}})
+      self.printer.lookup_object('toolhead').get_kinematics().get_rails()[2].set_position_endstop(self.z_position_endstop)
+      self.update_status({'z_position_endstop': self.z_position_endstop})
+      self.printer.lookup_object('messages').send_message("success",_("stepper_z: position_endstop: %.3f\n"
+            "New position saved") % self.z_position_endstop)
+
     def cmd_Z_OFFSET_APPLY_DELTA_ENDSTOPS(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
         configfile = self.printer.lookup_object('configfile')
@@ -151,7 +161,7 @@ class ManualProbeHelper:
         self.min_z = stepper_z.getfloat('position_min')
         self.gcode = self.printer.lookup_object('gcode')
         self.toolhead = self.printer.lookup_object('toolhead')
-        self.manual_probe = self.printer.lookup_object('manual_probe')
+        self.manual_probe: ManualProbe = self.printer.lookup_object('manual_probe')
         self.speed = gcmd.get_float("SPEED", 5.)
         self.command = gcmd.get_command()
         self.past_positions = []
@@ -183,12 +193,13 @@ class ManualProbeHelper:
         self.last_kinematics_pos = kin_pos
         return kin_pos
     def move_z(self, z_pos):
+        messages = self.printer.lookup_object('messages')
         try:
             if z_pos > self.max_z:
-                self.gcode.respond_warning(_("WARNING: Reached stepper maximum position"))
+                messages.send_message('warning', _("WARNING: Reached stepper maximum position"))
                 self.toolhead.manual_move([None, None, self.max_z], self.speed)
             elif z_pos < self.min_z:
-                self.gcode.respond_warning(_("WARNING: Reached stepper minimum position")) 
+                messages.send_message('warning', _("WARNING: Reached stepper minimum position")) 
                 self.toolhead.manual_move([None, None, self.min_z], self.speed)
             else:
                 self.toolhead.manual_move([None, None, z_pos], self.speed)
@@ -200,7 +211,7 @@ class ManualProbeHelper:
         kin_pos = self.get_kinematics_pos()
         z_pos = kin_pos[2]
         if warn_no_change and z_pos == prev_pos:
-            self.gcode.respond_warning(
+            self.printer.lookup_object('messages').send_message('warning',
                 _("WARNING: No change in position (reached stepper resolution)"))
         # Find recent positions that were tested
         pp = self.past_positions
@@ -216,27 +227,23 @@ class ManualProbeHelper:
         if next_pos < len(pp):
             next_pos_val = pp[next_pos]
             next_str = "%.3f" % (next_pos_val,)
-        self.manual_probe.status = {
+        update_dict = {
             'is_active': True,
             'z_position': z_pos,
             'z_position_lower': prev_pos_val,
             'z_position_upper': next_pos_val,
             'command': self.command
         }
+        self.manual_probe.update_status(update_dict)
         # Find recent positions
         self.gcode.respond_info(_("Z position: %s --> %.3f <-- %s")
                                 % (prev_str, z_pos, next_str))
     cmd_ACCEPT_help = _("Accept the current Z position")
     def cmd_ACCEPT(self, gcmd):
-        # pos = self.toolhead.get_position()
-        # start_pos = self.start_position
-        # if pos[:2] != start_pos[:2] or pos[2] >= start_pos[2]:
-        #     gcmd.respond_info(
-        #         _("Manual probe failed! Use TESTZ commands to position the\n"
-        #         "nozzle prior to running ACCEPT."))
-        #     self.finalize(False)
-        #     return
-        self.finalize(True)
+        if self.manual_probe.in_range_min_max(self.get_kinematics_pos()[2]):
+            self.finalize(True)
+        else:
+            self.printer.lookup_object('messages').send_message('error', _("Z position must be in range [ %.3f ; %.3f ]") % (self.manual_probe.z_min, self.manual_probe.z_max))
     cmd_ABORT_help = _("Abort manual Z probing tool")
     def cmd_ABORT(self, gcmd):
         self.finalize(False)

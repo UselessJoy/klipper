@@ -357,6 +357,10 @@ class PrinterRail:
             raise config.error(
                 _("Invalid homing_positive_dir / position_endstop in '%s'")
                 % (config.get_name(),))
+        
+    def set_position_endstop(self, value):
+      self.position_endstop = value
+
     def get_range(self):
         return self.position_min, self.position_max
     def get_homing_info(self):

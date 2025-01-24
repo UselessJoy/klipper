@@ -221,6 +221,13 @@ msgstr "Считано %f: %s"
 # ========================CLOCKSYNC MODULE=======================#
 # ======================END CLOCKSYNC MODULE=====================#
 # =======================CONFIGFILE MODULE=======================#
+
+msgid "Backup file not found"
+msgstr "Бэкап не найден"
+
+msgid "Create backup config"
+msgstr "Создает бэкап конфигурации"
+
 #, python-format
 msgid "Option '%s' in section '%s' must be specified"
 msgstr "Необходимо указать параметр '%s' в разделе '%s'"
@@ -1927,6 +1934,18 @@ msgstr ""
 "Команда SAVE_CONFIG обновит файл конфигурации принтера\n"
 "в соответствии с приведенным выше и перезапустит принтер."
 
+#, python-format
+msgid ""
+"stepper_z: position_endstop: %.3f\n"
+"New position saved"
+msgstr ""
+"stepper_z: position_endstop: %.3f\n"
+"Позиция концевика сохранена"
+
+#, python-format
+msgid "Z position must be in range [ %.3f ; %.3f ]"
+msgstr "Смещение должно быть в диапазоне [ %.3f ; %.3f ]"
+
 msgid "Calibrate a Z endstop"
 msgstr "Калибровка концевика по оси Z"
 
@@ -2330,6 +2349,14 @@ msgstr ""
 "%s: z_offset: %.3f\n"
 "Команда SAVE_CONFIG обновит файл конфигурации принтера\n"
 "в соответствии с приведенным выше и перезапустит принтер."
+
+#, python-format
+msgid ""
+"%s: z_offset: %.3f\n"
+"New position saved"
+msgstr ""
+"%s: z_offset: %.3f\n"
+"Новая позиция сохранена"
 
 msgid "Calibrate the probe's z_offset"
 msgstr "Калибровка пробы z_offset"

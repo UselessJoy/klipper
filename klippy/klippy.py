@@ -319,6 +319,11 @@ def main():
         start_args.update(options.dictionary)
     bglogger = None
     if options.logfile:
+        # Clear old logs
+        log_dir = os.path.dirname(options.logfile)
+        for file in os.listdir(log_dir):
+            if abs(os.path.getmtime(log_dir + '/' + file) - time.time()) / (60 * 60 * 24) > 7:
+                os.remove(log_dir + '/' + file)
         start_args['log_file'] = options.logfile
         bglogger = queuelogger.setup_bg_logging(options.logfile, debuglevel)
     else:

@@ -199,8 +199,12 @@ class PrinterConfig:
         webhooks = printer.lookup_object('webhooks')
         webhooks.register_endpoint("configfile/load_backup_config",
                              self._load_backup_config)
+        webhooks.register_endpoint("configfile/check_backup",
+                             self._find_backup)
         gcode.register_command("SAVE_CONFIG", self.cmd_SAVE_CONFIG,
                                desc=self.cmd_SAVE_CONFIG_help)
+        gcode.register_command("BACKUP_CONFIG", self.cmd_BACKUP_CONFIG,
+                               desc=self.cmd_BACKUP_CONFIG_help)
 
     def get_printer(self):
         return self.printer
@@ -376,9 +380,9 @@ class PrinterConfig:
         autosave_data = self._strip_duplicates(autosave_data, regular_config)
         self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
-        if compare:
-          self.compare_base_config(cfg) 
-          self.compare_pause_resume_config()  
+        # if compare:
+        #   self.compare_base_config(cfg) 
+        #   self.compare_pause_resume_config()  
         return cfg
 
     def check_unused_options(self, config: ConfigWrapper):
@@ -436,7 +440,8 @@ class PrinterConfig:
                 'settings': self.status_settings,
                 'warnings': self.status_warnings,
                 'save_config_pending': self.haveUnsavedChanges,
-                'save_config_pending_items': self.pendingSaveItems}
+                'save_config_pending_items': self.pendingSaveItems,
+        }
     
     def update_config(self, setting_sections: dict = {}, removing_sections: list = [], 
                       save_immediatly = True, need_restart = False, need_backup = False, cfgname = "") -> None:
@@ -570,24 +575,9 @@ class PrinterConfig:
             raise gcode.error(msg)
         newConfigWrapper = self.new_config_wrapper(configWrapper)
         if need_backup:
-            # Determine filenames
-            datestr = time.strftime("-%Y%m%d_%H%M%S")
-            backup_name = cfgname + datestr
-            temp_name = cfgname + "_autosave"
-            if cfgname.endswith(".cfg"):
-                backup_name = cfgname[:-4] + datestr + ".backup"
-                temp_name = cfgname[:-4] + "_autosave.backup"
-            # Create new config file with temporary name and swap with main config
-            logging.info("SAVE_CONFIG to '%s' (backup in '%s')", cfgname, backup_name)
-        else:
-            temp_name = cfgname
-            # Save to main config
-            logging.info("SAVE_CONFIG to '%s'", cfgname)
+            self.backup_config()
         try:
-            self.write(temp_name, newConfigWrapper, remain_comments)
-            if need_backup:
-                os.rename(cfgname, backup_name)
-                os.rename(temp_name, cfgname)
+            self.write(cfgname, newConfigWrapper, remain_comments)
         except:
             msg = _("Unable to write config file during SAVE_CONFIG")
             logging.exception(msg)
@@ -640,26 +630,56 @@ class PrinterConfig:
     
     cmd_SAVE_CONFIG_help = _("Overwrite config file and restart")
     def cmd_SAVE_CONFIG(self, gcmd):
-        need_restart = need_backup = True
-        params: dict = gcmd.get_command_parameters()
-        if 'NO_RESTART' in params:
-            need_restart = False
-        if 'NO_BACKUP' in params:
-            need_backup = False
+        need_restart, need_backup = (gcmd.get_boolean('NO_RESTART', False), gcmd.get_boolean('NO_BACKUP', False))
         self.save_config(need_restart, need_backup)
 
+    cmd_BACKUP_CONFIG_help = _("Create backup config")
+    def cmd_BACKUP_CONFIG(self, gcmd):
+        self.backup_config()
+
+    def backup_config(self):
+        cfgname = self.printer.get_start_args()['config_file']
+        backup_name = cfgname[:-4] + time.strftime("-%Y%m%d_%H%M%S") + ".backup"
+        os.system(f"cp {cfgname} {backup_name}")
+        # Create new config file with temporary name and swap with main config
+        logging.info("Backup config in '%s')", backup_name)
+        backup_files = [filename for filename in os.listdir(os.path.dirname(cfgname)) if os.path.isfile(os.path.dirname(cfgname) + '/' + filename) and filename.endswith('.backup') and filename.startswith('printer')]
+        if len(backup_files) > 5:
+            backup_files.sort(reverse=True)
+        while len(backup_files) > 5:
+            os.remove(os.path.dirname(cfgname) + '/' + backup_files.pop())
+
+    def _find_backup(self, web_request = None):
+        cfgname = self.printer.get_start_args()['config_file']
+        config_dir = os.path.dirname(cfgname)
+        latest_backup = ""
+        for filename in os.listdir(config_dir):
+            if os.path.isfile(config_dir + '/' + filename) and filename.endswith('.backup') and filename.startswith('printer'):
+                if not latest_backup:
+                    latest_backup = filename
+                else:
+                    if os.path.getmtime(config_dir + '/' + latest_backup) < os.path.getmtime(config_dir + '/' + filename):
+                        latest_backup = filename
+        if web_request:
+            web_request.send({'backup': latest_backup})
+        return latest_backup
+
     def _load_backup_config(self, web_request):
-      cfgname = self.printer.get_start_args()['config_file']
-      config_dir = os.path.dirname(cfgname)
-      latest_backup = ''
-      for filename in os.listdir(config_dir):
-        if os.path.isfile(filename) and filename.endswith('.backup') and filename.startswith('printer'):
-          if not latest_backup:
-            latest_backup = filename
-          else:
-            if os.path.getmtime(latest_backup) < os.path.getmtime(filename):
-              latest_backup = filename
-      os.remove(cfgname)
-      os.rename(latest_backup, cfgname)
-      self.printer.lookup_object('gcode').request_restart('restart')
-      
+        cfgname = self.printer.get_start_args()['config_file']
+        config_dir = os.path.dirname(cfgname)
+        latest_backup = self._find_backup()
+        try:
+            if latest_backup:
+                os.remove(cfgname)
+                os.system(f"cp {config_dir + '/' + latest_backup} {cfgname}")
+                self.printer.lookup_object('gcode').request_restart('firmware_restart')
+            else:
+                klipperpath = os.path.dirname(__file__)
+                base_config_path = os.path.join(klipperpath, "printer_base.cfg")
+                os.remove(cfgname)
+                os.system(f"cp {base_config_path} {cfgname}")
+        except Exception as e:
+            logging.error(e)
+            messages = self.printer.lookup_object('messages')
+            messages.send_message("error", _("Backup file not found"))
+        

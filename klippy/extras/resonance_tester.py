@@ -264,7 +264,7 @@ class ResonanceTester:
                                                 helper, None, belts[belt]['data'])
           gcmd.respond_info(
                   _("Resonances data written to %s file") % (csv_name,))
-        fig: Figure = self.plot_compare_frequency([belts['left']['data'], belts['right']['data']], [_("Left belt"), _("Right belt")], plot_freq, 'all')# no locale
+        fig: Figure = self.plot_compare_frequency([belts['left']['data'], belts['right']['data']], [_("Left belt"), _("Right belt")], plot_freq, 'all')
         fig.set_size_inches(8, 6)
         belt_tension_path = os.path.join("/tmp/", csv_name.rpartition('/')[2].replace('.csv', '.png'))
         fig.savefig(belt_tension_path)

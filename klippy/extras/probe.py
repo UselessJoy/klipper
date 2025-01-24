@@ -425,18 +425,13 @@ class PrinterProbe:
             "average %.6f, median %.6f, standard deviation %.6f") % (
             max_value, min_value, range_value, avg_value, median, sigma))
         self.drop_z_move()
-        
+
     def probe_calibrate_finalize(self, kin_pos):
-        if kin_pos is None:
-            return
-        z_offset = self.probe_calibrate_z - kin_pos[2]
-        self.gcode.respond_info(
-            _("%s: z_offset: %.3f\n"
-            "The SAVE_CONFIG command will update the printer config file\n"
-            "with the above and restart the printer.") % (self.name, z_offset))
-        configfile = self.printer.lookup_object('configfile')
-        configfile.set(self.name, 'z_offset', "%.3f" % (z_offset,))
-        
+      if kin_pos is None:
+          return
+      self.z_offset = self.probe_calibrate_z - kin_pos[2]
+      self.save_z_offset()
+
     cmd_PROBE_CALIBRATE_help = _("Calibrate the probe's z_offset")
     def cmd_PROBE_CALIBRATE(self, gcmd):
         manual_probe.verify_no_manual_probe(self.printer)
@@ -456,7 +451,7 @@ class PrinterProbe:
         # Start manual probe
         manual_probe.ManualProbeHelper(self.printer, self.config, gcmd,
                                        self.probe_calibrate_finalize)
-        
+
     cmd_Z_OFFSET_APPLY_PROBE_help = _("Adjust the probe's z_offset")    
     def cmd_Z_OFFSET_APPLY_PROBE(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z
@@ -464,14 +459,14 @@ class PrinterProbe:
         if offset == 0:
             self.gcode.respond_info(_("Nothing to do: Z Offset is 0"))
         else:
-            new_calibrate = self.z_offset - offset
-            configfile.set(self.name, 'z_offset', "%.3f" % (new_calibrate,))
-            self.gcode.respond_info(
-                _("%s: z_offset: %.3f\n"
-                "The SAVE_CONFIG command will update the printer config file\n"
-                "with the above and restart the printer.")
-                % (self.name, new_calibrate))
-            
+            self.z_offset -= offset
+            self.save_z_offset()
+
+    def save_z_offset(self):
+        configfile = self.printer.lookup_object('configfile')
+        configfile.update_config({self.name: {'z_offset': f"{self.z_offset:.3f}"}})
+        self.printer.lookup_object('messages').send_message("success",_("%s: z_offset: %.3f\n"
+              "New position saved") % (self.name, self.z_offset))
 # Endstop wrapper that enables probe specific features
 class ProbeEndstopWrapper:
     def __init__(self, config):

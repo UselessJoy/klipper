@@ -43,7 +43,7 @@ class PIDCalibrate:
             pid_config[f"pid_{temp}"] = f"{Kp:.3f}, {Ki:.3f}, {Kd:.3f}"
         if not self.stop:
           saving_section = {heater_name: pid_config}
-          self.printer.lookup_object('configfile').update_config(saving_section, save_immediatly = True)
+          self.printer.lookup_object('configfile').update_config(saving_section)
           self.printer.lookup_object('messages').send_message("success", _("End PID calibrate, new data saved"))
         else:
           self.printer.lookup_object('messages').send_message("suggestion", _("pid_calibrate interrupted"), respond=False)

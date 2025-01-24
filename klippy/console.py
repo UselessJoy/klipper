@@ -8,6 +8,7 @@ import sys, optparse, os, re, logging
 import util, reactor, serialhdl, msgproto, clocksync
 import locales 
 locales.set_locale()
+
 help_txt = """
   This is a debugging console for the Klipper micro-controller.
   In addition to mcu commands, the following artificial commands are

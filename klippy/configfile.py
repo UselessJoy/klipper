@@ -630,7 +630,7 @@ class PrinterConfig:
     
     cmd_SAVE_CONFIG_help = _("Overwrite config file and restart")
     def cmd_SAVE_CONFIG(self, gcmd):
-        need_restart, need_backup = (gcmd.get_boolean('NO_RESTART', False), gcmd.get_boolean('NO_BACKUP', False))
+        need_restart, need_backup = (gcmd.get_boolean('NEED_RESTART', True), gcmd.get_boolean('NEED_BACKUP', True))
         self.save_config(need_restart, need_backup)
 
     cmd_BACKUP_CONFIG_help = _("Create backup config")

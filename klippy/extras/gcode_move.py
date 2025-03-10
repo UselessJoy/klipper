@@ -28,7 +28,7 @@ class GCodeMove:
         handlers = [
             'G1', 'G20', 'G21',
             'M82', 'M83', 'G90', 'G91', 'G92', 'M220', 'M221',
-            'SET_GCODE_OFFSET', 'SAVE_GCODE_STATE', 'RESTORE_GCODE_STATE',
+            'SET_GCODE_OFFSET', 'SAVE_GCODE_STATE', 'RESTORE_GCODE_STATE', 'TEST_NOISE_SPEED'
         ]
         for cmd in handlers:
             func = getattr(self, 'cmd_' + cmd)
@@ -119,6 +119,27 @@ class GCodeMove:
               return z_move < 50
           else:
             return self.last_position[2] + z_move < 50
+          
+    cmd_TEST_NOISE_SPEED_help = _("Test Noise")
+    def cmd_TEST_NOISE_SPEED(self, gcmd):
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
+        step_speed = 100
+        step_xy = 200
+        speed = 3000
+        xy = 0
+        self.printer.lookup_object('gcode').run_script_from_command(f"G0 X{xy} Y{xy} F{speed}")
+        while speed <= 25000:
+            if xy >= 200:
+                to_minus = True
+            elif xy <= 0:
+                to_minus = False
+            self.printer.lookup_object('gcode').run_script_from_command(f"G0 X{xy} Y{xy} F{speed}")
+            gcmd.respond_info(f"now speed is {speed}")
+            if to_minus:
+                xy -= step_xy
+            else:
+                xy += step_xy
+            speed += step_speed
     # G-Code movement commands
     def cmd_G1(self, gcmd):
         # Move
@@ -236,6 +257,7 @@ class GCodeMove:
             for pos, delta in enumerate(move_delta):
                 self.last_position[pos] += delta
             self.move_with_transform(self.last_position, speed)
+
     cmd_SAVE_GCODE_STATE_help = _("Save G-Code coordinate state")
     def cmd_SAVE_GCODE_STATE(self, gcmd):
         state_name = gcmd.get('NAME', 'default')

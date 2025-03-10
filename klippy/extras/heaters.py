@@ -200,8 +200,7 @@ class ControlPID:
         self.pid_mass = {}
         for option in config.getoptions():
             if self.pid_re.match(option):
-                self.pid_mass[float(option.partition('_')[2])] = config.getfloatlist(option)
-        logging.info(f"pid mass is {self.pid_mass}")       
+                self.pid_mass[float(option.partition('_')[2])] = config.getfloatlist(option) 
         self.min_deriv_time = heater.get_smooth_time()
         self.temp_integ_max = 0.
         if self.Ki:

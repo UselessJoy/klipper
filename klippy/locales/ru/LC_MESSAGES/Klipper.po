@@ -2472,14 +2472,14 @@ msgid "Unable to parse axis direction '%s'"
 msgstr "Не удается проанализировать направление оси '%s'"
 
 msgid "Disabled [input_shaper] for resonance testing"
-msgstr "Отключенный [input_shaper] для тестирования резонансов"
+msgstr "Отключаю [input_shaper] для тестирования резонансов"
 
 #, python-format
 msgid "Testing frequency %.0f Hz"
 msgstr "Тестирование частоты %.0f Hz"
 
 msgid "Re-enabled [input_shaper]"
-msgstr "Повторно включен [input_shaper]"
+msgstr "Включаю [input_shaper]"
 
 #, python-format
 msgid "Autocalibrating %s"
@@ -2593,6 +2593,16 @@ msgstr "Левый ремень"
 
 msgid "Right belt"
 msgstr "Правый ремень"
+
+msgid "Invalid POINT parameter, must be 'x,y,z'"
+msgstr "Недействительный параметр POINT, должно быть 'x,y,z'"
+
+msgid ""
+"Invalid POINT parameter, must be 'x,y,z'"
+" where x, y and z are valid floating point numbers"
+msgstr ""
+"Недействительный параметр POINT, должно быть 'x,y,z'"
+" где x, y и z - допустимые числа с плавающей запятой"
 
 # ===================END RESONANCE_TESTER MODULE=================#
 # ==========================RESPOND MODULE=======================#
@@ -3232,3 +3242,16 @@ msgstr "Не удалось вернуть пробу"
 
 # =====================END MESSAGES MODULE==================#
 
+# ========================FIXING MODULE=====================#
+msgid "Current update has system fixes. Please, wait for install"
+msgstr "В обновлении имеются системные исправления. Пожалуйста, дождитесь их утановки"
+
+msgid "System updates requiring the internet. Please, connect to the internet"
+msgstr "Системные исправления требуют доступ к интернету. Пожалуйста, подключитесь к интернету"
+
+msgid "Installed updates requiring reboot. Please, reboot the system"
+msgstr "Установленные исправления требуют перезагрузки. Пожалуйста, перезагрузите систему"
+
+msgid "Fix updates was installed"
+msgstr "Исправления установленны"
+# ======================END FIXING MODULE===================#

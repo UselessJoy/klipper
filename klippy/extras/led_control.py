@@ -141,8 +141,7 @@ class LedControl:
             if not self.printing_timer:
                 self.set_start_print_effect()
         self.run_if_enabled(self.now_effect if self.now_effect in ["extruder_heating", "bed_heating","extruder_bed_heating","paused", "set_led"] else "enabled")
-        
-    
+
     def _handle_disabled(self):
         self.enabled = False
         if self.timer:

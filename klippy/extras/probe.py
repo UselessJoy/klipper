@@ -107,6 +107,8 @@ class PrinterProbe:
                                             desc=self.cmd_RETURN_MAGNET_PROBE_help)
         self.printer.register_event_handler("klippy:ready",
                                             self._on_ready)
+        self.printer.register_event_handler("klippy:shutdown",
+                                            self._on_shutdown)
         self.magnet_checker_timer = None
         self.reactor = self.printer.get_reactor()
 
@@ -125,6 +127,10 @@ class PrinterProbe:
             self.is_using_magnet_probe = self.is_probe_active()
         return eventtime + 1
     
+    def _on_shutdown(self):
+        self.reactor.unregister_timer(self.magnet_checker_timer)
+        self.magnet_checker_timer = None
+
     def _on_ready(self):
         self.vsd = self.printer.lookup_object('virtual_sdcard')
         self.gcode_move = self.printer.lookup_object('gcode_move')

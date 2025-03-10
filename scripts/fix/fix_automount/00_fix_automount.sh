@@ -2,7 +2,6 @@
 if [ -d "$HOME/udev-media-automount" ]; then
   rm -rf $HOME/udev-media-automount
 fi
-cd $HOME
 git clone https://github.com/UselessJoy/udev-media-automount
 cd $HOME/udev-media-automount
 echo orangepi | sudo --stdin make install

@@ -228,7 +228,7 @@ class ToolHead:
             req_accel_to_decel = config.getfloat('max_accel_to_decel', None,
                                                  above=0.)
             if req_accel_to_decel is not None:
-                config.deprecate('max_accel_to_decel')
+                # config.deprecate('max_accel_to_decel')
                 min_cruise_ratio = 1. - min(1., (req_accel_to_decel
                                                  / self.max_accel))
         self.min_cruise_ratio = config.getfloat('minimum_cruise_ratio',

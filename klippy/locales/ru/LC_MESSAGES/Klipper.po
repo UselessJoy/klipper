@@ -3253,5 +3253,5 @@ msgid "Installed updates requiring reboot. Please, reboot the system"
 msgstr "Установленные исправления требуют перезагрузки. Пожалуйста, перезагрузите систему"
 
 msgid "Fix updates was installed"
-msgstr "Исправления установленны"
+msgstr "Исправления установлены"
 # ======================END FIXING MODULE===================#

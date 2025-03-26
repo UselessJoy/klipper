@@ -598,7 +598,7 @@ class VirtualSD:
         file = io.open(self.file_path(), "r", newline='')
         file_position = 0
         file.seek(file_position)
-        data = file.read(4092)
+        data = file.read(8192)
         while data:
             if not lines:
                 # Read more data
@@ -614,7 +614,6 @@ class VirtualSD:
                 lines[0] = partial_input + lines[0]
                 partial_input = lines.pop()
                 lines.reverse()
-                self.reactor.pause(self.reactor.NOW)
                 continue
             line: str = lines.pop()
             if line.startswith('M190') or line.startswith('M109'):

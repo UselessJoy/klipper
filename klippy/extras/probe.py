@@ -118,7 +118,7 @@ class PrinterProbe:
           print_time = self.toolhead.get_last_move_time(False)
           res = not bool(self.mcu_probe.query_endstop(print_time + 0.1))
       except Exception as e:
-        logging.error(f"Error on is_probe_active: {e}\nThis often means what toolkead still not initialized")
+        logging.error(f"Error on is_probe_active: {e}\nThis often means what toolhead still not initialized")
       return res
     
     def __update_is_using_magnet_probe_field(self, eventtime):

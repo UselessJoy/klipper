@@ -156,6 +156,10 @@ class LedControl:
             
     def _handle_led(self, red, green, blue):
         self.rgb = [red, green, blue]
+        if not self.is_printing:
+          self.led_effect.run_effect(LED_EFFECTS["set_led"], self.rgb[0], self.rgb[1], self.rgb[2])
+          self.now_effect = "set_led"
+          return
         self.run_if_enabled("set_led")
     
     def _handle_stop_heating(self):
@@ -214,11 +218,6 @@ class LedControl:
                     self.create_ten_seconds_timer()
                 elif self.timer:
                     self.reset_timer()
-                    
-                if event == "set_led":
-                    self.led_effect.run_effect(LED_EFFECTS[event], self.rgb[0], self.rgb[1], self.rgb[2])
-                    self.now_effect = event
-                    return
                 elif event in ["extruder_heating", "bed_heating"]:
                     if self.last_ex_target > 0 and self.last_hb_target > 0:
                         event = "extruder_bed_heating"

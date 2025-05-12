@@ -6,8 +6,8 @@ cffi==1.14.6
 pyserial==3.4
 greenlet==1.1.2
 Jinja2==2.11.3
-python-can==3.3.4
-setuptools==75.6.0 ; python_version >= '3.12' # Needed by python-can
+# python-can==3.3.4
+# setuptools==75.6.0 ; python_version >= '3.12' # Needed by python-can
 markupsafe==1.1.1
 numpy==1.24.3
 matplotlib==3.7.1

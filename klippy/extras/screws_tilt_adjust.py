@@ -337,7 +337,7 @@ class ScrewsTiltAdjust:
         return i_base, z_base
             
     def get_status(self, eventtime):
-        # Копируем results, поскольку может вылететь 400-я ошибка во время запроса (видимо, из-за одновременного изменения данных)
+        # Копируем results, поскольку может вылететь 400-я ошибка во время запроса
         return{
                 'error': self.max_diff_error,
                 'results': self.results.copy(),

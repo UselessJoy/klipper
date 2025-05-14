@@ -65,6 +65,9 @@ class PrinterProbe:
                                                  minval=0.)
         self.samples_retries = config.getint('samples_tolerance_retries', 0,
                                              minval=0)
+        webhooks = webhooks = self.printer.lookup_object('webhooks')
+        webhooks.register_endpoint("magnet_probe/test_magnet_probe",
+                                   self._test_magnet_probe)
         # Register z_virtual_endstop pin
         self.printer.lookup_object('pins').register_chip('probe', self)
         # Register homing event handlers
@@ -137,7 +140,15 @@ class PrinterProbe:
         self.toolhead = self.printer.lookup_object('toolhead')
         self.magnet_checker_timer = self.reactor.register_timer(
                     self.__update_is_using_magnet_probe_field, self.reactor.NOW + 0.1)
-
+    def _test_magnet_probe(self, web_request):
+        try:
+            with self.mutex:
+              self.printer.lookup_object('homing').run_G28_if_unhomed()
+              self.take_magnet_probe()
+              self.return_magnet_probe()
+        except:
+            raise web_request.error(_("Error on test magnet probe"))
+        web_request.send({'test_result': True})
     def take_magnet_probe(self):
         self.gcode_move.set_absolute_coord(True)
         self.drop_z_move()
@@ -147,6 +158,7 @@ class PrinterProbe:
                          ")
         if not self.is_probe_active():
             raise self.printer.command_error(_("Couldn't take probe"))
+        return True
 
     def return_magnet_probe(self):
         self.gcode_move.set_absolute_coord(True)
@@ -162,6 +174,7 @@ class PrinterProbe:
         ")
         if self.is_probe_active():
             raise self.printer.command_error(_("Couldn't return probe"))
+        return True
     
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():

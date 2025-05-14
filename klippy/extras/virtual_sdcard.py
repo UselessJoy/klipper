@@ -224,9 +224,8 @@ class VirtualSD:
             self.must_pause_work = True
             while self.work_timer is not None and not self.cmd_from_sd:
                 self.reactor.pause(self.reactor.monotonic() + .001)
-    def do_resume(self):
-        self.printer.lookup_object('safety_printing').raise_error_if_open()
-        self.printer.lookup_object('homing').run_G28_if_unhomed()
+
+    def bed_mesh_check(self):
         messages = self.printer.lookup_object('messages')
         if self.autoload_bed_mesh and not self.printer.lookup_object('bed_mesh').pmgr.get_current_profile():
             start_heater_bed_temp = self.find_start_heater_bed_temp()
@@ -234,10 +233,35 @@ class VirtualSD:
             if cur_profile:
               if re.match(r"^profile_\d+$", cur_profile):
                   cur_profile = _("profile_%s") % cur_profile.partition('_')[2]
-            messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Automatic loaded bed mesh %s") % cur_profile)
+            messages.send_message("warning", _("No mesh loaded")) if not cur_profile \
+            else messages.send_message("success", _("Automatic loaded bed mesh %s") % cur_profile)
         elif self.watch_bed_mesh:
             cur_profile = self.printer.lookup_object('bed_mesh').pmgr.get_current_profile()
-            messages.send_message("warning", _("No mesh loaded")) if not cur_profile else messages.send_message("success", _("Loaded mesh profile: %s") % cur_profile)
+            messages.send_message("warning", _("No mesh loaded")) if not cur_profile \
+            else messages.send_message("success", _("Loaded mesh profile: %s") % cur_profile)
+
+    def fan_check(self):
+        try:
+            fans = self.printer.lookup_object('fans')
+        except Exception as e:
+            logging.error(f"error on lookup_object: {e}")
+            return
+        was_manual = False
+        for fan_name in fans.get_fans():
+          if fans.get_is_manual(fan_name):
+              was_manual = True
+              fans.set_manual(fan_name, False)
+        if was_manual:
+          self.printer.lookup_object('messages').send_message("warning", _("Some fans was manually installed, it was offed"))
+                                
+    def proccess_check(self):
+        self.printer.lookup_object('safety_printing').raise_error_if_open()
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
+        self.bed_mesh_check()
+        self.fan_check()
+
+    def do_resume(self):
+        self.proccess_check()
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
@@ -268,6 +292,7 @@ class VirtualSD:
         self.gcode.run_script_from_command(f"G1 Z{pos[2]+5 if pos[2]+5 <= self.max_z else self.max_z}")
       self.gcode.run_script_from_command(f"G28 Y")
       self.gcode.run_script_from_command(f"G28 X")
+      self.gcode.run_script_from_command(f"M84")
             
     # G-Code commands
     def cmd_error(self, gcmd):

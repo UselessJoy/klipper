@@ -58,7 +58,7 @@ class Heater:
         self.mcu_pwm.setup_cycle_time(pwm_cycle_time)
         self.mcu_pwm.setup_max_duration(MAX_HEAT_TIME)
         # Load additional modules
-        self.printer.load_object(config, "verify_heater %s" % (short_name,))
+        self.verify = self.printer.load_object(config, "verify_heater %s" % (short_name,))
         self.printer.load_object(config, "pid_calibrate")
         gcode = self.printer.lookup_object("gcode")
         gcode.register_mux_command("SET_HEATER_TEMPERATURE", "HEATER",
@@ -280,6 +280,9 @@ class PrinterHeaters:
         self.printer.register_event_handler("gcode:request_restart",
                                             self.turn_off_all_heaters)
         # Register commands
+        webhooks = webhooks = self.printer.lookup_object('webhooks')
+        webhooks.register_endpoint("heaters/test_temperature",
+                                   self._test_temperature)
         gcode = self.printer.lookup_object('gcode')
         gcode.register_command("TURN_OFF_HEATERS", self.cmd_TURN_OFF_HEATERS,
                                desc=self.cmd_TURN_OFF_HEATERS_help)
@@ -382,7 +385,14 @@ class PrinterHeaters:
         did_ack = gcmd.ack(msg)
         if not did_ack:
             gcmd.respond_raw(msg)
-    def _wait_for_temperature(self, heater):
+
+    def _test_temperature(self, web_request):
+        heater_name = web_request.get('heater')
+        h, t = self.heaters[heater_name], self.heaters[heater_name].last_temp
+        self.set_temperature(h, t + 5, True)
+        web_request.send({'test_result': True})
+
+    def _wait_for_temperature(self, heater: Heater):
         # Helper to wait on heater.check_busy() and report M105 temperatures
         if self.printer.get_start_args().get('debugoutput') is not None:
             return
@@ -395,6 +405,8 @@ class PrinterHeaters:
             gcode.respond_raw(self._get_temp(eventtime))
             eventtime = reactor.pause(eventtime + 1.)
         self.is_waiting = False
+        return heater.verify.success_heating
+
     def set_temperature(self, heater, temp, wait=False):
         if heater.name.startswith("extruder"):
             self.printer.send_event("extruder:heating", temp)
@@ -406,6 +418,7 @@ class PrinterHeaters:
         heater.set_temp(temp)
         if wait and temp:
             self._wait_for_temperature(heater)
+
     cmd_TEMPERATURE_WAIT_help = _("Wait for a temperature on a sensor")
     def cmd_TEMPERATURE_WAIT(self, gcmd):
         sensor_name = gcmd.get('SENSOR')

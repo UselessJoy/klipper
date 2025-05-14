@@ -19,6 +19,7 @@ class HeaterCheck:
                                             self.handle_shutdown)
         self.heater_name = config.get_name().split()[1]
         self.heater = None
+        self.success_heating = True
         self.hysteresis = config.getfloat('hysteresis', 5., minval=0.)
         self.max_error = config.getfloat('max_error', 120., minval=0.)
         self.heating_gain = config.getfloat('heating_gain', 2., above=0.)
@@ -54,6 +55,7 @@ class HeaterCheck:
             self.approaching_target = self.starting_approach = False
             if temp <= target + self.hysteresis:
                 self.error = 0.
+                self.success_heating = True
             self.last_target = target
             return eventtime + 1.
         self.error += (target - self.hysteresis) - temp
@@ -67,11 +69,12 @@ class HeaterCheck:
                 self.goal_systime = eventtime + self.check_gain_time
             elif self.error >= self.max_error:
                 # Failure due to inability to maintain target temperature
-                return self.heater_fault()
+                return self.heater_fault(eventtime)
         elif temp >= self.goal_temp:
             # Temperature approaching target - reset checks
             self.starting_approach = False
             self.error = 0.
+            self.success_heating = True
             self.goal_temp = temp + self.heating_gain
             self.goal_systime = eventtime + self.check_gain_time
         elif eventtime >= self.goal_systime:
@@ -83,11 +86,18 @@ class HeaterCheck:
             self.goal_temp = min(self.goal_temp, temp + self.heating_gain)
         self.last_target = target
         return eventtime + 1.
-    def heater_fault(self):
+    def heater_fault(self, eventtime):
         msg = _("Heater %s not heating at expected rate") % (self.heater_name,)
+        self.printer.lookup_object('messages').send_message('error', msg)
         logging.error(msg)
-        self.printer.invoke_shutdown(msg + HINT_THERMAL)
-        return self.printer.get_reactor().NEVER
+        self.success_heating = False
+        self.heater.set_temp(0.)
+        vsd = self.printer.lookup_object('virtual_sdcard')
+        if vsd.is_active():
+            vsd.handle_shutdown()
+        return eventtime + 1.
+        # self.printer.invoke_shutdown(msg + HINT_THERMAL)
+        # return self.printer.get_reactor().NEVER
 
 def load_config_prefix(config):
     return HeaterCheck(config)

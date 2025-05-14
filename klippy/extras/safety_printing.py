@@ -62,7 +62,6 @@ class SafetyPrinting:
         self.endstops_state = state
         self.printer.send_event("safety_printing:endstops_state", state)
         if self.safety_enabled:
-            
             sd_state = self.vsd.print_stats.state
             if sd_state in ["paused", "printing"]:
                 if self.endstops_state == ALL_PRESSED:
@@ -120,7 +119,6 @@ class SafetyPrinting:
         return self.endstops_state
     
     def _handle_set_safety_printing(self, web_request):
-        logging.info(f"get {web_request.get_boolean('safety_enabled')}")
         self.safety_enabled: bool = web_request.get_boolean('safety_enabled')
         configfile: PrinterConfig = self.printer.lookup_object('configfile')
         safety_section = {"safety_printing": {"safety_enabled": self.safety_enabled}}

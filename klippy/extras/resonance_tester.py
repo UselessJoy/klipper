@@ -139,7 +139,7 @@ class ResonanceTestExecutor:
     def __init__(self, config):
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object('gcode')
-    def run_test(self, test_seq, axis, gcmd):
+    def run_test(self, test_seq, axis, gcmd, stop_shaper = [False]):
         reactor = self.printer.get_reactor()
         toolhead = self.printer.lookup_object('toolhead')
         X, Y, Z, E = toolhead.get_position()
@@ -161,6 +161,10 @@ class ResonanceTestExecutor:
             input_shaper = None
         last_v = last_t = last_accel = last_freq = 0.
         for next_t, accel, freq in test_seq:
+            # Может вызвать timer_too_close
+            if stop_shaper[0]:
+              stop_shaper[0] = False
+              return False
             t_seg = next_t - last_t
             toolhead.cmd_M204(self.gcode.create_gcode_command(
                 "M204", "M204", {"S": abs(accel)}))
@@ -207,6 +211,7 @@ class ResonanceTestExecutor:
         if input_shaper is not None:
             input_shaper.enable_shaping()
             gcmd.respond_info(_("Re-enabled [input_shaper]"))
+        return True
 
 class ResonanceTester:
     tmp_shaper_graph_r = re.compile(r"calibration_data_[xy]_\d+_\d+.png")
@@ -217,6 +222,8 @@ class ResonanceTester:
         self.move_speed = config.getfloat('move_speed', 50., above=0.)
         self.generator = SweepingVibrationsTestGenerator(config)
         self.executor = ResonanceTestExecutor(config)
+        self.stop_shaper = [False]
+        self.shaping = False
         config_file_path_name = self.printer.get_start_args()['config_file']
         config_dir = os.path.normpath(os.path.join(config_file_path_name, ".."))
         if not config.get('accel_chip_x', None):
@@ -254,7 +261,6 @@ class ResonanceTester:
                                    self._handle_shaper_graph)
         webhooks.register_endpoint("resonance_tester/set_active_tension",
                                    self._handle_set_active_tension)
-        
         # Регистрация команд 
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode.register_command("MEASURE_AXES_NOISE",
@@ -269,15 +275,27 @@ class ResonanceTester:
         self.gcode.register_command("BELT_TENSION",
                                     self.cmd_belt_tension,
                                     desc=self.cmd_BELT_TENSION_help)
+        self.gcode.register_async_command("ASYNC_STOP_SHAPER",
+                                    self.cmd_async_STOP_SHAPER,
+                                    desc=self.cmd_ASYNC_STOP_SHAPER_help)
         self.printer.register_event_handler("klippy:connect", self.connect)
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
         
     def _handle_ready(self):
         self.messages = self.printer.lookup_object("messages")
+        # Не уверен, что есть необходимость им присваивать False на старте
+        self.shaping = False
+        self.stop_shaper[0] = False
+
     def connect(self):
         self.accel_chips = [
                 (chip_axis, self.printer.lookup_object(chip_name))
                 for chip_axis, chip_name in self.accel_chip_names]
+
+    cmd_ASYNC_STOP_SHAPER_help = _("Stop shaper calibrate")
+    def cmd_async_STOP_SHAPER(self, gcmd):
+        if self.shaping:
+          self.stop_shaper[0] = True
 
     def _run_test(self, gcmd, axes, helper, raw_name_suffix=None,
                   accel_chips=None, test_point=None):
@@ -309,7 +327,11 @@ class ResonanceTester:
 
                 # Generate moves
                 test_seq = self.generator.gen_test()
-                self.executor.run_test(test_seq, axis, gcmd)
+                # Здесь фулл тест оси
+                done = self.executor.run_test(test_seq, axis, gcmd, self.stop_shaper)
+                if not done:
+                  self.messages.send_message('warning', _("Calibrating stoped"))
+                  return False
                 for chip_axis, aclient, chip_name in raw_values:
                     aclient.finish_measurements()
                     if raw_name_suffix is not None:
@@ -438,6 +460,7 @@ class ResonanceTester:
     cmd_SHAPER_CALIBRATE_help = (
         _("Simular to TEST_RESONANCES but suggest input shaper config"))
     def cmd_SHAPER_CALIBRATE(self, gcmd):
+        self.shaping = True
         # Parse parameters
         axis = gcmd.get("AXIS", None)
         if not axis or axis == 'all':
@@ -460,7 +483,9 @@ class ResonanceTester:
         helper = shaper_calibrate.ShaperCalibrate(self.printer)
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         calibration_data = self._run_test(gcmd, calibrate_axes, helper)
-
+        if not calibration_data:
+            self.shaping = False
+            return
         configfile = self.printer.lookup_object('configfile')
         for axis in calibrate_axes:
             axis_name = axis.get_name()
@@ -499,6 +524,7 @@ class ResonanceTester:
         gcmd.respond_info(
             _("The SAVE_CONFIG command will update the printer config file\n"
             "with these parameters and restart the printer."))
+        self.shaping = False
     
     def get_status(self, eventtime):
         return {
@@ -506,7 +532,8 @@ class ResonanceTester:
                   'tmp': self.get_tmp_shaper_graphs(),
                   'belt_tensions': self.get_belt_tensions(),
                   'active_belt_tension': self.active_belt_tension,
-                  'active': self.active_shaper_graph
+                  'active': self.active_shaper_graph,
+                  'shaping': self.shaping
         }
 
     def get_belt_tensions(self):

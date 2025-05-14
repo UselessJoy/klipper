@@ -88,12 +88,13 @@ class ManualProbe:
 
     cmd_Z_ENDSTOP_CALIBRATE_help = _("Calibrate a Z endstop")
     def cmd_Z_ENDSTOP_CALIBRATE(self, gcmd):
-        was_homed =self.printer.lookup_object('homing').run_G28_if_unhomed()
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         toolhead = self.printer.lookup_object('toolhead')
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = toolhead.get_status(curtime)
         pos = ([toolhead_status['axis_maximum'][i]/2 for i in range(0, 2)])
-        pos.append(self.drop_z)
+        pos.append(None)
+        toolhead.manual_move([None, None, self.drop_z], self.manual_speed)
         toolhead.manual_move(pos, self.manual_speed)
         ManualProbeHelper(self.printer, self.config, gcmd, self.z_endstop_finalize)
         

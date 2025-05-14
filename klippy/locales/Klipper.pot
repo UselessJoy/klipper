@@ -1386,7 +1386,7 @@ msgstr ""
 #====================END EXCLUDE_OBJECT MODULE==================#
 
 #========================FAN_GENERIC MODULE=====================#
-msgid "Sets the speed of a fan"
+msgid "Set fan speed"
 msgstr ""
 #======================END FAN_GENERIC MODULE===================#
 

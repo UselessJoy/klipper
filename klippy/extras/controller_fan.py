@@ -18,6 +18,12 @@ class ControllerFan:
         self.printer.load_object(config, 'heaters')
         self.heaters = []
         self.fan = fan.Fan(config)
+        self.is_manual = False
+        section_name = config.get_name()
+        try:
+            self.printer.lookup_object('fans').add_fan(section_name, self)
+        except:
+            self.printer.load_object(config, 'fans').add_fan(section_name, self)
         self.fan_speed = config.getfloat('fan_speed', default=1.,
                                          minval=0., maxval=1.)
         self.idle_speed = config.getfloat(
@@ -25,7 +31,10 @@ class ControllerFan:
         self.idle_timeout = config.getint("idle_timeout", default=30, minval=0)
         self.heater_names = config.getlist("heater", ("extruder",))
         self.last_on = self.idle_timeout
-        self.last_speed = 0.
+    def get_manual(self):
+        return self.is_manual
+    def set_manual(self, is_manual):
+      self.is_manual = is_manual
     def handle_connect(self):
         # Heater lookup
         pheaters = self.printer.lookup_object('heaters')
@@ -44,8 +53,12 @@ class ControllerFan:
         reactor = self.printer.get_reactor()
         reactor.register_timer(self.callback, reactor.monotonic()+PIN_MIN_TIME)
     def get_status(self, eventtime):
-        return self.fan.get_status(eventtime)
+        status = {'is_manual': self.is_manual}
+        status.update(self.fan.get_status(eventtime))
+        return status
     def callback(self, eventtime):
+        if self.is_manual:
+          return eventtime + 1.
         speed = 0.
         active = False
         for name in self.stepper_names:
@@ -60,8 +73,7 @@ class ControllerFan:
         elif self.last_on < self.idle_timeout:
             speed = self.idle_speed
             self.last_on += 1
-        if speed != self.last_speed:
-            self.last_speed = speed
+        if speed != self.fan.last_fan_value:
             curtime = self.printer.get_reactor().monotonic()
             print_time = self.fan.get_mcu().estimated_print_time(curtime)
             self.fan.set_speed(print_time + PIN_MIN_TIME, speed)

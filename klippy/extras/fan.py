@@ -106,10 +106,16 @@ class FanTachometer:
 class PrinterFan:
     def __init__(self, config):
         self.fan = Fan(config)
+        printer = config.get_printer()
         # Register commands
         gcode = config.get_printer().lookup_object('gcode')
         gcode.register_command("M106", self.cmd_M106)
         gcode.register_command("M107", self.cmd_M107)
+        section_name = config.get_name()
+        try:
+            printer.lookup_object('fans').add_fan(section_name, self)
+        except:
+            printer.load_object(config, 'fans').add_fan(section_name, self)
     def get_status(self, eventtime):
         return self.fan.get_status(eventtime)
     def cmd_M106(self, gcmd):

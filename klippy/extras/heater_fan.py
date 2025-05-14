@@ -16,23 +16,36 @@ class PrinterHeaterFan:
         self.heater_temp = config.getfloat("heater_temp", 50.0)
         self.heaters = []
         self.fan = fan.Fan(config, default_shutdown_speed=1.)
+        section_name = config.get_name()
+        self.fan_name = section_name.split()[-1]
+        self.is_manual = False
+        try:
+            self.printer.lookup_object('fans').add_fan(section_name, self)
+        except:
+            self.printer.load_object(config, 'fans').add_fan(section_name, self)
         self.fan_speed = config.getfloat("fan_speed", 1., minval=0., maxval=1.)
-        self.last_speed = 0.
+    def get_manual(self):
+        return self.is_manual
+    def set_manual(self, is_manual):
+      self.is_manual = is_manual
     def handle_ready(self):
         pheaters = self.printer.lookup_object('heaters')
         self.heaters = [pheaters.lookup_heater(n) for n in self.heater_names]
         reactor = self.printer.get_reactor()
         reactor.register_timer(self.callback, reactor.monotonic()+PIN_MIN_TIME)
     def get_status(self, eventtime):
-        return self.fan.get_status(eventtime)
+        status = {'is_manual': self.is_manual}
+        status.update(self.fan.get_status(eventtime))
+        return status
     def callback(self, eventtime):
+        if self.is_manual:
+            return eventtime + 1.
         speed = 0.
         for heater in self.heaters:
             current_temp, target_temp = heater.get_temp(eventtime)
             if target_temp or current_temp > self.heater_temp:
                 speed = self.fan_speed
-        if speed != self.last_speed:
-            self.last_speed = speed
+        if speed != self.fan.last_fan_value:
             curtime = self.printer.get_reactor().monotonic()
             print_time = self.fan.get_mcu().estimated_print_time(curtime)
             self.fan.set_speed(print_time + PIN_MIN_TIME, speed)

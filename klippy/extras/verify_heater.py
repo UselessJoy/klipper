@@ -94,7 +94,7 @@ class HeaterCheck:
         self.heater.set_temp(0.)
         vsd = self.printer.lookup_object('virtual_sdcard')
         if vsd.is_active():
-            vsd.handle_shutdown()
+            vsd.do_pause()
         return eventtime + 1.
         # self.printer.invoke_shutdown(msg + HINT_THERMAL)
         # return self.printer.get_reactor().NEVER

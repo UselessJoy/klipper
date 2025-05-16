@@ -10,6 +10,15 @@ import locales
 locales.set_locale()
 error = configparser.Error
 DEPRECATED_SECTIONS = ['motor_checker', 'wifi_mode']
+
+#section -> deprecated option -> new option with def value
+CHANGED_SECTION = {
+    'printer': {
+        'remove_option': ['max_accel_to_decel'],
+        'add_option': {'minimum_cruise_ratio': 0.5}
+    }
+}
+
 class sentinel:
     pass
 
@@ -147,6 +156,9 @@ class ConfigWrapper:
 
     def has_section(self, section) -> bool:
         return self.fileconfig.has_section(section)
+
+    def has_option(self, section, option) -> bool:
+        return self.fileconfig.has_option(section, option)
 
     def get_prefix_sections(self, prefix):
         return [self.getsection(s) for s in self.fileconfig.sections()
@@ -382,8 +394,20 @@ class PrinterConfig:
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
         if compare:
           self.compare_base_config(cfg) 
-          self.compare_pause_resume_config()  
+          self.compare_pause_resume_config()
+          if self.has_deprecated_options(cfg):
+            self.save_config(True, True, with_options=True)
         return cfg
+
+    def has_deprecated_options(self, cfg: ConfigWrapper):
+      for section in CHANGED_SECTION:
+        for remove_option in CHANGED_SECTION[section]['remove_option']:
+            if cfg.has_option(section, remove_option):
+                return True
+        for add_option in CHANGED_SECTION[section]['add_option']:
+            if not cfg.has_option(section, add_option):
+                return True
+      return False
 
     def check_unused_options(self, config: ConfigWrapper):
         fileconfig = config.fileconfig
@@ -407,6 +431,7 @@ class PrinterConfig:
                                 % (option, section))
         # Setup get_status()
         self._build_status(config)
+
     def log_config(self, config: ConfigWrapper):
         lines = ["===== Config file =====",
                  self._build_config_string(config),
@@ -552,28 +577,26 @@ class PrinterConfig:
     
     # Новый сейв конфиг. Может сохранять данные либо с бэкапом, либо без, аналогично с перезагрузкой
     # Сейв конфиг делает полный апдейт (изменяет существующие параметры, удаляет их и записывает новые)
-    def save_config(self, need_restart: bool, need_backup: bool, cfgname: str = "") -> None:
+    def save_config(self, need_restart: bool, need_backup: bool, cfgname: str = "", with_options=False) -> None:
         """
         Метод записывает в конфигурационный файл новые параметры конфигурации, устанавливаемые в зависимости от списка удаляемых секций и словаря измененных/добавленных секций. 
         Параметры need_restart и need_backup указывают на необходимость перезагрузки после сохранения и создания бэкапа при сохранении соответственно. 
         """
         gcode = self.printer.lookup_object('gcode')
-        if len(self.pendingSaveItems.items()) == 0 and not self.status_remove_sections:
-            msg = _("No data changed")
-            logging.exception(msg)
-            raise gcode.error(msg)
+        if not self.is_data_changed() and not with_options:
+          msg = _("No data changed")
+          logging.exception(msg)
+          raise gcode.error(msg)
         #Read in and validate current config file
         if not cfgname:
           cfgname = self.printer.get_start_args()['config_file']
         try:
-            data = self._read_config_file(cfgname)
-            data_option_comments, remain_comments = self.comments_to_option_value(data)
-            configWrapper = self._build_config_wrapper(data_option_comments, cfgname, parse_includes=False)
+          configWrapper, remain_comments = self.old_config_wrapper(cfgname)
         except error as e:
             msg = _("Unable to parse existing config on SAVE_CONFIG")
             logging.exception(msg)
             raise gcode.error(msg)
-        newConfigWrapper = self.new_config_wrapper(configWrapper)
+        newConfigWrapper = self.new_config_wrapper(configWrapper, with_options)
         if need_backup:
             self.backup_config()
         try:
@@ -585,16 +608,25 @@ class PrinterConfig:
         # Request a restart
         if need_restart:
             gcode.request_restart('restart')
-     
-    def new_config_wrapper(self, old_config: ConfigWrapper) -> ConfigWrapper:
+    
+    def is_data_changed(self):
+        return len(self.pendingSaveItems.items()) != 0 or self.status_remove_sections
+
+    def old_config_wrapper(self, cfgname):
+        data = self._read_config_file(cfgname)
+        data_option_comments, remain_comments = self.comments_to_option_value(data)
+        configWrapper = self._build_config_wrapper(data_option_comments, cfgname, parse_includes=False)
+        return configWrapper, remain_comments
+
+    def new_config_wrapper(self, old_config: ConfigWrapper, with_options=False) -> ConfigWrapper:
         newConfigWrapper = old_config
         newConfigParser = newConfigWrapper.fileconfig
-        
+
         #Lookup for deleting sections
         for section in self.status_remove_sections:
             if section in newConfigParser.sections():
                 newConfigParser.remove_section(section)
-                         
+   
         #Lookup for overwriting and new sections                   
         for section in self.pendingSaveItems:
             if not newConfigParser.has_section(section):
@@ -602,10 +634,18 @@ class PrinterConfig:
             for option in self.pendingSaveItems[section]:
                 value = self.pendingSaveItems[section][option]
                 newConfigParser.set(section, option, value)
-                
+        if with_options:
+          for section in CHANGED_SECTION:
+            for remove_option in CHANGED_SECTION[section]['remove_option']:
+                if newConfigParser.has_option(section, remove_option):
+                    newConfigParser.remove_option(section, remove_option)
+            for add_option in CHANGED_SECTION[section]['add_option']:
+                if not newConfigParser.has_option(section, add_option):
+                    newConfigParser.set(section, add_option, CHANGED_SECTION[section]['add_option'][add_option])
+
         newConfigWrapper.fileconfig = newConfigParser
         return newConfigWrapper
-    
+
     def write(self, filename: str, configWrapper: ConfigWrapper, comments: dict[str, list]):
         configParser = configWrapper.fileconfig
         with open(filename, 'w') as configfile:

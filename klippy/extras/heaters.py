@@ -390,7 +390,7 @@ class PrinterHeaters:
         heater_name = web_request.get('heater')
         h, t = self.heaters[heater_name], self.heaters[heater_name].last_temp
         self.set_temperature(h, t + 5, True)
-        web_request.send({'test_result': True})
+        web_request.send({'test_result': h.verify.success_heating})
 
     def _wait_for_temperature(self, heater: Heater):
         # Helper to wait on heater.check_busy() and report M105 temperatures

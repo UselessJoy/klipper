@@ -16,7 +16,19 @@ CHANGED_SECTION = {
     'printer': {
         'remove_option': ['max_accel_to_decel'],
         'add_option': {'minimum_cruise_ratio': 0.5}
-    }
+    },
+    'tmc2209 stepper_x': {
+        'remove_option': ['hold_current']
+    },
+    'tmc2209 stepper_y': {
+      'remove_option': ['hold_current']
+    },
+    'tmc2209 stepper_z': {
+      'remove_option': ['hold_current']
+    },
+    'tmc2209 extruder': {
+      'remove_option': ['hold_current']
+    },
 }
 
 class sentinel:
@@ -401,12 +413,14 @@ class PrinterConfig:
 
     def has_deprecated_options(self, cfg: ConfigWrapper):
       for section in CHANGED_SECTION:
-        for remove_option in CHANGED_SECTION[section]['remove_option']:
-            if cfg.has_option(section, remove_option):
-                return True
-        for add_option in CHANGED_SECTION[section]['add_option']:
-            if not cfg.has_option(section, add_option):
-                return True
+        if 'remove_option' in CHANGED_SECTION[section]:
+          for remove_option in CHANGED_SECTION[section]['remove_option']:
+              if cfg.has_option(section, remove_option):
+                  return True
+        if 'add_option' in CHANGED_SECTION[section]:
+          for add_option in CHANGED_SECTION[section]['add_option']:
+              if not cfg.has_option(section, add_option):
+                  return True
       return False
 
     def check_unused_options(self, config: ConfigWrapper):
@@ -636,12 +650,14 @@ class PrinterConfig:
                 newConfigParser.set(section, option, value)
         if with_options:
           for section in CHANGED_SECTION:
-            for remove_option in CHANGED_SECTION[section]['remove_option']:
-                if newConfigParser.has_option(section, remove_option):
-                    newConfigParser.remove_option(section, remove_option)
-            for add_option in CHANGED_SECTION[section]['add_option']:
-                if not newConfigParser.has_option(section, add_option):
-                    newConfigParser.set(section, add_option, CHANGED_SECTION[section]['add_option'][add_option])
+            if 'remove_option' in CHANGED_SECTION[section]:
+              for remove_option in CHANGED_SECTION[section]['remove_option']:
+                  if newConfigParser.has_option(section, remove_option):
+                      newConfigParser.remove_option(section, remove_option)
+            if 'add_option' in CHANGED_SECTION[section]:
+              for add_option in CHANGED_SECTION[section]['add_option']:
+                  if not newConfigParser.has_option(section, add_option):
+                      newConfigParser.set(section, add_option, CHANGED_SECTION[section]['add_option'][add_option])
 
         newConfigWrapper.fileconfig = newConfigParser
         return newConfigWrapper

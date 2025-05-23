@@ -818,8 +818,11 @@ class BedMeshCalibrate:
         self.savePermanently = gcmd.get_boolean('SAVE_PERMANENTLY', False)
         self.bedmesh.set_mesh(None)
         self.update_config(gcmd)
-        self.is_calibrating = True
-        self.probe_helper.start_probe(gcmd)
+        if not self.printer.lookup_object('probe').is_probe_active():
+          self.is_calibrating = True
+          self.probe_helper.start_probe(gcmd)
+        else:
+          raise gcmd.error(_("Has active magnet probe. Take off it manually"))
 
     cmd_ASYNC_STOP_BED_MESH_CALIBRATE_help=_("Stop bed mesh calibrating")
     def cmd_ASYNC_STOP_BED_MESH_CALIBRATE(self, gmcd: GCodeCommand):

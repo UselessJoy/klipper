@@ -834,7 +834,11 @@ class BedMeshCalibrate:
         self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, True)
         if self.is_calibrating:
           self.is_preheating = False
-          self.probe_helper.start_probe(gcmd)
+          try:
+            self.probe_helper.start_probe(gcmd)
+          except Exception as e:
+              self.is_calibrating = False
+              raise e
         self.is_calibrating = False
 
     cmd_BED_MESH_CALIBRATE_GROUP_help = _("Perform Mesh Bed Leveling for group of profiles") # no locale
@@ -876,7 +880,12 @@ class BedMeshCalibrate:
             self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, True)
             if self.is_preheating:
               self.is_preheating = False
-              self.probe_helper.start_probe(gcmd)
+              try:
+                self.probe_helper.start_probe(gcmd)
+              except Exception as e:
+                  self.is_calibrating = False
+                  self.group_bed_mesh_len = self.group_current_mesh = 1
+                  raise e
             self.group_current_mesh += 1
         logging.info("end 'for' cycle")
         self.group_bed_mesh_len = self.group_current_mesh = 1

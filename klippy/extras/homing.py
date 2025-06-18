@@ -279,19 +279,42 @@ class PrinterHoming:
         self.home(axis)
     
     def home(self, axis = []):
-        if self.printer.lookup_object('probe').is_probe_active():
-            raise self.printer.command_error(
-                    _("Has active magnet probe. Take off it manually"))
+        toolhead = self.printer.lookup_object("toolhead")
+        gcode = self.printer.lookup_object("gcode")
+        probe = self.printer.lookup_object("probe")
+        reactor = self.printer.get_reactor()
+        kin_status = toolhead.get_kinematics().get_status(reactor.monotonic())
+
+        # if 2 in axis or pos[2] < 7:
+        #       if self.printer.lookup_object('probe').is_probe_active():
+        #           raise self.printer.command_error(
+        #                   _("Has active magnet probe. Take off it manually"))
+              
         try:
             if not axis:
               axis = [1, 0, 2]
+            if probe.is_probe_active():
+              if "z" not in kin_status['homed_axes']:
+                last_pos = toolhead.get_position()
+                gcode.run_script_from_command(f"SET_KINEMATIC_POSITION Z={last_pos[2]}\n")
+                probe.drop_z_move()
             kin = self.printer.lookup_object('toolhead').get_kinematics()
             if 1 in axis:
-              homing_y = Homing(self.printer)
-              homing_y.set_axes([1])
-              kin.home(homing_y)
               axis.remove(1)
+              axis.insert(0, 1)
             if len(axis) > 0:
+                if 2 in axis and probe.is_probe_active():
+                    kin_status = toolhead.get_kinematics().get_status(reactor.monotonic())
+                    need_axis = []
+                    if "y" not in kin_status['homed_axes']:
+                        need_axis.append(1)
+                    if "x" not in kin_status['homed_axes']:
+                        need_axis.append(0)
+                    if len(need_axis):
+                      hs = Homing(self.printer)
+                      hs.set_axes(need_axis)
+                      kin.home(hs)
+                    probe.return_magnet_probe()
                 homing_state = Homing(self.printer)
                 homing_state.set_axes(axis)
                 kin.home(homing_state)

@@ -234,6 +234,9 @@ class BedMesh:
     def get_status(self, eventtime=None):
         status = {
             "profile_name": "",
+            "group_bed_mesh_len": self.bmc.group_bed_mesh_len,
+            "group_current_mesh": self.bmc.group_current_mesh,
+            "is_preheating": self.bmc.is_preheating,
             "mesh_min": (0., 0.),
             "mesh_max": (0., 0.),
             "probed_matrix": [[]],
@@ -365,6 +368,9 @@ class BedMeshCalibrate:
         self._init_mesh_config(config)
         self._generate_points(config.error)
         self._profile_name = None
+        self.group_bed_mesh_len = 1
+        self.group_current_mesh = 1
+        self.is_preheating = False
         self.probe_helper = probe.ProbePointsHelper(
             config, self.probe_finalize, self._get_adjusted_points())
         self.probe_helper.minimum_points(3)
@@ -373,6 +379,9 @@ class BedMeshCalibrate:
         self.gcode.register_command(
             'BED_MESH_CALIBRATE', self.cmd_BED_MESH_CALIBRATE,
             desc=self.cmd_BED_MESH_CALIBRATE_help)
+        self.gcode.register_command(
+            'BED_MESH_CALIBRATE_GROUP', self.cmd_BED_MESH_CALIBRATE_GROUP,
+            desc=self.cmd_BED_MESH_CALIBRATE_GROUP_help)
         self.gcode.register_async_command(
             'ASYNC_STOP_BED_MESH_CALIBRATE', self.cmd_ASYNC_STOP_BED_MESH_CALIBRATE,
             desc=self.cmd_ASYNC_STOP_BED_MESH_CALIBRATE_help
@@ -802,7 +811,7 @@ class BedMeshCalibrate:
             adj_pts.append(self.zero_ref_pos)
         return adj_pts
 
-    cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")         
+    cmd_BED_MESH_CALIBRATE_help = _("Perform Mesh Bed Leveling")
     def cmd_BED_MESH_CALIBRATE(self, gcmd: GCodeCommand):
         profs = self.bedmesh.pmgr.get_profiles()
         try:
@@ -814,22 +823,74 @@ class BedMeshCalibrate:
             self._profile_name = f"profile_{i}"
         if self._profile_name in profs:
             raise self.gcode.error(
-                _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name) 
+                _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name)
+        preheat_temp = gcmd.get_float('PREHEAT', 0)
         self.savePermanently = gcmd.get_boolean('SAVE_PERMANENTLY', False)
         self.bedmesh.set_mesh(None)
         self.update_config(gcmd)
-        if not self.printer.lookup_object('probe').is_probe_active():
-          self.is_calibrating = True
+        self.is_calibrating = True
+        heater_bed = self.printer.lookup_object("heater_bed")
+        self.is_preheating = True
+        self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, True)
+        if self.is_calibrating:
+          self.is_preheating = False
           self.probe_helper.start_probe(gcmd)
-        else:
-          raise gcmd.error(_("Has active magnet probe. Take off it manually"))
+        self.is_calibrating = False
+
+    cmd_BED_MESH_CALIBRATE_GROUP_help = _("Perform Mesh Bed Leveling for group of profiles") # no locale
+    def cmd_BED_MESH_CALIBRATE_GROUP(self, gcmd: GCodeCommand):
+        profs = self.bedmesh.pmgr.get_profiles()
+        new_profiles = gcmd.get_list_str('PROFILES')
+        preheats = gcmd.get_list_str('PREHEATS')
+        saves = gcmd.get_list_str('SAVES')
+        logging.info(f"new_profiles: {new_profiles}\npreheats: {preheats}\nsaves: {saves}")
+        if len(new_profiles) + len(preheats) + len(saves) != 3 * len(new_profiles):
+            raise self.gcode.error(
+                _("bed_mesh (BED_MESH_CALIBRATE_GROUP): Count of PROFILES, PREHEATS and SAVE_PERMANENTLY must be equal")) # no locale
+        self.group_bed_mesh_len = len(new_profiles)
+        self.group_current_mesh = 1
+        for i, profile in enumerate(new_profiles):
+            logging.info(f"'for' cycle i: {i}")
+            if profile == "None":
+              j = 0
+              while f"profile_{j}" in profs:
+                  j = j + 1
+              self._profile_name = f"profile_{j}"
+            else:
+                self._profile_name = profile
+            if self._profile_name in profs:
+              raise self.gcode.error(
+                  _("bed_mesh (cmd_BED_MESH_CALIBRATE): Profile name already exist [%s]") % self._profile_name) 
+            preheat_temp = float(preheats[i])
+            saved = saves[i].lower()
+            if saved in ('yes', '1', 'true'):
+                saved = True
+            elif saved in ('no', '0', 'false'):
+                saved = False
+            self.savePermanently = saved
+            self.bedmesh.set_mesh(None)
+            self.update_config(gcmd)
+            self.is_calibrating = True
+            heater_bed = self.printer.lookup_object("heater_bed")
+            self.is_preheating = True
+            self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, True)
+            if self.is_preheating:
+              self.is_preheating = False
+              self.probe_helper.start_probe(gcmd)
+            self.group_current_mesh += 1
+        logging.info("end 'for' cycle")
+        self.group_bed_mesh_len = self.group_current_mesh = 1
+        self.is_calibrating = False
 
     cmd_ASYNC_STOP_BED_MESH_CALIBRATE_help=_("Stop bed mesh calibrating")
     def cmd_ASYNC_STOP_BED_MESH_CALIBRATE(self, gmcd: GCodeCommand):
         if not self.is_calibrating:
             return
+        self.is_preheating = False
         self.probe_helper.stop_probe()
-        self.is_calibrating = False
+        pheaters = self.printer.lookup_object('heaters')
+        pheaters.turn_off_all_heaters()
+        
 
     def probe_finalize(self, offsets, positions: list):
         x_offset, y_offset, z_offset = offsets

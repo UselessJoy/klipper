@@ -101,7 +101,7 @@ class GCodeCommand:
     def get_boolean(self, name, default=sentinel, minval=None, maxval=None) -> bool:
         return self.get(name, default, parser=True, minval=minval, maxval=maxval)
         
-    def get_list_str(self, name, default=sentinel, sep=',') -> str:
+    def get_list_str(self, name, default=sentinel, sep=',') -> list[str]:
         return re.sub(' ', '', self.get(name, default)).split(sep)
     
 # Parse and dispatch G-Code commands

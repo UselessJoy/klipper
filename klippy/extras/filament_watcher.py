@@ -23,7 +23,6 @@ class FilamentWatcher:
         self.printer.register_event_handler("print_stats:error", self._handle_stop_printing)
 
         self.printer.register_event_handler("safety_printing:endstops_state", self.on_endstops_callback)
-        self.printer.register_event_handler("fan_generic:set_fan_speed", self._on_set_fan_speed)
         
     
     def _handle_printing(self):
@@ -35,22 +34,12 @@ class FilamentWatcher:
         
     def is_something_open(self):
         return self.printer.lookup_object('safety_printing').get_endstops_state() != ALL_PRESSED
-    
-    def _on_set_fan_speed(self, speed):
-      self.last_fan_speed = speed
-      if self.is_PLA_printing():
-            if self.last_fan_speed:
-                self.show_message = False
-            elif not self.is_something_open():
-                self.show_message = True
-      else:
-          self.show_message = False
 
     def on_endstops_callback(self, state):
         if self.is_PLA_printing():
           if state != ALL_PRESSED:
               self.show_message = False
-          elif not self.last_fan_speed:
+          else:
               self.show_message = True
         else:
             self.show_message = False

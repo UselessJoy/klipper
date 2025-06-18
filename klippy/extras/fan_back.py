@@ -14,6 +14,8 @@ class PrinterFanBack:
         self.is_manual = False
         self.timer = None
         self.last_eventtime = None
+        self.is_greater_temp = False
+        self.greater_eventtime = 0
         try:
             self.printer.lookup_object('fans').add_fan(section_name, self)
         except:
@@ -64,10 +66,6 @@ class PrinterFanBack:
         self.timer = self.reactor.register_timer(self.open_timer, self.reactor.NOW)
 
     def set_speed(self, temp):
-      # Избавиться от set_speed_from_command
-      # curtime = self.printer.get_reactor().monotonic()
-      # print_time = self.fan.get_mcu().estimated_print_time(curtime)
-      # self.fan.set_speed(print_time + PIN_MIN_TIME, speed)
       if self.is_manual:
          return
       if temp >= 70:
@@ -75,10 +73,15 @@ class PrinterFanBack:
           self.fan.set_speed_from_command(1., False)
         return
       if self.linear:
+        setting_speed = .7
         if temp > 65:
-          setting_speed = .8
+          if not self.is_greater_temp:
+             self.is_greater_temp = True
+             self.greater_eventtime = self.reactor.monotonic()
+          elif self.reactor.monotonic() - self.greater_eventtime >= 5: 
+            setting_speed = .8
         else:
-          setting_speed = .7
+          self.is_greater_temp = False
         if self.fan.last_fan_value != setting_speed:
           self.fan.set_speed_from_command(setting_speed, False)
       else:

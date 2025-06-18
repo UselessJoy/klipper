@@ -3,6 +3,7 @@
 # Copyright (C) 2019  Eric Callahan <arksine.code@gmail.com>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
+import logging
 import locales
 class PauseResume:
     def __init__(self, config):
@@ -53,7 +54,7 @@ class PauseResume:
         safety = self.printer.lookup_object('safety_printing')
         messages = self.printer.lookup_object("messages")
         if safety.safety_enabled:
-            if safety.send_pause:
+            if safety.pause_command_running:
                 messages.send_message('warning', _("Printer already go to pause"))
                 return
         self.manual_pause = True
@@ -63,7 +64,7 @@ class PauseResume:
         safety = self.printer.lookup_object('safety_printing')
         messages = self.printer.lookup_object("messages")
         if safety.safety_enabled:
-            if safety.send_resume:
+            if safety.resume_command_running:
                 messages.send_message('warning', _("Printer already wait go to resume"))
                 return
         self.manual_pause = False
@@ -106,6 +107,7 @@ class PauseResume:
     def send_resume_command(self):
         if self.sd_paused:
             # Printing from virtual sd, run pause command
+            logging.info("resume from pause_resume")
             self.v_sd.do_resume()
             self.sd_paused = False
         else:
@@ -118,7 +120,8 @@ class PauseResume:
         if not self.is_paused:
             gcmd.respond_info(_("Print is not paused, resume aborted"))
             return
-        self.printer.lookup_object('safety_printing').raise_error_if_open()      
+        if self.printer.lookup_object('safety_printing').is_open():
+            return
         velocity = gcmd.get_float('VELOCITY', self.recover_velocity)
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=PAUSE_STATE MOVE=1 MOVE_SPEED=%.4f"

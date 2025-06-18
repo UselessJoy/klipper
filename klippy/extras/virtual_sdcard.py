@@ -253,15 +253,17 @@ class VirtualSD:
               fans.set_manual(fan_name, False)
         if was_manual:
           self.printer.lookup_object('messages').send_message("warning", _("Some fans was manually installed, it was offed"))
-                                
-    def proccess_check(self):
-        self.printer.lookup_object('safety_printing').raise_error_if_open()
-        self.printer.lookup_object('homing').run_G28_if_unhomed()
-        self.bed_mesh_check()
-        self.fan_check()
 
     def do_resume(self):
-        self.proccess_check()
+        logging.info("resume from sd")
+        # Проблема в том, что safety_printing не регистрирует измение, когда происходит ретракт, а еще есть некоторое накопление с уходом z на 7 вниз, при эотм есть сообщение "печать уже поставлена на паузу"
+        # при этом сам стейт обновляется
+        # Похоже, надо тупа вешать общий таймер
+        # if self.printer.lookup_object('safety_printing').is_open():
+        #     return False
+        self.bed_mesh_check()
+        self.fan_check()
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         if self.work_timer is not None:
             raise self.gcode.error(_("SD busy"))
         self.must_pause_work = False
@@ -273,6 +275,7 @@ class VirtualSD:
           pass
         self.work_timer = self.reactor.register_timer(
             self.work_handler, self.reactor.NOW)
+        return True
          
     def do_cancel(self):
         if self.current_file is not None:
@@ -331,7 +334,8 @@ class VirtualSD:
         self._reset_file()
     cmd_SDCARD_PRINT_FILE_help = _("Loads a SD file and starts the print. May include files in subdirectories.")
     def cmd_SDCARD_PRINT_FILE(self, gcmd):
-        self.printer.lookup_object('safety_printing').raise_error_if_open()
+        if self.printer.lookup_object('safety_printing').is_open():
+            return
         if self.work_timer is not None:
             raise gcmd.error(_("SD busy"))
         self._reset_file()
@@ -352,7 +356,8 @@ class VirtualSD:
           
     def cmd_SDCARD_RUN_FILE(self, gcmd):
         self.show_interrupt = False
-        self.printer.lookup_object('safety_printing').raise_error_if_open()
+        if self.printer.lookup_object('safety_printing').is_open():
+            return
         gcmd.respond_raw(_("Restart file"))
         self.load_saved_parameters()
         self._load_file(gcmd, self.current_file, file_position=self.file_position, check_subdirs=True)
@@ -441,8 +446,8 @@ class VirtualSD:
             f.seek(0)
             self._load_footer_data(f, fsize)
             f.seek(0)
-        except:
-            logging.exception("virtual_sdcard file open")
+        except Exception as e:
+            logging.exception(f"virtual_sdcard file open: {e}")
             raise gcmd.error(_("Unable to open file"))
         gcmd.respond_raw(_("File opened:%s Size:%d") % (filename, fsize))
         gcmd.respond_raw(_("File selected"))
@@ -622,7 +627,6 @@ class VirtualSD:
         partial_input = ""
         file = io.open(self.file_path(), "r", newline='')
         file_position = 0
-        file.seek(file_position)
         data = file.read(8192)
         while data:
             if not lines:
@@ -649,59 +653,97 @@ class VirtualSD:
             file_position = next_file_position
             file.seek(file_position)
         return 0
-            
-    def rebuild_begin_print(self, eventtime):
-        self.reactor.unregister_timer(self.work_timer)
-        self.print_stats.note_start()
-        partial_input = ""
-        lines = []
-        file = io.open(self.file_path(), "r", newline='')
-        file_position = 0
+
+    # G28 означает, что подготовительные работы закончены или почти закончены -> можно номер строки выбрать в качестве опорного
+    # Будем считать, что в пределах [i - 50; i + 50] у нас вмещается весь стартовый g-код
+    # Это +- унифицированный метод, который может работать со всеми слайсерами
+    def find_start_gcode_lines(self, lines: list[str]):
+      for i, line in enumerate(lines):
+          if line.startswith("G28"):
+              return 0 if i - 50 < 0 else i - 50, len(lines) if i + 50 > len(lines) else i + 50
+    
+    # Последний exclude-объект будет определяться путем дальнейшего чтения g-кода, пока не найдет команду
+    # EXCLUDE_OBJECT_END NAME={name} - это будет означать, что печать прервалась, когда был активен name
+    def find_last_exclude_object(self, file: io.FileIO):
+        file_position = self.file_position
         file.seek(file_position)
-        data = file.read(4096)
-        lines = data.split('\n')
-        lines[0] = partial_input + lines[0]
-        partial_input = lines.pop()
-        lines.reverse()
-        line = lines.pop()
-        while not line.startswith('G28') or not data:
-            if not lines:
-                # Read more data
-                try:
-                    data = self.current_file.read(8192)
-                    lines = data.split('\n')
-                    lines[0] = partial_input + lines[0]
-                    partial_input = lines.pop()
-                    lines.reverse()
-                except:
-                    logging.exception("virtual_sdcard read")
-                    break
-            self.cmd_from_sd = True
-            self.gcode.run_script(line)
-            next_file_position = file_position + len(line.encode()) + 1 
-            file_position = next_file_position
-            file.seek(file_position)
-            self.cmd_from_sd = False
-            line = lines.pop()
+        data: str = file.read(8192)
+        lines: list[str] = []
+        while data:
+          if not lines:
+              # Read more data
+              try:
+                  data = file.read(8192)
+              except:
+                  return ""
+              if not data:
+                  # End of file
+                  file.close()
+                  return ""
+              lines = data.split('\n')
+              lines.reverse()
+          line: str = lines.pop()
+          if line.startswith("EXCLUDE_OBJECT_END"):
+              return line.replace("EXCLUDE_OBJECT_END", "EXCLUDE_OBJECT_START")
+          next_file_position = file_position + len(line.encode()) + 1       
+          file_position = next_file_position
+          file.seek(file_position)
+        return ""
+
+    # Печать может восстановиться только если во время печати аспользуется абсолютное позиционирование - потому что ебля с определением правильных координат мне не всралась от слова совсем
+    # В случае дистанции экструзии, то она может быть как абсолютной, так и относительной
+    def rebuild_begin_print(self, eventtime):
+        if self.work_timer:
+          self.reactor.unregister_timer(self.work_timer)
+        self.print_stats.note_start()
+        file: io.FileIO = io.open(self.file_path(), "r", newline='')
+        lines: list[str] = file.readlines()
+        start, end = self.find_start_gcode_lines(lines)
+        extruder_gcode = heater_bed_gcode = exclude_start_gcode = ""
+        exclude_gcode: list[str] = []
+        extrusion_gcode = "M82"
+        # Найти базовые параметры 
+        for line in lines[start:end]:
+          if line.startswith("M109") or line.startswith("M104"):
+              extruder_gcode = line
+          elif line.startswith("M190") or line.startswith("M140"):
+              heater_bed_gcode = line
+          elif line.startswith("M83"):
+              extrusion_gcode = line
+          elif line.startswith("EXCLUDE_OBJECT_DEFINE"):
+              exclude_gcode.append(line)
+        # Если у нас в g-коде используются exclude-объекты, то надо восстановить последний используемый перед прерыванием
+        if exclude_gcode:
+            exclude_start_gcode = self.find_last_exclude_object(file)
+        file.close()
+        #Установка последней координаты по Z
         toolhead = self.printer.lookup_object('toolhead')
         kin_status = toolhead.get_kinematics().get_status(self.reactor.monotonic())
         if "z" not in kin_status['homed_axes']:
           self.gcode.run_script(f"SET_KINEMATIC_POSITION Z={self.last_coord[0]}\n")
         lead_z = 7 if self.max_z - self.last_coord[0] > 7 else self.max_z
-        self.gcode.run_script(f"""G92 E0
-                                  G1 F2100 E-1
-                                  G91
-                                  G0 Z{lead_z}
-                                  G90
-                                  G28 X Y
-                                  G0 X{self.last_coord[1]} Y{self.last_coord[2]} Z{self.last_coord[0]} F6000""")
-        self.work_timer = None
-        try:
-            self.work_timer = self.reactor.register_timer(
-                self.work_handler, self.reactor.NOW)
-        except:
-            logging.exception("begin gcode not ended")
-            raise self.gcode.error("begin gcode not ended")
+        # Выполнение основного скрипта
+        self.gcode.run_script(f"""
+          G92 E0
+          G1 F2100 E-1
+          G91
+          G0 Z{lead_z}
+          G90
+          G28 X Y
+          M104 {"S0" if len(extruder_gcode.split(" ")) < 2 else extruder_gcode.split(" ")[1]}
+          M140 {"S0" if len(heater_bed_gcode.split(" ")) < 2 else heater_bed_gcode.split(" ")[1]}
+          {extruder_gcode}
+          {heater_bed_gcode}
+          G0 X{self.last_coord[1]} Y{self.last_coord[2]} Z{self.last_coord[0]} F6000
+          G92 E{self.last_coord[3]}
+          {extrusion_gcode}
+        """)
+        for g in exclude_gcode:
+            self.gcode.run_script(g)
+        if exclude_start_gcode:
+          self.gcode.run_script(exclude_start_gcode)
+        self.work_timer = self.reactor.register_timer(
+            self.work_handler, self.reactor.NOW)
         return self.reactor.NEVER
 
     def has_interrupted_file(self):

@@ -56,7 +56,7 @@ class PrinterProbe:
                                                note_valid=False)
         # Multi-sample support (for improved accuracy)
         self.sample_count = config.getint('samples', 1, minval=1)
-        self.sample_retract_dist = config.getfloat('sample_retract_dist', 2.,
+        self.sample_retract_dist = config.getfloat('sample_retract_dist', 1.,
                                                    above=0.)
         atypes = {'median': 'median', 'average': 'average'}
         self.samples_result = config.getchoice('samples_result', atypes,
@@ -367,7 +367,7 @@ class PrinterProbe:
     def on_start_probe(self, correcting_probe=False):
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         # 1 - open (подключен и стол не тыкнут), 0 - triggered (отключен или стол тыкнут)
-        self.drop_z_move()
+        # self.drop_z_move()
         if not self.is_probe_active():
             self.take_magnet_probe()
         curtime = self.printer.get_reactor().monotonic()
@@ -377,7 +377,8 @@ class PrinterProbe:
             pos = [(toolhead_status['axis_maximum'][i])/2 - offset for i,offset in enumerate([self.x_offset, self.y_offset])]
           else:
             pos = [toolhead_status['axis_maximum'][i]/2 for i in range(0, 2)]
-          pos.append(self.drop_z)
+          # Вот здесь он дропается
+          # pos.append(self.drop_z)
         else:
             pos = self.toolhead.get_position()
         self._move(pos, self.speed_base)

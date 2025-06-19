@@ -96,11 +96,12 @@ class BedMesh:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
+        # self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.last_position = [0., 0., 0., 0.]
         self.bmc = BedMeshCalibrate(config, self)
         self.z_mesh = None
         self.toolhead = None
-        self.horizontal_move_z = config.getfloat('horizontal_move_z', 5.)
+        self.horizontal_move_z = config.getfloat('horizontal_move_z', 3.)
         self.fade_start = config.getfloat('fade_start', 1.)
         self.fade_end = config.getfloat('fade_end', 0.)  
         self.fade_dist = self.fade_end - self.fade_start
@@ -132,7 +133,10 @@ class BedMesh:
         # Register transform
         gcode_move = self.printer.load_object(config, 'gcode_move')
         gcode_move.set_move_transform(self)
-        
+
+    # def _handle_ready(self):
+    #     self.horizontal_move_z = self.printer.lookup_object("probe").z_offset + 1
+
     def handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
         self.bmc.print_generated_points(logging.info)
@@ -831,7 +835,7 @@ class BedMeshCalibrate:
         self.is_calibrating = True
         heater_bed = self.printer.lookup_object("heater_bed")
         self.is_preheating = True
-        self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, True)
+        self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, bool(preheat_temp))
         if self.is_calibrating:
           self.is_preheating = False
           try:
@@ -877,7 +881,7 @@ class BedMeshCalibrate:
             self.is_calibrating = True
             heater_bed = self.printer.lookup_object("heater_bed")
             self.is_preheating = True
-            self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, True)
+            self.printer.lookup_object("heaters").set_temperature(heater_bed.get_heater(), preheat_temp, bool(preheat_temp))
             if self.is_preheating:
               self.is_preheating = False
               try:

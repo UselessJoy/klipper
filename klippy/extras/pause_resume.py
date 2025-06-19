@@ -54,6 +54,8 @@ class PauseResume:
         safety = self.printer.lookup_object('safety_printing')
         messages = self.printer.lookup_object("messages")
         if safety.safety_enabled:
+            if self.printer.lookup_object('safety_printing').is_open():
+                return
             if safety.pause_command_running:
                 messages.send_message('warning', _("Printer already go to pause"))
                 return
@@ -64,6 +66,8 @@ class PauseResume:
         safety = self.printer.lookup_object('safety_printing')
         messages = self.printer.lookup_object("messages")
         if safety.safety_enabled:
+            if self.printer.lookup_object('safety_printing').is_open():
+                return
             if safety.resume_command_running:
                 messages.send_message('warning', _("Printer already wait go to resume"))
                 return

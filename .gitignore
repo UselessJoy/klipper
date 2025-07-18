@@ -7,3 +7,4 @@ klippy/.version
 .vscode/settings.json
 klippy/interfaces/printer.py
 klippy/extras/rebuild_print.py
+scripts/redos_unused.txt

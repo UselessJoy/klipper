@@ -11,16 +11,17 @@ KLIPPER_GROUP=$KLIPPER_USER
 install_packages()
 {
     # Packages for python cffi
-    PKGLIST="virtualenv python-dev libffi-dev build-essential"
+    PKGLIST="virtualenv python-devel libffi-devel @development-tools"
     # kconfig requirements
-    PKGLIST="${PKGLIST} libncurses-dev"
+    PKGLIST="${PKGLIST} ncurses-devel"
     # hub-ctrl
-    PKGLIST="${PKGLIST} libusb-dev"
+    PKGLIST="${PKGLIST} libusb-devel"
     # AVR chip installation and building
-    PKGLIST="${PKGLIST} avrdude gcc-avr binutils-avr avr-libc"
+    PKGLIST="${PKGLIST} avrdude avr-gcc avr-binutils avr-libc"
     # ARM chip installation and building
-    PKGLIST="${PKGLIST} stm32flash libnewlib-arm-none-eabi"
-    PKGLIST="${PKGLIST} gcc-arm-none-eabi binutils-arm-none-eabi libusb-1.0 pkg-config"
+    # stm32flash
+    PKGLIST="${PKGLIST} arm-none-eabi-newlib"
+    PKGLIST="${PKGLIST} arm-none-eabi-gcc arm-none-eabi-binutils libusbx-devel pkg-config"
 
     # Update system package info
     report_status "Running dnf update..."

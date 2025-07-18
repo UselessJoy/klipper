@@ -12,18 +12,8 @@ install_packages()
 {
     # Packages for python cffi
     PKGLIST="virtualenv python-devel libffi-devel @development-tools"
-    # kconfig requirements
-    # PKGLIST="${PKGLIST} ncurses-devel"
     # hub-ctrl
     PKGLIST="${PKGLIST} libusb-devel"
-    # AVR chip installation and building
-    # в redos нет avrdude
-    # PKGLIST="${PKGLIST} avrdude avr-gcc avr-binutils avr-libc"
-    # ARM chip installation and building
-    # в redos нет stm32flash
-    # PKGLIST="${PKGLIST} stm32flash arm-none-eabi-newlib"
-    # PKGLIST="${PKGLIST} arm-none-eabi-gcc arm-none-eabi-binutils libusbx-devel pkg-config"
-
     # Update system package info
     report_status "Running dnf update..."
     sudo dnf update

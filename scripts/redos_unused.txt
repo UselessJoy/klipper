@@ -1,8 +1,0 @@
-# kconfig requirements
-# PKGLIST="${PKGLIST} ncurses-devel"
-# AVR chip installation and building
-# PKGLIST="${PKGLIST} avrdude avr-gcc avr-binutils avr-libc"
-# ARM chip installation and building
-# в redos нет stm32flash
-# PKGLIST="${PKGLIST} stm32flash arm-none-eabi-newlib"
-# PKGLIST="${PKGLIST} arm-none-eabi-gcc arm-none-eabi-binutils libusbx-devel pkg-config"

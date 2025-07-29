@@ -404,6 +404,7 @@ class PrinterConfig:
         autosave_data = self._strip_duplicates(autosave_data, regular_config)
         self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
+        compare = cfg.getsection('printer').getboolean('autoload_missing_sections', True)
         if compare:
           self.compare_base_config(cfg) 
           self.compare_pause_resume_config()
@@ -727,13 +728,13 @@ class PrinterConfig:
         try:
             if latest_backup:
                 os.remove(cfgname)
-                os.system(f"cp {config_dir + '/' + latest_backup} {cfgname}")
-                self.printer.lookup_object('gcode').request_restart('firmware_restart')
+                os.system(f"cp {config_dir}/{latest_backup} {cfgname}")
             else:
                 klipperpath = os.path.dirname(__file__)
                 base_config_path = os.path.join(klipperpath, "printer_base.cfg")
                 os.remove(cfgname)
                 os.system(f"cp {base_config_path} {cfgname}")
+            self.printer.lookup_object('gcode').request_restart('firmware_restart')
         except Exception as e:
             logging.error(e)
             messages = self.printer.lookup_object('messages')

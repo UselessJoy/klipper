@@ -10,6 +10,9 @@ KLIPPER_GROUP=$KLIPPER_USER
 # Step 1: Install system packages
 install_packages()
 {
+    if [[ $PKG_MANAGER == "dnf" ]]; then
+      sudo usermod -aG tty,disk,dialout,video,audio,users,input,systemd-journal $USER
+    fi
     # Packages for python cffi
     PKGLIST="virtualenv python-devel libffi-devel @development-tools"
     # hub-ctrl

@@ -12,9 +12,9 @@ else
   exit 1
 fi
 
-# Функция для выполнения команд с sudo и автоматическим вводом пароля
+# Исправленная функция для выполнения команд с sudo
 sudo_cmd() {
-    echo "$SUDO_PASS" | sudo --stdin "$@" > /dev/null 2>&1
+    echo "$SUDO_PASS" | sudo -S --prompt="" -- "$@" > /dev/null 2>&1
 }
 
 # Пути к конфигурационным файлам
@@ -24,7 +24,7 @@ SLEEP_CONF="/etc/systemd/sleep.conf"
 # Резервное копирование оригинальных конфигов
 backup_config() {
     local file=$1
-    if [[ -f $file && ! -f "${file}.bak" ]]; then
+    if [ -f "$file" ] && [ ! -f "${file}.bak" ]; then
         sudo_cmd cp "$file" "${file}.bak"
         echo "Created backup: ${file}.bak"
     fi
@@ -45,18 +45,15 @@ configure_logind() {
     )
     
     for key in "${!settings[@]}"; do
-        if grep -q "^$key=" "$LOGIND_CONF"; then
-            # Обновляем существующую настройку
-            sudo_cmd sed -i "s/^$key=.*/$key=${settings[$key]}/" "$LOGIND_CONF"
-        else
-            # Добавляем новую настройку
-            echo "$key=${settings[$key]}" | sudo_cmd tee -a "$LOGIND_CONF" > /dev/null
-        fi
+        # Используем временный файл вместо конвейера
+        sudo_cmd sh -c "grep -q '^$key=' $LOGIND_CONF && \
+            sed -i 's/^$key=.*/$key=${settings[$key]}/' $LOGIND_CONF || \
+            echo '$key=${settings[$key]}' >> $LOGIND_CONF"
         echo "Configured $key=${settings[$key]}"
     done
     
     # Специфичные настройки для РЕД ОС
-    if [[ "$OS" == "redos" ]]; then
+    if [ "$OS" = "redos" ]; then
         echo "Applying RED OS specific settings..."
         sudo_cmd sed -i 's/#KillUserProcesses=.*/KillUserProcesses=no/' "$LOGIND_CONF"
         sudo_cmd sed -i 's/#UserTasksMax=.*/UserTasksMax=infinity/' "$LOGIND_CONF"
@@ -67,26 +64,17 @@ configure_logind() {
 configure_sleep() {
     backup_config "$SLEEP_CONF"
     
-    # Создаем/обновляем секцию [Sleep]
-    if grep -q '^\[Sleep\]' "$SLEEP_CONF"; then
-        # Обновляем существующую секцию
-        sudo_cmd sed -i '/^\[Sleep\]/,/^\[/{/^\[Sleep\]/!{/^\[/!d}}' "$SLEEP_CONF"
-        {
-            echo "AllowSuspend=no"
-            echo "AllowHibernation=no"
-            echo "AllowHybridSleep=no"
-            echo "AllowSuspendThenHibernate=no"
-        } | sudo_cmd tee -a "$SLEEP_CONF" > /dev/null
-    else
-        # Создаем новую секцию
-        {
-            echo "[Sleep]"
-            echo "AllowSuspend=no"
-            echo "AllowHibernation=no"
-            echo "AllowHybridSleep=no"
-            echo "AllowSuspendThenHibernate=no"
-        } | sudo_cmd tee -a "$SLEEP_CONF" > /dev/null
-    fi
+    # Используем временный блок для записи
+    sudo_cmd sh -c "grep -q '^\[Sleep\]' $SLEEP_CONF || echo '[Sleep]' >> $SLEEP_CONF"
+    sudo_cmd sed -i '/^\[Sleep\]/,/^\[/{/^\[Sleep\]/!{/^\[/!d}}' "$SLEEP_CONF"
+    
+    # Записываем параметры через временную переменную
+    {
+        echo "AllowSuspend=no"
+        echo "AllowHibernation=no"
+        echo "AllowHybridSleep=no"
+        echo "AllowSuspendThenHibernate=no"
+    } | sudo_cmd tee -a "$SLEEP_CONF" > /dev/null
     echo "Configured [Sleep] section"
 }
 
@@ -145,8 +133,6 @@ main() {
     mask_sleep_services
     apply_changes
     echo "=== Sleep modes disabled successfully ==="
-    
-    # Возвращаем 0 - перезагрузка не требуется
     exit 0
 }
 

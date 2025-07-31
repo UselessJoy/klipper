@@ -12,7 +12,7 @@ else
   exit 1
 fi
 
-# Исправленная функция для выполнения команд с sudo
+# Безопасная функция для выполнения команд с sudo
 sudo_cmd() {
     echo "$SUDO_PASS" | sudo -S --prompt="" -- "$@" > /dev/null 2>&1
 }
@@ -45,10 +45,13 @@ configure_logind() {
     )
     
     for key in "${!settings[@]}"; do
-        # Используем временный файл вместо конвейера
-        sudo_cmd sh -c "grep -q '^$key=' $LOGIND_CONF && \
-            sed -i 's/^$key=.*/$key=${settings[$key]}/' $LOGIND_CONF || \
-            echo '$key=${settings[$key]}' >> $LOGIND_CONF"
+        sudo_cmd sh -c "
+            if grep -q '^$key=' '$LOGIND_CONF'; then
+                sed -i 's/^$key=.*/$key=${settings[$key]}/' '$LOGIND_CONF'
+            else
+                echo '$key=${settings[$key]}' >> '$LOGIND_CONF'
+            fi
+        "
         echo "Configured $key=${settings[$key]}"
     done
     
@@ -64,17 +67,25 @@ configure_logind() {
 configure_sleep() {
     backup_config "$SLEEP_CONF"
     
-    # Используем временный блок для записи
-    sudo_cmd sh -c "grep -q '^\[Sleep\]' $SLEEP_CONF || echo '[Sleep]' >> $SLEEP_CONF"
-    sudo_cmd sed -i '/^\[Sleep\]/,/^\[/{/^\[Sleep\]/!{/^\[/!d}}' "$SLEEP_CONF"
+    # Содержимое секции Sleep
+    SLEEP_CONTENT=$(cat << EOF
+[Sleep]
+AllowSuspend=no
+AllowHibernation=no
+AllowHybridSleep=no
+AllowSuspendThenHibernate=no
+EOF
+    )
     
-    # Записываем параметры через временную переменную
-    {
-        echo "AllowSuspend=no"
-        echo "AllowHibernation=no"
-        echo "AllowHybridSleep=no"
-        echo "AllowSuspendThenHibernate=no"
-    } | sudo_cmd tee -a "$SLEEP_CONF" > /dev/null
+    # Безопасная замена секции
+    sudo_cmd sh -c "
+        # Удаляем существующую секцию
+        sed -i '/^\[Sleep\]/,/^\[/{/^\[Sleep\]/!{/^\[/!d}}' '$SLEEP_CONF'
+        sed -i '/^\[Sleep\]/d' '$SLEEP_CONF'
+        
+        # Добавляем новую секцию
+        echo '$SLEEP_CONTENT' >> '$SLEEP_CONF'
+    "
     echo "Configured [Sleep] section"
 }
 

@@ -7,11 +7,11 @@ import locales
 class FirmwareRetraction:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.retract_length = config.getfloat('retract_length', 0., minval=0.)
-        self.retract_speed = config.getfloat('retract_speed', 20., minval=1)
+        self.retract_length = config.getfloat('retract_length', 0.6, minval=0.)
+        self.retract_speed = config.getfloat('retract_speed', 30., minval=1)
         self.unretract_extra_length = config.getfloat(
             'unretract_extra_length', 0., minval=0.)
-        self.unretract_speed = config.getfloat('unretract_speed', 10., minval=1)
+        self.unretract_speed = config.getfloat('unretract_speed', 30., minval=1)
         self.unretract_length = (self.retract_length
                                  + self.unretract_extra_length)
         self.is_retracted = False

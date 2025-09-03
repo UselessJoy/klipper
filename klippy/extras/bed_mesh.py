@@ -96,12 +96,12 @@ class BedMesh:
         self.printer = config.get_printer()
         self.printer.register_event_handler("klippy:connect",
                                             self.handle_connect)
-        # self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        self.printer.register_event_handler("klippy:ready", self._handle_ready)
         self.last_position = [0., 0., 0., 0.]
         self.bmc = BedMeshCalibrate(config, self)
         self.z_mesh = None
         self.toolhead = None
-        self.horizontal_move_z = config.getfloat('horizontal_move_z', 3.)
+        self.horizontal_move_z = config.getfloat('horizontal_move_z', None)
         self.fade_start = config.getfloat('fade_start', 1.)
         self.fade_end = config.getfloat('fade_end', 0.)  
         self.fade_dist = self.fade_end - self.fade_start
@@ -134,8 +134,10 @@ class BedMesh:
         gcode_move = self.printer.load_object(config, 'gcode_move')
         gcode_move.set_move_transform(self)
 
-    # def _handle_ready(self):
-    #     self.horizontal_move_z = self.printer.lookup_object("probe").z_offset + 1
+    def _handle_ready(self):
+        if not self.horizontal_move_z:
+          self.horizontal_move_z = self.printer.lookup_object("probe").z_offset + 1
+          self.bmc.update_horizontal_move_z(self.horizontal_move_z)
 
     def handle_connect(self):
         self.toolhead = self.printer.lookup_object('toolhead')
@@ -213,7 +215,7 @@ class BedMesh:
             self.last_position[:] = [x, y, z - final_z_adj, e]
         return list(self.last_position)
     
-    def move(self, newpos, speed):
+    def move(self, newpos, speed, ignore_limit=False):
         factor = self.get_z_factor(newpos[2])
         if self.z_mesh is None or not factor:
             # No mesh calibrated, or mesh leveling phased out.
@@ -223,7 +225,7 @@ class BedMesh:
                 logging.info(
                     "bed_mesh fade complete: Current Z: %.4f fade_target: %.4f "
                     % (z, self.fade_target))
-            self.toolhead.move([x, y, z + self.fade_target, e], speed)
+            self.toolhead.move([x, y, z + self.fade_target, e], speed, ignore_limit)
         else:
             self.splitter.build_move(self.last_position, newpos, factor)
             while not self.splitter.traverse_complete:
@@ -390,6 +392,9 @@ class BedMeshCalibrate:
             'ASYNC_STOP_BED_MESH_CALIBRATE', self.cmd_ASYNC_STOP_BED_MESH_CALIBRATE,
             desc=self.cmd_ASYNC_STOP_BED_MESH_CALIBRATE_help
         )
+    def update_horizontal_move_z(self, horizontal_move_z):
+        self.probe_helper.update_horizontal_move_z(horizontal_move_z)
+
     def _generate_points(self, error, probe_method="automatic"):
         x_cnt = self.mesh_config['x_count']
         y_cnt = self.mesh_config['y_count']

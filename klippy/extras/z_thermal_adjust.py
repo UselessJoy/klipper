@@ -122,7 +122,7 @@ class ZThermalAdjuster:
         self.last_position = self.calc_adjust(position)
         return position
 
-    def move(self, newpos, speed):
+    def move(self, newpos, speed, ignore_limit=False):
         # don't apply to extrude only moves or when disabled
         if (newpos[0:2] == self.last_position[0:2]) or not self.adjust_enable:
             z = newpos[2] + self.last_z_adjust_mm

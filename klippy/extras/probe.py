@@ -27,7 +27,7 @@ class PrinterProbe:
         self.z_offset = config.getfloat('z_offset')
         self.is_using_magnet_probe = False
         self.magnet_x = config.getfloat('magnet_x')
-        self.magnet_y = config.getfloat('magnet_y')
+        self.magnet_y = config.getfloat('magnet_y', self.config.getsection('stepper_y').getfloat('position_max'))
         self.speed_base = config.getfloat('speed_base')
         
         self.vsd = self.gcode_move = self.toolhead = None
@@ -39,6 +39,9 @@ class PrinterProbe:
         self.magnet_x_offset = config.getfloat('magnet_x_offset') 
         self.drop_z = config.getfloat('drop_z')
         
+        self.adjustment_x = config.getfloat('adjustment_x', self.magnet_x)
+        self.adjustment_y = config.getfloat('adjustment_y', self.parking_magnet_y)
+
         self.probe_calibrate_z = 0.
         self.multi_probe_pending = False
         self.last_z_result = 0.
@@ -150,31 +153,41 @@ class PrinterProbe:
             raise web_request.error(_("Error on test magnet probe"))
         web_request.send({'test_result': True})
     def take_magnet_probe(self):
+        # Если мы берем пробу на неотхоумленом принтере, при этом проба уже подключена, то нам все равно
+        # необходимо сначала полностью отхоумиться, при этом вернув пробу, чтобы после уже на верных координатах
+        # снова взять пробу
+        # if self.is_probe_active():
+        #     raise self.printer.command_error(_("Probe already taken"))
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
         self.gcode_move.set_absolute_coord(True)
         self.drop_z_move()
         self.gcode.run_script_from_command(f"\
-                            G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base}\n\
-                            G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking}\n\
+                            G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base} IGNORE_LIMIT\n\
+                            G1 X{self.magnet_x} Y{self.parking_magnet_y} F{self.speed_parking} IGNORE_LIMIT\n\
                          ")
         if not self.is_probe_active():
             raise self.printer.command_error(_("Couldn't take probe"))
-        return True
 
     def return_magnet_probe(self):
+        # Поскольку проба автоматически может вернуться на неотхоумленом принтере в процессе хоуминга,
+        # то дважды повторять одно и то же действие не имеет смысла
+        self.printer.lookup_object('homing').run_G28_if_unhomed()
+        if not self.is_probe_active():
+            raise self.printer.command_error(_("Probe already returned"))
         self.gcode_move.set_absolute_coord(True)
         self.drop_z_move()
         if float(self.toolhead.get_position()[1]) > self.parking_magnet_y:
             # Возвращение на парковочный Y
-            self.gcode.run_script_from_command(f"G1 Y{self.parking_magnet_y} F{self.speed_base}")
+            self.gcode.run_script_from_command(f"G1 Y{self.parking_magnet_y} F{self.speed_base} IGNORE_LIMIT")
         self.gcode.run_script_from_command(f"\
-          G1 X{self.magnet_x} F{self.speed_base}\n\
-          G1 Y{self.magnet_y} F{self.speed_parking}\n\
-          G1 X{self.magnet_x_offset} F{self.speed_base}\n\
-          G1 Y{self.parking_magnet_y} F{self.speed_parking}\n\
+          G1 X{self.magnet_x} F{self.speed_base} IGNORE_LIMIT\n\
+          G1 Y{self.parking_magnet_y} F{self.speed_base} IGNORE_LIMIT\n\
+          G1 Y{self.magnet_y} F{self.speed_parking} IGNORE_LIMIT\n\
+          G1 X{self.magnet_x_offset} F{self.speed_base} IGNORE_LIMIT\n\
+          G1 Y{self.parking_magnet_y} F{self.speed_base} IGNORE_LIMIT\n\
         ")
         if self.is_probe_active():
             raise self.printer.command_error(_("Couldn't return probe"))
-        return True
     
     def _handle_homing_move_begin(self, hmove):
         if self.mcu_probe in hmove.get_mcu_endstops():
@@ -300,21 +313,17 @@ class PrinterProbe:
     
     cmd_GET_MAGNET_PROBE_help = _("Command to get magnet probe") 
     def cmd_GET_MAGNET_PROBE(self, gcmd):
-        self.printer.lookup_object('homing').run_G28_if_unhomed()
         self.take_magnet_probe()
-        return
     
     cmd_RETURN_MAGNET_PROBE_help = _("Command to return magnet probe")
     def cmd_RETURN_MAGNET_PROBE(self, gcmd):
-        self.printer.lookup_object('homing').run_G28_if_unhomed()
         self.return_magnet_probe()
-        return
     
     cmd_START_ADJUSTMENT_help = _("Adjust magnet probe")
     def cmd_START_ADJUSTMENT(self, gcmd):
       self.is_adjusting = True
       self.printer.lookup_object('homing').run_G28_if_unhomed()
-      self.gcode.run_script_from_command(f"G1 X{self.magnet_x} Y{self.magnet_y} F{self.speed_base}")
+      self.gcode.run_script_from_command(f"G1 X{self.adjustment_x} Y{self.adjustment_y} F{self.speed_base}")
       self.drop_z_move()
     
     cmd_ACCEPT_ADJUSTMENT_help = _("Checking coordinates for magnet capture and saving it on success")
@@ -323,16 +332,21 @@ class PrinterProbe:
       
       x = gcmd.get_float("X", self.magnet_x)
       y = gcmd.get_float("Y", self.magnet_y)
-      if y - max_y > 5:
-        messages = self.printer.lookup_object("messages")
-        messages.send_message('warning', _("Y coordinate too far from border. Please, return extruder to socket position"))
-        return
+      # if y - max_y > 5:
+      #   messages = self.printer.lookup_object("messages")
+      #   messages.send_message('warning', _("Y coordinate too far from border. Please, return extruder to socket position"))
+      #   return
       if self.run_gcode_check_magnet(x, y):
         self.is_adjusting = False
         configfile = self.printer.lookup_object('configfile')
-        probe_section = {f"probe": {"magnet_x": x, "magnet_y": y}}
+        probe_section = {"probe": {"magnet_x": x, "magnet_y": y}}
         self.magnet_x = x
         self.magnet_y = y
+        configfile.update_config(setting_sections={"stepper_y": {"position_max": y}})
+        kin = self.toolhead.get_kinematics()
+        y_rail = kin.get_rails()[1]
+        y_rail.set_position_max(y)
+        kin.update_rail(1)
         configfile.update_config(setting_sections=probe_section, save_immediatly=True)
         messages = self.printer.lookup_object("messages")
         messages.send_message('success', _("Magnet check successfull. New coordinates saved"))
@@ -348,16 +362,16 @@ class PrinterProbe:
     def run_gcode_check_magnet(self, x, y):
       self.gcode_move.set_absolute_coord(True)
       self.drop_z_move()
-      self.gcode.run_script_from_command(f"G1 X{x} Y{self.parking_magnet_y} F{self.speed_parking}")
+      self.gcode.run_script_from_command(f"G1 X{x} Y{self.parking_magnet_y} F{self.speed_parking} IGNORE_LIMIT")
       messages = self.printer.lookup_object("messages")
       if not self.is_probe_active():
           messages.send_message('warning', _("Couldn't take probe"))
-          self.gcode.run_script_from_command(f"G1 X{x} Y{y} F{self.speed_base}")
+          self.gcode.run_script_from_command(f"G1 X{x} Y{y} F{self.speed_base} IGNORE_LIMIT")
           return False
       self.gcode.run_script_from_command(f"\
-                            G1 X{x} Y{y} F{self.speed_parking}\n\
-                            G1 X{self.magnet_x_offset} F{self.speed_parking}\n\
-                            G1 Y{self.parking_magnet_y} F{self.speed_base}\n\
+                            G1 X{x} Y{y} F{self.speed_parking} IGNORE_LIMIT\n\
+                            G1 X{self.magnet_x_offset} F{self.speed_parking} IGNORE_LIMIT\n\
+                            G1 Y{self.parking_magnet_y} F{self.speed_base} IGNORE_LIMIT\n\
                          ")
       if self.is_probe_active():
           messages.send_message('warning', _("Couldn't return probe"))
@@ -397,10 +411,14 @@ class PrinterProbe:
         gcmd.respond_info(_("probe: %s") % (["open", "TRIGGERED"][res],))
 
     def get_status(self, eventtime):
-        return {'last_query': self.is_using_magnet_probe, # Останется до следующего патча флуида
-                'last_z_result': self.last_z_result,
-                'is_using_magnet_probe': self.is_using_magnet_probe,
-                'is_adjusting': self.is_adjusting}
+        return  {
+                  'last_query': self.is_using_magnet_probe, # Останется до следующего патча флуида
+                  'last_z_result': self.last_z_result,
+                  'is_using_magnet_probe': self.is_using_magnet_probe,
+                  'is_adjusting': self.is_adjusting,
+                  'magnet_x': self.magnet_x,
+                  'magnet_y': self.magnet_y
+                }
 
     cmd_PROBE_ACCURACY_help = _("Probe Z-height accuracy at current XY position")
     def cmd_PROBE_ACCURACY(self, gcmd):
@@ -582,6 +600,10 @@ class ProbePointsHelper:
         self.lift_speed = self.speed
         self.probe_offsets = (0., 0., 0.)
         self.results = []
+
+    def update_horizontal_move_z(self, horizontal_move_z):
+        self.horizontal_move_z = horizontal_move_z
+
     def minimum_points(self,n):
         if len(self.probe_points) < n:
             raise self.printer.config_error(

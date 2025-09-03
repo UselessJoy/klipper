@@ -293,31 +293,35 @@ class PrinterHoming:
         try:
             if not axis:
               axis = [1, 0, 2]
-            if probe.is_probe_active():
-              if "z" not in kin_status['homed_axes']:
-                last_pos = toolhead.get_position()
-                gcode.run_script_from_command(f"SET_KINEMATIC_POSITION Z={last_pos[2]}\n")
-                probe.drop_z_move()
+            if "z" not in kin_status['homed_axes']:
+              last_pos = toolhead.get_position()
+              gcode.run_script_from_command(f"SET_KINEMATIC_POSITION Z={last_pos[2]}\n")
+              probe.drop_z_move()
             kin = self.printer.lookup_object('toolhead').get_kinematics()
+            # Y всегда должен идти первым
             if 1 in axis:
               axis.remove(1)
               axis.insert(0, 1)
-            if len(axis) > 0:
-                if 2 in axis and probe.is_probe_active():
-                    kin_status = toolhead.get_kinematics().get_status(reactor.monotonic())
-                    need_axis = []
-                    if "y" not in kin_status['homed_axes']:
-                        need_axis.append(1)
-                    if "x" not in kin_status['homed_axes']:
-                        need_axis.append(0)
-                    if len(need_axis):
-                      hs = Homing(self.printer)
-                      hs.set_axes(need_axis)
-                      kin.home(hs)
-                    probe.return_magnet_probe()
-                homing_state = Homing(self.printer)
-                homing_state.set_axes(axis)
-                kin.home(homing_state)
+            if 2 in axis and probe.is_probe_active():
+                kin_status = toolhead.get_kinematics().get_status(reactor.monotonic())
+                need_axis = []
+                # Поскольку хоуминг будет по xy будет произведен, то второй раз его проводить не нужно
+                if "y" not in kin_status['homed_axes']:
+                    need_axis.append(1)
+                    if 1 in axis:
+                      axis.remove(1)
+                if "x" not in kin_status['homed_axes']:
+                    need_axis.append(0)
+                    if 0 in axis:
+                      axis.remove(0)
+                if len(need_axis):
+                  hs = Homing(self.printer)
+                  hs.set_axes(need_axis)
+                  kin.home(hs)
+                probe.return_magnet_probe()
+            homing_state = Homing(self.printer)
+            homing_state.set_axes(axis)
+            kin.home(homing_state)
         except self.printer.command_error:
             if self.printer.is_shutdown():
                 raise self.printer.command_error(

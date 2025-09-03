@@ -9,25 +9,30 @@ import sys, os, glob, re, time, logging, configparser, io
 import locales
 locales.set_locale()
 error = configparser.Error
-DEPRECATED_SECTIONS = ['motor_checker', 'wifi_mode']
-
+SECTIONS_DEPRECATED = ['motor_checker', 'wifi_mode']
+SECTIONS_FULL_REWRITABLE = []
+SECTIONS_SKIPPED = ['include']
 #section -> deprecated option -> new option with def value
-CHANGED_SECTION = {
+SECTIONS_CHANGED = {
     'printer': {
         'remove_option': ['max_accel_to_decel'],
         'add_option': {'minimum_cruise_ratio': 0.5}
     },
     'tmc2209 stepper_x': {
-        'remove_option': ['hold_current']
+        'remove_option': ['hold_current'],
+        'add_option': {'run_current': 1}
     },
     'tmc2209 stepper_y': {
-      'remove_option': ['hold_current']
+      'remove_option': ['hold_current'],
+      'add_option': {'run_current': 1}
     },
     'tmc2209 stepper_z': {
-      'remove_option': ['hold_current']
+      'remove_option': ['hold_current'],
+      'add_option': {'run_current': 1}
     },
     'tmc2209 extruder': {
-      'remove_option': ['hold_current']
+      'remove_option': ['hold_current'],
+      'add_option': {'run_current': 1}
     },
 }
 
@@ -166,13 +171,13 @@ class ConfigWrapper:
     def getoptions(self) -> list[str]:
         return self.fileconfig.options(self.section)
 
-    def has_section(self, section) -> bool:
+    def has_section(self, section: str) -> bool:
         return self.fileconfig.has_section(section)
 
-    def has_option(self, section, option) -> bool:
+    def has_option(self, section: str, option) -> bool:
         return self.fileconfig.has_option(section, option)
 
-    def get_prefix_sections(self, prefix):
+    def get_prefix_sections(self, prefix) -> list[ConfigWrapper]:
         return [self.getsection(s) for s in self.fileconfig.sections()
                 if s.startswith(prefix)]
 
@@ -374,11 +379,14 @@ class PrinterConfig:
         missed_sections = {}
         deprecated_sections = []
         for section in base_config.fileconfig.sections():
-            if not (config.has_section(section) or section.startswith('include ')):
-                missed_sections[section] = {}
-                for option in base_config.fileconfig.options(section):
-                    missed_sections[section][option] = base_config.fileconfig.get(section, option)
-        for section in DEPRECATED_SECTIONS:
+            if (config.has_section(section) and section.split(' ')[0] not in SECTIONS_FULL_REWRITABLE) \
+                or section.split(' ')[0] in SECTIONS_SKIPPED:
+                continue
+            logging.info(f"new missing section is {section}")
+            missed_sections[section] = {}
+            for option in base_config.fileconfig.options(section):
+                missed_sections[section][option] = base_config.fileconfig.get(section, option)
+        for section in SECTIONS_DEPRECATED:
             if config.has_section(section):
                 deprecated_sections.append(section)
         if missed_sections or deprecated_sections:
@@ -409,19 +417,24 @@ class PrinterConfig:
           self.compare_base_config(cfg) 
           self.compare_pause_resume_config()
           if self.has_deprecated_options(cfg):
+            logging.info("saving config")
             self.save_config(True, True, with_options=True)
         return cfg
 
     def has_deprecated_options(self, cfg: ConfigWrapper):
-      for section in CHANGED_SECTION:
-        if 'remove_option' in CHANGED_SECTION[section]:
-          for remove_option in CHANGED_SECTION[section]['remove_option']:
+      for section in SECTIONS_CHANGED:
+        if 'remove_option' in SECTIONS_CHANGED[section]:
+          for remove_option in SECTIONS_CHANGED[section]['remove_option']:
               if cfg.has_option(section, remove_option):
+                  logging.info("has removing sections")
                   return True
-        if 'add_option' in CHANGED_SECTION[section]:
-          for add_option in CHANGED_SECTION[section]['add_option']:
-              if not cfg.has_option(section, add_option):
-                  return True
+        if 'add_option' in SECTIONS_CHANGED[section]:
+          for add_option in SECTIONS_CHANGED[section]['add_option']:
+              if cfg.has_option(section, add_option):
+                  if cfg.getsection(section).get(add_option) != str(SECTIONS_CHANGED[section]['add_option'][add_option]):
+                      logging.info("has changed options")
+                      return True
+      logging.info("nothing to save")
       return False
 
     def check_unused_options(self, config: ConfigWrapper):
@@ -650,15 +663,14 @@ class PrinterConfig:
                 value = self.pendingSaveItems[section][option]
                 newConfigParser.set(section, option, value)
         if with_options:
-          for section in CHANGED_SECTION:
-            if 'remove_option' in CHANGED_SECTION[section]:
-              for remove_option in CHANGED_SECTION[section]['remove_option']:
+          for section in SECTIONS_CHANGED:
+            if 'remove_option' in SECTIONS_CHANGED[section]:
+              for remove_option in SECTIONS_CHANGED[section]['remove_option']:
                   if newConfigParser.has_option(section, remove_option):
                       newConfigParser.remove_option(section, remove_option)
-            if 'add_option' in CHANGED_SECTION[section]:
-              for add_option in CHANGED_SECTION[section]['add_option']:
-                  if not newConfigParser.has_option(section, add_option):
-                      newConfigParser.set(section, add_option, CHANGED_SECTION[section]['add_option'][add_option])
+            if 'add_option' in SECTIONS_CHANGED[section]:
+              for add_option in SECTIONS_CHANGED[section]['add_option']:
+                  newConfigParser.set(section, add_option, SECTIONS_CHANGED[section]['add_option'][add_option])
 
         newConfigWrapper.fileconfig = newConfigParser
         return newConfigWrapper

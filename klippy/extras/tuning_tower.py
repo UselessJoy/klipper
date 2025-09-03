@@ -74,7 +74,7 @@ class TuningTower:
         if self.band:
             z = (math.floor(z / self.band) + .5) * self.band
         return self.start + z * self.factor
-    def move(self, newpos, speed):
+    def move(self, newpos, speed, ignore_limit=False):
         normal_transform = self.normal_transform
         if (newpos[3] > self.last_position[3] and newpos[2] != self.last_z
             and newpos[:3] != self.last_position[:3]):

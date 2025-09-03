@@ -1927,6 +1927,9 @@ msgstr "Температура LM75 %0.1f за пределами диапазо
 msgid "Start manual probe helper script"
 msgstr "Запустить скрипт ручной пробы"
 
+msgid "You must home after printing for apply change"
+msgstr "Чтобы изменения вступили в силу, после печати необходимо отхоумиться"
+
 #, python-format
 msgid ""
 "stepper_z: position_endstop: %.3f\n"

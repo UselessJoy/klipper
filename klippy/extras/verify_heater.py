@@ -90,14 +90,14 @@ class HeaterCheck:
         msg = _("Heater %s not heating at expected rate") % (self.heater_name,)
         self.printer.lookup_object('messages').send_message('error', msg)
         logging.error(msg)
-        self.success_heating = False
-        self.heater.set_temp(0.)
-        vsd = self.printer.lookup_object('virtual_sdcard')
-        if vsd.is_active():
-            vsd.do_pause()
-        return eventtime + 1.
-        # self.printer.invoke_shutdown(msg + HINT_THERMAL)
-        # return self.printer.get_reactor().NEVER
+        self.printer.invoke_shutdown(msg + HINT_THERMAL)
+        return self.printer.get_reactor().NEVER
+        # self.success_heating = False
+        # self.heater.set_temp(0.)
+        # vsd = self.printer.lookup_object('virtual_sdcard')
+        # if vsd.is_active():
+        #     vsd.do_pause()
+        # return eventtime + 1.
 
 def load_config_prefix(config):
     return HeaterCheck(config)

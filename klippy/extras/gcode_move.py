@@ -144,6 +144,7 @@ class GCodeMove:
     def cmd_G1(self, gcmd):
         # Move
         params = gcmd.get_command_parameters()
+        ignore_limit = False
         try:
             for pos, axis in enumerate('XYZ'):
                 if axis in params:
@@ -177,10 +178,21 @@ class GCodeMove:
                     raise gcmd.error(_("Invalid speed in '%s'")
                                      % (gcmd.get_commandline(),))
                 self.speed = gcode_speed * self.speed_factor
+            if 'IGNORE_LIMIT' in params:
+                ignore_limit = True
+                logging.info("found ignore")
         except ValueError as e:
             raise gcmd.error(_("Unable to parse move '%s'")
                              % (gcmd.get_commandline(),))
-        self.move_with_transform(self.last_position, self.speed)
+        # method = self.move_with_transform
+        # logging.info(f"Тип метода: {type(method)}")
+        # if hasattr(method, '__self__'):
+        #     logging.info(f"Принадлежит классу: {method.__self__.__class__.__name__}")
+        # if hasattr(method, '__qualname__'):
+        #     logging.info(f"Полное имя метода: {method.__qualname__}")
+        # if hasattr(method, '__module__'):
+        #     logging.info(f"Модуль класса: {method.__module__}")
+        self.move_with_transform(self.last_position, self.speed, ignore_limit)
     
     def reset_e(self):
       self.last_param_e = 0

@@ -41,9 +41,9 @@ class BedScrews:
         self.state = None
         self.current_screw = 0
         self.accepted_screws = 0
-    def move(self, coord, speed):
+    def move(self, coord, speed, ignore_limit=False):
         try:
-            self.printer.lookup_object('toolhead').manual_move(coord, speed)
+            self.printer.lookup_object('toolhead').manual_move(coord, speed, ignore_limit)
         except self.printer.command_error as e:
             self.unregister_commands()
             self.reset()

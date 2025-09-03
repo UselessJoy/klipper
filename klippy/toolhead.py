@@ -4,8 +4,10 @@
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 import math, logging, importlib
+import sys
 import mcu, chelper, kinematics.extruder
-import locales 
+import locales
+import signal
 locales.set_locale()
 # Common suffixes: _d is distance (in mm), _v is velocity (in
 #   mm/second), _v2 is velocity squared (mm^2/s^2), _t is time (in
@@ -219,7 +221,6 @@ class ToolHead:
         self.mcu = self.all_mcus[0]
         self.lookahead = LookAheadQueue(self)
         self.lookahead.set_flush_time(BUFFER_TIME_HIGH)
-        self.commanded_pos = [0., 0., 0., 0.]
         # Velocity and acceleration control
         self.max_velocity = config.getfloat('max_velocity', above=0.)
         self.max_accel = config.getfloat('max_accel', above=0.)
@@ -281,6 +282,16 @@ class ToolHead:
             msg = _("Error loading kinematics '%s'") % (kin_name,)
             logging.exception(msg)
             raise config.error(msg)
+        last_position = list(config.getfloatlist('last_position', [0., 0., 0., 0.], count = 4))
+        for i, rail in enumerate(self.kin.get_rails()):
+            rail_min, rail_max = rail.get_range()
+            if last_position[i] < rail_min:
+                last_position[i] = rail_min
+            elif last_position[i] > rail_max:
+                last_position[i] = rail_max
+            else:
+                last_position[i] = last_position[i]
+        self.commanded_pos = last_position
         # Register commands
         gcode.register_command('G4', self.cmd_G4)
         gcode.register_command('M400', self.cmd_M400)
@@ -290,6 +301,11 @@ class ToolHead:
         gcode.register_command('M204', self.cmd_M204)
         self.printer.register_event_handler("klippy:shutdown",
                                             self._handle_shutdown)
+        self.printer.register_event_handler("klippy:firmware_restart", self._write_last_position)
+        self.printer.register_event_handler("klippy:disconnect", self._write_last_position)
+        # Регистрируем обработчик для SIGTERM
+        signal.signal(signal.SIGTERM, self._handle_system_shutdown)
+        signal.signal(signal.SIGHUP, self._handle_system_shutdown)
         # Register homing events when klippy load all objects
         self.printer.register_event_handler("klippy:ready",
                                             self._handle_ready)
@@ -489,25 +505,26 @@ class ToolHead:
         if last_move is not None:
             last_move.limit_next_junction_speed(speed)
 
-    def move(self, newpos, speed):
+    def move(self, newpos, speed, ignore_limit=False):
         move = Move(self, self.commanded_pos, newpos, speed)
         if not move.move_d:
             return
-        if move.is_kinematic_move:
-            self.kin.check_move(move)
-        if move.axes_d[3]:
-            self.extruder.check_move(move)
+        if not ignore_limit:
+          if move.is_kinematic_move:
+              self.kin.check_move(move)
+          if move.axes_d[3]:
+              self.extruder.check_move(move)
         self.commanded_pos[:] = move.end_pos
         self.lookahead.add_move(move)
         if self.print_time > self.need_check_pause:
             self._check_pause()
             
-    def manual_move(self, coord, speed):
+    def manual_move(self, coord, speed, ignore_limit=False):
         curpos = list(self.commanded_pos)
         for i in range(len(coord)):
             if coord[i] is not None:
                 curpos[i] = coord[i]
-        self.move(curpos, speed)
+        self.move(curpos, speed, ignore_limit)
         self.printer.send_event("toolhead:manual_move")
         
     def dwell(self, delay):
@@ -618,8 +635,32 @@ class ToolHead:
         self.is_homing = False
 
     def _handle_shutdown(self):
+        self._write_last_position()
         self.can_pause = False
         self.lookahead.reset()
+
+    def _write_last_position(self, *args):
+        configfile = self.printer.lookup_object('configfile')
+        self.kin
+        last_position_config = [.0, .0, .0]
+        for i, rail in enumerate(self.kin.get_rails()):
+            rail_min, rail_max = rail.get_range()
+            if self.commanded_pos[i] < rail_min:
+                last_position_config[i] = rail_min
+            elif self.commanded_pos[i] > rail_max:
+                last_position_config[i] = rail_max
+            else:
+                last_position_config[i] = self.commanded_pos[i]
+        last_position_config.append(self.commanded_pos[3])
+        position_config = {
+            "last_position": f"{last_position_config[0]:.2f}, {last_position_config[1]:.2f}, {last_position_config[2]:.2f}, {last_position_config[3]:.2f}"
+        }
+        saving_section = {"printer": position_config}
+        configfile.update_config(setting_sections=saving_section, save_immediatly=True)
+
+    def _handle_system_shutdown(self, *args):
+        self._write_last_position()
+
     def get_kinematics(self):
         return self.kin
     def get_trapq(self):

@@ -278,7 +278,6 @@ def arg_dictionary(option, opt_str, value, parser):
     parser.values.dictionary[key] = fname
 
 def main():
-    os.system("echo orangepi | sudo --stdin systemctl mask sleep.target suspend.target hibernate.target hybrid.target")
     usage = "%prog [options] <config file>"
     opts = optparse.OptionParser(usage)
     opts.add_option("-i", "--debuginput", dest="debuginput",

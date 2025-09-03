@@ -363,6 +363,10 @@ class PrinterRail:
 
     def get_range(self):
         return self.position_min, self.position_max
+
+    def set_position_max(self, position_max):
+        self.position_max = position_max
+
     def get_homing_info(self):
         homing_info = collections.namedtuple('homing_info', [
             'speed', 'position_endstop', 'retract_speed', 'retract_dist',

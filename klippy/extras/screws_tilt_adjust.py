@@ -19,6 +19,7 @@ class ScrewsTiltAdjust:
         self.results = {}
         self.max_diff = None
         self.minutes_deviation = 3
+        self.search_highest = False
         self.i_base = self.z_base = self.base_screw = self.calibrating_screw = self.calibrating_screws = self.next_screw = None
         self.stop_screw = self.stop_calibrate = self.is_calibrating = False
         self.max_diff_error = False
@@ -86,9 +87,11 @@ class ScrewsTiltAdjust:
     cmd_ASYNC_SET_CALIBRATING_SCREW_help = _("Go to the given screw to calibrate")
     def cmd_async_SET_CALIBRATING_SCREW(self, gcmd):
         messages = self.printer.lookup_object('messages')
-        # next_screw можно перевести в массив, чтобы можно было добавлять очередь винтов (хз зачем, но можно)
         if self.next_screw:
             messages.send_message("warning", _("Cannot set new calibrating screw: already wait move to next screw %s") % self.next_screw)
+            return
+        elif self.search_highest:
+            messages.send_message("error", _("Cannot set new calibrating screw: searching highest screw"))
             return
         elif not self.is_calibrating:
             messages.send_message("error", _("Cannot set new calibrating screw: calibration is not performed"))
@@ -157,8 +160,11 @@ class ScrewsTiltAdjust:
         self.multi_tap = False
         adjusting = False
         self.adjusted_screws = 0
+        probe_obj = self.printer.lookup_object("probe")
         try:
+            self.search_highest = True
             self.find_highest_screw(gcmd, False)
+            self.search_highest = False
             logging.info(f"highest base screw is {self.base_screw}")
             while not self.stop_calibrate:
                 if not adjusting:
@@ -177,9 +183,17 @@ class ScrewsTiltAdjust:
                     self.calibrating_screw = self.calibrating_screws[self.next_screw]
                     self.next_screw = None
                 else:
-                    next_i = int(self.calibrating_screw['prefix'][-1]) % len(self.screws) + 1
-                    if self.i_base == next_i:
-                        next_i = int(self.calibrating_screw['prefix'][-1]) % len(self.screws) + 2
+                    next_i  = (int(self.calibrating_screw['prefix'][-1]) + 1) % (len(self.screws) + 1)
+                    cycle_i = 0
+                    while f"screw{next_i}" not in self.calibrating_screws or next_i == self.i_base:
+                      if cycle_i > 4:
+                        raise gcmd.error("Error on select next screw: iterations more than screws")
+                      next_i = (next_i + 1) % (len(self.screws) + 1)
+                      cycle_i += 1
+                    # next_i = (int(self.calibrating_screw['prefix'][-1]) + 1) % (len(self.screws) + 1)
+                    # if self.i_base == next_i:
+                    #     next_i = (int(self.calibrating_screw['prefix'][-1]) + 2) % (len(self.screws) + 1)
+                    # next_i = next_i + 1 if next_i == 0 else next_i
                     self.calibrating_screw = self.calibrating_screws[f"screw{next_i}"]
                 probe_screw = probe.ProbePointsHelper(self.config, self.on_screw_finalize, default_points=[self.calibrating_screw['coord']])
                 probe_screw.start_probe(gcmd, False)
@@ -198,19 +212,25 @@ class ScrewsTiltAdjust:
         except Exception as e:
             self.calibrating_screws = None
             self.is_calibrating = False
+            probe_obj.drop_z_move()
+            probe_obj.return_magnet_probe()
             raise e
         self.calibrating_screws = None
         self.is_calibrating = False
+        probe_obj.drop_z_move()
+        probe_obj.return_magnet_probe()
     
     def find_highest_screw(self, gmcd, return_probe):
         points = [self.screws[name]['coord'] for name in self.screws]
+        # По таске нам нужен двойной тык при первой пробе 
+        points.insert(1, points[0])
         probe_helper = probe.ProbePointsHelper(self.config,
                                                     self._highest_i_finalize,
                                                     default_points=points)
         probe_helper.start_probe(gmcd, return_probe)
     
     def _highest_i_finalize(self, offsets, positions: list[tuple]):
-        logging.info(f"positions {positions}")
+        positions.pop(0)
         max_z = positions[0][2]
         screw_iter = iter(self.screws)
         for position in positions:
@@ -343,7 +363,8 @@ class ScrewsTiltAdjust:
                 'results': self.results.copy(),
                 'base_screw': self.base_screw,
                 'calibrating_screw': self.calibrating_screw,
-                'is_calibrating': self.is_calibrating
+                'is_calibrating': self.is_calibrating,
+                'search_highest': self.search_highest
               }
     
     def probe_finalize(self, offsets, positions):

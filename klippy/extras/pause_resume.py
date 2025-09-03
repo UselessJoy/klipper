@@ -126,12 +126,18 @@ class PauseResume:
             return
         if self.printer.lookup_object('safety_printing').is_open():
             return
+        self.is_paused = False
+        self.gcode.run_script_from_command("\
+            G92 E0\n\
+            G1 E20 F300\n\
+            G1 X-15 Y205 F6000\n\
+        ")
         velocity = gcmd.get_float('VELOCITY', self.recover_velocity)
         self.gcode.run_script_from_command(
             "RESTORE_GCODE_STATE NAME=PAUSE_STATE MOVE=1 MOVE_SPEED=%.4f"
             % (velocity))
         self.send_resume_command()
-        self.is_paused = False
+        
 
     cmd_CLEAR_PAUSE_help = (
         _("Clears the current paused state without resuming the print"))

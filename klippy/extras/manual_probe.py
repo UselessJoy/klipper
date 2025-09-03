@@ -105,15 +105,22 @@ class ManualProbe:
         else:
             self.z_position_endstop += babystep_offset
             self.save_z_position_endstop()
+            self.gcode_move.homing_position[2] = 0.
 
     def save_z_position_endstop(self):
-      self.printer.lookup_object('toolhead').get_kinematics().get_rails()[2].set_position_endstop(self.z_position_endstop)
-      self.gcode.run_script_from_command("G28 Z")
+      toolhead = self.printer.lookup_object('toolhead')
+      toolhead.get_kinematics().get_rails()[2].set_position_endstop(self.z_position_endstop)
+      is_active = self.printer.lookup_object('virtual_sdcard').is_active()
+      if is_active:
+          self.printer.lookup_object('messages').send_message("warning", _("You must home after printing for apply change"))
+      else:
+        self.gcode.run_script_from_command("G28 Z")
       configfile = self.printer.lookup_object('configfile')
       configfile.update_config({'stepper_z': {'position_endstop': f"{self.z_position_endstop:.3f}"}})
       self.update_status({'z_position_endstop': self.z_position_endstop})
-      self.printer.lookup_object('messages').send_message("success",_("stepper_z: position_endstop: %.3f\n"
-            "New position saved") % self.z_position_endstop)
+      if not is_active:
+        self.printer.lookup_object('messages').send_message("success",_("stepper_z: position_endstop: %.3f\n"
+              "New position saved") % self.z_position_endstop)
 
     def cmd_Z_OFFSET_APPLY_DELTA_ENDSTOPS(self,gcmd):
         offset = self.gcode_move.get_status()['homing_origin'].z

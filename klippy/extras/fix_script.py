@@ -16,6 +16,8 @@ class FixScript:
         klipperpath = pathlib.Path(__file__).parent.parent.parent.resolve()
         self.scriptpath = os.path.join(klipperpath, f"scripts/fix/{self.script_dir}")
 
+    # Проблема: в скриптах для проверки перезагрузки используется exit, что является полным калом
+    # Нужно переделать на статусы с ошибками - для перезагрузки использовать что-то другое
     def run_fix(self):
         if not self.fixed:
           sorted_dir = sorted(os.listdir(self.scriptpath))

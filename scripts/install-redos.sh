@@ -18,8 +18,8 @@ install_packages()
     # hub-ctrl
     PKGLIST="${PKGLIST} libusb-devel"
     # Update system package info
-    report_status "Running dnf update..."
-    sudo dnf update
+    # report_status "Running dnf update..."
+    # sudo dnf update
 
     # Install desired packages
     report_status "Installing packages..."

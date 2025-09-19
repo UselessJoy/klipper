@@ -14,7 +14,8 @@ install_packages()
       sudo usermod -aG tty,disk,dialout,video,audio,users,input,systemd-journal $USER
     fi
     # Packages for python cffi
-    PKGLIST="virtualenv python-devel libffi-devel @development-tools"
+    PKGLIST="virtualenv python-devel libffi-devel gcc gcc-c++ make automake autoconf binutils git"
+    # @development-tools
     # hub-ctrl
     PKGLIST="${PKGLIST} libusb-devel"
     # Update system package info

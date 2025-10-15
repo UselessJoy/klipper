@@ -413,6 +413,7 @@ class PrinterProbe:
     def get_status(self, eventtime):
         return  {
                   'last_query': self.is_using_magnet_probe, # Останется до следующего патча флуида
+                  'z_offset': self.z_offset,
                   'last_z_result': self.last_z_result,
                   'is_using_magnet_probe': self.is_using_magnet_probe,
                   'is_adjusting': self.is_adjusting,
@@ -616,7 +617,7 @@ class ProbePointsHelper:
     def get_lift_speed(self):
         return self.lift_speed
         
-    def _move_next(self, return_probe):
+    def _move_next(self, return_probe=False):
         toolhead = self.printer.lookup_object('toolhead')
         # Lift toolhead
         speed = self.lift_speed

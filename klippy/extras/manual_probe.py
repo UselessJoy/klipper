@@ -11,6 +11,13 @@ class ManualProbe:
         self.config = config
         self.drop_z = config.getfloat('drop_z', 5)
         self.manual_speed = config.getfloat('manual_speed', 3000)
+
+        self.is_active = False
+        self.z_position = None
+        self.z_position_lower = None
+        self.z_position_upper = None
+        self.command = None
+
         # Register commands
         self.gcode = self.printer.lookup_object('gcode')
         self.gcode_move = self.printer.load_object(config, "gcode_move")
@@ -56,22 +63,28 @@ class ManualProbe:
             self.gcode.respond_info("Z position is %.3f" % (kin_pos[2],))
 
     def reset_status(self):
-        self.status = {
-            'is_active': False,
-            'z_position': None,
-            'z_position_lower': None,
-            'z_position_upper': None,
-            'command': None,
-            'z_position_endstop': self.z_position_endstop
-        }
+        self.is_active = False
+        self.z_position = None
+        self.z_position_lower = None
+        self.z_position_upper = None
+        self.command = None
 
-    def update_status(self, dict):
-      for field in dict:
-        if field in self.status:
-          self.status[field] = dict[field]
+    def update_status(self, is_active=False, z_position=None, z_position_lower=None, z_position_upper=None, command=None):
+      self.is_active = is_active
+      self.z_position = z_position
+      self.z_position_lower = z_position_lower
+      self.z_position_upper = z_position_upper
+      self.command = command
 
     def get_status(self, eventtime):
-        return self.status
+        return {
+            'is_active': self.is_active,
+            'z_position': self.z_position,
+            'z_position_lower': self.z_position_lower,
+            'z_position_upper': self.z_position_upper,
+            'command': self.command,
+            'z_position_endstop': self.z_position_endstop
+        }
 
     cmd_MANUAL_PROBE_help = _("Start manual probe helper script")
     def cmd_MANUAL_PROBE(self, gcmd):
@@ -117,7 +130,6 @@ class ManualProbe:
         self.gcode.run_script_from_command("G28 Z")
       configfile = self.printer.lookup_object('configfile')
       configfile.update_config({'stepper_z': {'position_endstop': f"{self.z_position_endstop:.3f}"}})
-      self.update_status({'z_position_endstop': self.z_position_endstop})
       if not is_active:
         self.printer.lookup_object('messages').send_message("success",_("stepper_z: position_endstop: %.3f\n"
               "New position saved") % self.z_position_endstop)
@@ -236,14 +248,7 @@ class ManualProbeHelper:
         if next_pos < len(pp):
             next_pos_val = pp[next_pos]
             next_str = "%.3f" % (next_pos_val,)
-        update_dict = {
-            'is_active': True,
-            'z_position': z_pos,
-            'z_position_lower': prev_pos_val,
-            'z_position_upper': next_pos_val,
-            'command': self.command
-        }
-        self.manual_probe.update_status(update_dict)
+        self.manual_probe.update_status(True, z_pos, prev_pos_val, next_pos_val, self.command)
         # Find recent positions
         self.gcode.respond_info(_("Z position: %s --> %.3f <-- %s")
                                 % (prev_str, z_pos, next_str))

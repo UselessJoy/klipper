@@ -80,7 +80,7 @@ class VirtualSD:
         self.sdcard_dirname = os.path.normpath(os.path.expanduser(sd))
         self.header_data = self.footer_data = None
         self.media_dirname = "/media"
-        self.rebuild_choise = config.get('rebuild')
+        self.rebuild_choise = config.get('rebuild', "")
         stepper_z = config.getsection('stepper_z')
         self.max_z = stepper_z.getint('position_max')
         self.current_file = None

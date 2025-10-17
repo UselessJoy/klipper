@@ -12,7 +12,7 @@ class SafetyPrinting:
         self.printer = config.get_printer()
         self.gcode = self.printer.lookup_object("gcode")
         self.safety_enabled = config.getboolean("safety_enabled")
-        self.show_respond = config.getboolean("show_respond")
+        self.show_respond = config.getboolean("show_respond", False)
         self.luft_timeout = config.getfloat("luft_timeout")
         self.luft_overload = False
         self.reactor = self.printer.get_reactor()

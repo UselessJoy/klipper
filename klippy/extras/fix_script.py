@@ -21,30 +21,34 @@ class FixScript:
     def run_fix(self):
         if not self.fixed:
           sorted_dir = sorted(os.listdir(self.scriptpath))
-          f_str = [f[:2] for f in sorted_dir if f.endswith('.sh')]
-          f_nums = []
-          for s in f_str:
+          format_dir = []
+          for f in sorted_dir:
+            can_to_int = True
             try:
-                f_nums.append(int(s))
+              int(f[:2])
             except:
-                pass
+              can_to_int = False
+            if f.endswith('.sh') and can_to_int:
+              format_dir.append(f)
+          f_nums = [int(f[:2]) for f in format_dir]
           max_num = f_nums[-1]
-          for script in sorted_dir:
-              if int(script[:2]) > self.last_done:  # Предполагается, что в директории скрипта будут только скрипты
-                                                    # формата NN_name.sh, где NN - порядковый номер выполнения скрипта 
-                  if self.require_internet and not self.has_internet():
-                      return 2
-                  logging.info(f"run {script}")
-                  must_reboot = subprocess.call([self.scriptpath + '/' + script])
-                  self.last_done = int(script[:2])
-                  
-                  if self.last_done >= max_num:
-                      self.fixed = True
-                  configfile: PrinterConfig = self.printer.lookup_object('configfile')
-                  fix_script_section = {f"fix_script {self.script_dir}": {"last_done": self.last_done, "fixed": self.fixed}}
-                  configfile.update_config(setting_sections=fix_script_section)
-                  if must_reboot:
-                      return 1
+          for script in format_dir:
+            if int(script[:2]) > self.last_done:  # Предполагается, что в директории скрипта будут только скрипты
+                                                  # формата NN_name.sh, где NN - порядковый номер выполнения скрипта 
+                if self.require_internet and not self.has_internet():
+                    return 2
+                logging.info(f"run {script}")
+                # Нет нормальной проверки на правильное завершение скриптов
+                must_reboot = subprocess.call([self.scriptpath + '/' + script])
+                self.last_done = int(script[:2])
+                
+                if self.last_done >= max_num:
+                    self.fixed = True
+                configfile: PrinterConfig = self.printer.lookup_object('configfile')
+                fix_script_section = {f"fix_script {self.script_dir}": {"last_done": self.last_done, "fixed": self.fixed}}
+                configfile.update_config(setting_sections=fix_script_section)
+                if must_reboot:
+                    return 1
         return 0
 
     def has_internet(self):

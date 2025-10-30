@@ -21,7 +21,7 @@ class FixScript:
     def run_fix(self):
         if not self.fixed:
           sorted_dir = sorted(os.listdir(self.scriptpath))
-          f_nums = [int(f[:2]) for f in sorted_dir]
+          f_nums = [int(f[:2]) for f in sorted_dir if f.endswith('.sh')]
           max_num = f_nums[-1]
           for script in sorted_dir:
               if int(script[:2]) > self.last_done:  # Предполагается, что в директории скрипта будут только скрипты

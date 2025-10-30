@@ -26,6 +26,6 @@ if [[ "$PKG_MANAGER" == "apt" ]]; then
 else
 	echo "$pwd" | sudo --stdin rpm -i cassistant-6.5-1.aarch64.rpm
 fi
-echo "$pwd" | sudo --stdin stop assistant.service
-echo "$pwd" | sudo --stdin disable assistant.service
+echo "$pwd" | sudo --stdin systemctl stop assistant.service
+echo "$pwd" | sudo --stdin systemctl disable assistant.service
 exit 0

@@ -24,9 +24,9 @@ pwd=$(detect_password)
 PKG_MANAGER=$(detect_package_manager)
 
 if [[ "$PKG_MANAGER" == "apt" ]]; then
-    echo "$pwd" | sudo -S dpkg -i cassistant_6.5-1_arm64.deb
+    echo "$pwd" | sudo -S dpkg -i "$HOME/klipper/scripts/fix/fix_assistant/cassistant_6.5-1_arm64.deb"
 elif [[ "$PKG_MANAGER" == "dnf" ]]; then
-    echo "$pwd" | sudo -S rpm -i cassistant-6.5-1.aarch64.rpm
+    echo "$pwd" | sudo -S rpm -i "$HOME/klipper/scripts/fix/fix_assistant/cassistant-6.5-1.aarch64.rpm"
 else
     echo "Unsupported package manager: $PKG_MANAGER"
     exit 1

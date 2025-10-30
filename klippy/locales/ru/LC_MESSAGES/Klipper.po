@@ -3263,7 +3263,7 @@ msgstr "Не удалось вернуть пробу"
 
 # ========================FIXING MODULE=====================#
 msgid "Current update has system fixes. Please, wait for install"
-msgstr "В обновлении имеются системные исправления. Пожалуйста, дождитесь их утановки"
+msgstr "В обновлении имеются системные исправления. Пожалуйста, дождитесь их установки"
 
 msgid "System updates requiring the internet. Please, connect to the internet"
 msgstr "Системные исправления требуют доступ к интернету. Пожалуйста, подключитесь к интернету"

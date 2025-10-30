@@ -21,8 +21,6 @@ detect_package_manager() {
 }
 PKG_MANAGER=$(detect_package_manager)
 
-cd $HOME
-
 if [[ "$PKG_MANAGER" == "apt" ]]; then
 	echo "$pwd" | sudo --stdin dpkg -i cassistant_6.5-1_arm64.deb
 else

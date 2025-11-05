@@ -305,7 +305,7 @@ class ToolHead:
         self.printer.register_event_handler("klippy:disconnect", self._write_last_position)
         # Регистрируем обработчик для SIGTERM
         signal.signal(signal.SIGTERM, self._handle_system_shutdown)
-        signal.signal(signal.SIGHUP, self._handle_system_shutdown)
+        # signal.signal(signal.SIGHUP, self._handle_system_shutdown)
         # Register homing events when klippy load all objects
         self.printer.register_event_handler("klippy:ready",
                                             self._handle_ready)

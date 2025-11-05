@@ -64,6 +64,9 @@ Type=simple
 User=$KLIPPER_USER
 RemainAfterExit=yes
 ExecStart=${PYTHONDIR}/bin/python ${SRCDIR}/klippy/klippy.py ${HOME}/printer.cfg -l ${KLIPPER_LOG}
+ExecStop=/bin/kill -TERM $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
 Restart=always
 RestartSec=10
 EOF

@@ -443,6 +443,8 @@ class PrinterConfig:
                   if cfg.getsection(section).get(add_option) != str(SECTIONS_CHANGED[section]['add_option'][add_option]):
                       logging.info("has changed options")
                       return True
+              else:
+                  return True
       logging.info("nothing to save")
       return False
 
@@ -679,7 +681,7 @@ class PrinterConfig:
                       newConfigParser.remove_option(section, remove_option)
             if 'add_option' in SECTIONS_CHANGED[section]:
               if section == 'fan_back back':
-                  if newConfigParser.has_option('mode'):
+                  if newConfigParser.has_option(section, 'mode'):
                       continue
               for add_option in SECTIONS_CHANGED[section]['add_option']:
                   newConfigParser.set(section, add_option, SECTIONS_CHANGED[section]['add_option'][add_option])

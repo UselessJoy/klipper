@@ -34,6 +34,15 @@ SECTIONS_CHANGED = {
       'remove_option': ['hold_current'],
       'add_option': {'run_current': 1}
     },
+    'fan_back back': {
+        'add_option': {
+            'mode': 'config',
+            'temp_30': 0.45,
+            'temp_40': 0.55,
+            'temp_50': 0.65,
+            'temp_65': 0.75,
+        }
+    }
 }
 
 class sentinel:
@@ -669,6 +678,9 @@ class PrinterConfig:
                   if newConfigParser.has_option(section, remove_option):
                       newConfigParser.remove_option(section, remove_option)
             if 'add_option' in SECTIONS_CHANGED[section]:
+              if section == 'fan_back back':
+                  if newConfigParser.has_option('mode'):
+                      continue
               for add_option in SECTIONS_CHANGED[section]['add_option']:
                   newConfigParser.set(section, add_option, SECTIONS_CHANGED[section]['add_option'][add_option])
 

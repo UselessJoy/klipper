@@ -658,9 +658,13 @@ class ToolHead:
         saving_section = {"printer": position_config}
         configfile.update_config(setting_sections=saving_section, save_immediatly=True)
 
-    def _handle_system_shutdown(self, *args):
+    def _handle_system_shutdown(self, signum, frame):
         self._write_last_position()
-
+        logging.info("Received signal %d, initiating shutdown...", signum)
+        # Инициировать корректное завершение работы
+        self.printer.invoke_shutdown("System shutdown signal received")
+        # Запросить выход из основного цикла
+        self.printer.request_exit('exit')
     def get_kinematics(self):
         return self.kin
     def get_trapq(self):

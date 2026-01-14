@@ -662,7 +662,7 @@ class ToolHead:
         self._write_last_position()
         logging.info("Received signal %d, initiating shutdown...", signum)
         # Инициировать корректное завершение работы
-        self.printer.invoke_shutdown("System shutdown signal received")
+        # self.printer.invoke_shutdown("System shutdown signal received")
         # Запросить выход из основного цикла
         self.printer.request_exit('exit')
     def get_kinematics(self):

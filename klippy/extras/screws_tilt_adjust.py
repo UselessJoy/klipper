@@ -212,8 +212,8 @@ class ScrewsTiltAdjust:
         except Exception as e:
             self.calibrating_screws = None
             self.is_calibrating = False
-            probe_obj.drop_z_move()
-            probe_obj.return_magnet_probe()
+            # probe_obj.drop_z_move()
+            # probe_obj.return_magnet_probe()
             raise e
         self.calibrating_screws = None
         self.is_calibrating = False

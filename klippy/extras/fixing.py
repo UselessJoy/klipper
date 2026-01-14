@@ -1,7 +1,3 @@
-import logging
-import os
-import pathlib
-import subprocess
 from .fix_script import FixScript
 import locales
 

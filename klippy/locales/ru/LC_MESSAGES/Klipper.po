@@ -2381,14 +2381,9 @@ msgstr "Головка экструдера перемещена во время
 msgid "Need at least %d probe points for %s"
 msgstr "Требуется как минимум %d точек проб для %s"
 
-msgid "horizontal_move_z can't be less thanprobe's z_offset"
-msgstr "horizontal_move_z не может быть меньше z_offset проб"
+msgid "horizontal_move_z can't be less than probe's z_offset"
+msgstr "horizontal_move_z не может быть меньше z_offset пробы"
 
-msgid ""
-"horizontal_move_z can't be less than "
-"probe's z_offset"
-msgstr "horizontal_move_z в секции [bed_mesh] не может быть меньше чем "
-"z_offset в секции [probe]"
 # =========================END PROBE MODULE======================#
 # =====================QUAD_GANTRY_LEVEL MODULE==================#
 msgid "Possibly Z motor numbering is wrong"

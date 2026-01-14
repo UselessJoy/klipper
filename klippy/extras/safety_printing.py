@@ -1,4 +1,3 @@
-import logging
 import locales
 from configfile import ConfigWrapper, PrinterConfig
 

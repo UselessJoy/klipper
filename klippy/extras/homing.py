@@ -318,7 +318,7 @@ class PrinterHoming:
                   hs = Homing(self.printer)
                   hs.set_axes(need_axis)
                   kin.home(hs)
-                probe.return_magnet_probe()
+                probe.return_gcode()
             homing_state = Homing(self.printer)
             homing_state.set_axes(axis)
             kin.home(homing_state)

@@ -239,6 +239,8 @@ class PrinterConfig:
                              self._load_backup_config)
         webhooks.register_endpoint("configfile/check_backup",
                              self._find_backup)
+        webhooks.register_endpoint("configfile/return_base_config",
+                             self._load_base_config_with_options)
         gcode.register_command("SAVE_CONFIG", self.cmd_SAVE_CONFIG,
                                desc=self.cmd_SAVE_CONFIG_help)
         gcode.register_command("BACKUP_CONFIG", self.cmd_BACKUP_CONFIG,
@@ -380,11 +382,13 @@ class PrinterConfig:
     def create_base_config_wrapper(self, file):
         klipperpath = os.path.dirname(__file__)
         filepath = os.path.join(klipperpath, file)
-        cfg = self.read_config(filepath, parse_includes=False)
-        return cfg
+        data = self._read_config_file(filepath)
+        data_option_comments, remain_comments = self.comments_to_option_value(data)
+        configWrapper = self._build_config_wrapper(data_option_comments, filepath, parse_includes=False)
+        return configWrapper, remain_comments
 
     def compare_base_config(self, config: ConfigWrapper):
-        base_config: ConfigWrapper = self.create_base_config_wrapper("printer_base.cfg")
+        base_config, __ = self.create_base_config_wrapper("printer_base.cfg")
         missed_sections = {}
         deprecated_sections = []
         for section in base_config.fileconfig.sections():
@@ -398,11 +402,13 @@ class PrinterConfig:
         for section in SECTIONS_DEPRECATED:
             if config.has_section(section):
                 deprecated_sections.append(section)
+        logging.info(f"missed_sections: {missed_sections}")
+        logging.info(f"deprecated_sections: {deprecated_sections}")
         if missed_sections or deprecated_sections:
           self.update_config(setting_sections=missed_sections, removing_sections=deprecated_sections, save_immediatly=True, need_restart=True)
 
     def compare_pause_resume_config(self):
-        base_pause_resume_config: ConfigWrapper = self.create_base_config_wrapper("pause_resume_base.cfg")
+        base_pause_resume_config, __ = self.create_base_config_wrapper("pause_resume_base.cfg")
         base_confg_path:str = self.printer.get_start_args()['config_file']
         config_dir = os.path.dirname(base_confg_path)
         pause_resume_path =  config_dir + '/pause_resume.cfg'
@@ -411,6 +417,7 @@ class PrinterConfig:
         current_resume = pause_resume_config.fileconfig.get('gcode_macro RESUME', 'gcode')
         base_resume = base_pause_resume_config.fileconfig.get('gcode_macro RESUME', 'gcode')
         if current_resume != base_resume:
+            logging.info("updating RESUME macro")
             self.update_config({'gcode_macro RESUME': {'gcode': base_resume}}, save_immediatly=True, need_restart=True, cfgname=pause_resume_path)
 
     def read_main_config(self, parse_includes=True, compare=True) -> ConfigWrapper:
@@ -765,4 +772,34 @@ class PrinterConfig:
             logging.error(e)
             messages = self.printer.lookup_object('messages')
             messages.send_message("error", _("Backup file not found"))
-        
+    
+    def _load_base_config_with_options(self, web_request):
+        cfg = self.read_main_config(False, False)
+        base_cfg, comments = self.create_base_config_wrapper("printer_base.cfg")
+        save_bed_mesh = web_request.getboolean('save_bed_mesh', False)
+        save_pid = web_request.getboolean('save_pid', False)
+        save_fix = web_request.getboolean('save_fix', False)
+        if save_bed_mesh:
+          for section in cfg.get_prefix_sections('bed_mesh'):
+              base_cfg.fileconfig.add_section(section)
+              for option in section.get_prefix_options(''):
+                  base_cfg.fileconfig.set(section, option, section.get(option))
+        if save_pid:
+            extruder_section = cfg.getsection('extruder')
+            for option in extruder_section.get_prefix_options('pid_'):
+                base_cfg.fileconfig.set('extruder', option, extruder_section.get(option))
+            heater_bed_section = cfg.getsection('heater_bed')
+            for option in heater_bed_section.get_prefix_options('pid_'):
+                base_cfg.fileconfig.set('heater_bed', option, heater_bed_section.get(option))
+        if save_fix:
+            fix_sections = cfg.get_prefix_sections('fix_script')
+            for section in fix_sections:
+                for option in section.get_prefix_options(''):
+                    base_cfg.fileconfig.set(section, option, section.get(option))
+        cfgname = self.printer.get_start_args()['config_file']
+        try:
+            self.write(cfgname, base_cfg, comments)
+        except Exception as e:
+            logging.error(e)
+            messages = self.printer.lookup_object('messages')
+            messages.send_message("error", _("Unable to write config file during SAVE_CONFIG"))

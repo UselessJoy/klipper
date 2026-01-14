@@ -159,6 +159,9 @@ class PrinterProbe:
         # if self.is_probe_active():
         #     raise self.printer.command_error(_("Probe already taken"))
         self.printer.lookup_object('homing').run_G28_if_unhomed()
+        self.take_gcode()
+    
+    def take_gcode(self):
         self.gcode_move.set_absolute_coord(True)
         self.drop_z_move()
         self.gcode.run_script_from_command(f"\
@@ -171,9 +174,12 @@ class PrinterProbe:
     def return_magnet_probe(self):
         # Поскольку проба автоматически может вернуться на неотхоумленом принтере в процессе хоуминга,
         # то дважды повторять одно и то же действие не имеет смысла
-        self.printer.lookup_object('homing').run_G28_if_unhomed()
-        if not self.is_probe_active():
-            raise self.printer.command_error(_("Probe already returned"))
+        # Если мы не хоумились (потому что при хоуминге мы гарантированно возращаем пробу), то тогда проверим стейт пробы
+        if not self.printer.lookup_object('homing').run_G28_if_unhomed() and not self.is_probe_active():
+                raise self.printer.command_error(_("Probe already returned"))
+        self.return_gcode()
+
+    def return_gcode(self):
         self.gcode_move.set_absolute_coord(True)
         self.drop_z_move()
         if float(self.toolhead.get_position()[1]) > self.parking_magnet_y:
@@ -379,10 +385,12 @@ class PrinterProbe:
       return True    
       
     def on_start_probe(self, correcting_probe=False):
+        logging.info("on_start_probe: going to run_G28_if_unhomed")
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         # 1 - open (подключен и стол не тыкнут), 0 - triggered (отключен или стол тыкнут)
         # self.drop_z_move()
         if not self.is_probe_active():
+            logging.info("on_start_probe: going to take_magnet_probe")
             self.take_magnet_probe()
         curtime = self.printer.get_reactor().monotonic()
         toolhead_status = self.toolhead.get_status(curtime)
@@ -664,8 +672,9 @@ class ProbePointsHelper:
         self.lift_speed = probe.get_lift_speed(gcmd)
         self.probe_offsets = probe.get_offsets()
         if self.horizontal_move_z < self.probe_offsets[2]:
-            raise gcmd.error(_("horizontal_move_z can't be less than"
-                             " probe's z_offset"))
+            error_msg = _("horizontal_move_z can't be less than probe's z_offset")
+            logging.error(error_msg)
+            raise gcmd.error(error_msg)
         probe.multi_probe_begin()
         self.printer.lookup_object('probe').on_start_probe()
         while not self.stop:

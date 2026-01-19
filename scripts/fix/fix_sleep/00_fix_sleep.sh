@@ -1,38 +1,25 @@
-#!/bin/sh
-set -e
+#!/bin/bash
 
-if command -v apt &> /dev/null; then
-  OS="debian"
-  SUDO_PASS="orangepi"
-elif command -v dnf &> /dev/null; then
-  OS="redos"
-  SUDO_PASS="user"
-else
-  echo "Unknown OS"
-  exit 1
+# Загружаем общую библиотеку
+KLIPPER_FIX_DIR="$HOME/klipper/scripts/fix"
+FIX="$KLIPPER_FIX_DIR/fix.sh"
+
+if [ ! -f "$FIX" ]; then
+    echo "ОШИБКА: Не найден fix.sh" >&2
+    exit 3
 fi
 
-# Безопасная функция для выполнения команд с sudo
-sudo_cmd() {
-    echo "$SUDO_PASS" | sudo -S --prompt="" -- "$@" > /dev/null 2>&1
-}
+source "$FIX"
 
 # Пути к конфигурационным файлам
 LOGIND_CONF="/etc/systemd/logind.conf"
 SLEEP_CONF="/etc/systemd/sleep.conf"
 
-# Резервное копирование оригинальных конфигов
-backup_config() {
-    local file=$1
-    if [ -f "$file" ] && [ ! -f "${file}.bak" ]; then
-        sudo_cmd cp "$file" "${file}.bak"
-        echo "Created backup: ${file}.bak"
-    fi
-}
-
 # Настройка logind.conf
 configure_logind() {
-    backup_config "$LOGIND_CONF"
+    backup_file "$LOGIND_CONF"
+    
+    log_info "Настройка logind.conf..."
     
     # Параметры для отключения сна
     declare -A settings=(
@@ -52,12 +39,12 @@ configure_logind() {
                 echo '$key=${settings[$key]}' >> '$LOGIND_CONF'
             fi
         "
-        echo "Configured $key=${settings[$key]}"
+        log_info "Установлен параметр $key=${settings[$key]}"
     done
     
     # Специфичные настройки для РЕД ОС
     if [ "$OS" = "redos" ]; then
-        echo "Applying RED OS specific settings..."
+        log_info "Применяю специфичные настройки для RED OS..."
         sudo_cmd sed -i 's/#KillUserProcesses=.*/KillUserProcesses=no/' "$LOGIND_CONF"
         sudo_cmd sed -i 's/#UserTasksMax=.*/UserTasksMax=infinity/' "$LOGIND_CONF"
     fi
@@ -65,10 +52,12 @@ configure_logind() {
 
 # Настройка sleep.conf
 configure_sleep() {
-    backup_config "$SLEEP_CONF"
+    backup_file "$SLEEP_CONF"
+    
+    log_info "Настройка sleep.conf..."
     
     # Содержимое секции Sleep
-    SLEEP_CONTENT=$(cat << EOF
+    SLEEP_CONTENT=$(cat << 'EOF'
 [Sleep]
 AllowSuspend=no
 AllowHibernation=no
@@ -86,7 +75,7 @@ EOF
         # Добавляем новую секцию
         echo '$SLEEP_CONTENT' >> '$SLEEP_CONF'
     "
-    echo "Configured [Sleep] section"
+    log_info "Настроена секция [Sleep]"
 }
 
 # Маскировка systemd targets
@@ -99,12 +88,14 @@ mask_sleep_targets() {
         "suspend-then-hibernate.target"
     )
     
+    log_info "Маскирую системные цели..."
+    
     for target in "${targets[@]}"; do
         if ! sudo_cmd systemctl is-enabled "$target" | grep -q masked; then
             sudo_cmd systemctl mask "$target"
-            echo "Masked $target"
+            log_info "Замаскирована цель: $target"
         else
-            echo "$target already masked"
+            log_info "Цель $target уже замаскирована"
         fi
     done
 }
@@ -118,33 +109,38 @@ mask_sleep_services() {
         "systemd-suspend-then-hibernate.service"
     )
     
+    log_info "Маскирую системные сервисы..."
+    
     for service in "${services[@]}"; do
         if ! sudo_cmd systemctl is-enabled "$service" | grep -q masked; then
             sudo_cmd systemctl mask "$service"
-            echo "Masked $service"
+            log_info "Замаскирован сервис: $service"
         else
-            echo "$service already masked"
+            log_info "Сервис $service уже замаскирован"
         fi
     done
 }
 
 # Применение изменений
 apply_changes() {
+    log_info "Применяю изменения..."
     sudo_cmd systemctl daemon-reload
     sudo_cmd systemctl restart systemd-logind
-    echo "Changes applied"
+    log_info "Изменения применены"
 }
 
 # Главная функция
 main() {
-    echo "=== Disabling sleep modes for $OS ==="
+    log_info "Отключаю режимы сна для ОС: $OS"
+    
     configure_logind
     configure_sleep
     mask_sleep_targets
     mask_sleep_services
     apply_changes
-    echo "=== Sleep modes disabled successfully ==="
-    exit 0
+    
+    exit_success "Режимы сна успешно отключены"
 }
 
-main
+# trap_cleanup 'log_warn "Прерывание работы"'
+main "$@"

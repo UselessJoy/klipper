@@ -267,7 +267,7 @@ class SelectReactor:
         while self._process:
             timeout = self._check_timers(eventtime, busy)
             busy = False
-            res = select.select(self._read_fds, self.write_fds, [], timeout)
+            res = select.select(self._read_fds, self._write_fds, [], timeout)
             eventtime = self.monotonic()
             for fd in res[0]:
                 busy = True

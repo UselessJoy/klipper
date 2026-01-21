@@ -3257,8 +3257,8 @@ msgstr "Не удалось вернуть пробу"
 # =====================END MESSAGES MODULE==================#
 
 # ========================FIXING MODULE=====================#
-msgid "Current update has system fixes. Please, wait for install"
-msgstr "В обновлении имеются системные исправления. Пожалуйста, дождитесь их установки"
+msgid "Current update has system fixes. Install now?"
+msgstr "В обновлении имеются системные исправления. Установить сейчас?"
 
 msgid "System updates requiring the internet. Please, connect to the internet"
 msgstr "Системные исправления требуют доступ к интернету. Пожалуйста, подключитесь к интернету"
@@ -3267,5 +3267,8 @@ msgid "Installed updates requiring reboot. Please, reboot the system"
 msgstr "Установленные исправления требуют перезагрузки. Пожалуйста, перезагрузите систему"
 
 msgid "Fix updates was installed"
-msgstr "Исправления установлены"
+msgstr "Системные исправления установлены"
+
+msgid "The update failed. Please check the logs"
+msgstr "Установка системных исправлений завершилось ошибкой. Пожалуйста, проверьте логи"
 # ======================END FIXING MODULE===================#

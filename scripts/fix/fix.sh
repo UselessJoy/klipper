@@ -111,27 +111,8 @@ if [ -z "${FIX_LIB_LOADED:-}" ]; then
             log_error "Пароль sudo не установлен. Вызовите detect_os или установите SUDO_PASS"
             return 1
         fi
-        
-        local cmd="$*"
-        log_debug "Выполняю sudo команду: $cmd"
-        
-        # Используем expect для безопасной передачи пароля
-        if command -v expect &> /dev/null; then
-            expect << EOF > /dev/null 2>&1
-set timeout 30
-spawn sudo -S --prompt="" -- $@
-expect "password"
-send "$SUDO_PASS\r"
-expect eof
-EOF
-            return $?
-        else
-            # Fallback: использование echo (менее безопасно)
-            echo "$SUDO_PASS" | sudo -S --prompt="" -- "$@" > /dev/null 2>&1
-            return $?
-        fi
+        echo "$SUDO_PASS" | sudo -S --prompt="" -- "$@" > /dev/null 2>&1
     }
-    
     sudo_cmd_with_output() {
         if [ -z "$SUDO_PASS" ]; then
             log_error "Пароль sudo не установлен"
@@ -144,7 +125,6 @@ EOF
         # Используем expect для безопасной передачи пароля
         if command -v expect &> /dev/null; then
             expect << EOF
-set timeout 30
 spawn sudo -S --prompt="" -- $@
 expect "password"
 send "$SUDO_PASS\r"

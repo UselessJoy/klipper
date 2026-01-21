@@ -19,7 +19,9 @@ main() {
         backup_file "/etc/apt/sources.list"
         
         log_info "Записываю новый sources.list..."
-        if ! sudo_cmd tee /etc/apt/sources.list > /dev/null << 'EOF'
+        
+        # Вариант 1: Использовать временный файл (самый надежный)
+        cat > /tmp/sources.list.tmp << 'EOF'
 # Основные репозитории Debian bullseye
 deb http://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free
 deb-src http://mirrors.tuna.tsinghua.edu.cn/debian bullseye main contrib non-free
@@ -32,9 +34,22 @@ deb-src http://mirrors.tuna.tsinghua.edu.cn/debian bullseye-updates main contrib
 deb http://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free
 deb-src http://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free
 EOF
-        then
-            exit_error "Не удалось записать sources.list"
+        
+        # Копируем с использованием sudo_cmd
+        if ! sudo_cmd cp /tmp/sources.list.tmp /etc/apt/sources.list; then
+            exit_error "Не удалось скопировать sources.list"
         fi
+        
+        # Проверяем результат
+        log_info "Проверяем созданный файл..."
+        if [ -f "/etc/apt/sources.list" ] && [ -s "/etc/apt/sources.list" ]; then
+            log_info "Файл успешно создан. Размер: $(sudo wc -l < /etc/apt/sources.list) строк"
+        else
+            exit_error "Файл sources.list пуст или не существует"
+        fi
+        
+        # Удаляем временный файл
+        rm -f /tmp/sources.list.tmp
         
         log_info "Обновляю список пакетов..."
         if ! sudo_cmd apt-get update --allow-releaseinfo-change; then
@@ -50,5 +65,4 @@ EOF
     fi
 }
 
-# trap_cleanup 'log_warn "Прерывание работы"'
 main "$@"

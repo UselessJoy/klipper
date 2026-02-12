@@ -132,6 +132,8 @@ class ConfigWrapper:
                                  note_valid=note_valid)
 
     def getchoice(self, option, choices, default=sentinel, note_valid=True):
+        if type(choices) == type([]):
+            choices = {i: i for i in choices}
         if choices and type(list(choices.keys())[0]) == int:
             c = self.getint(option, default, note_valid=note_valid)
         else:
@@ -428,6 +430,10 @@ class PrinterConfig:
         autosave_data = self._strip_duplicates(autosave_data, regular_config)
         self.autosave = self._build_config_wrapper(autosave_data, filename, parse_includes)
         cfg = self._build_config_wrapper(regular_data + autosave_data, filename, parse_includes)
+        return cfg
+
+    def read_main_config(self) -> ConfigWrapper:
+        cfg = self.read_current_config()
         compare = cfg.getsection('printer').getboolean('autoload_missing_sections', True)
         if compare:
           self.compare_base_config(cfg) 
@@ -569,7 +575,7 @@ class PrinterConfig:
             del pending_save[section]
             self.pendingSaveItems = pending_save
             return
-        config = self.read_main_config(parse_includes=False, compare=False)
+        config = self.read_current_config(parse_includes=False)
         if (not section in self.status_remove_sections and section in config.fileconfig.sections()):
             self.status_remove_sections.append(section)
         if not save_immediatly:
@@ -774,7 +780,7 @@ class PrinterConfig:
             messages.send_message("error", _("Backup file not found"))
     
     def _load_base_config_with_options(self, web_request):
-        cfg = self.read_main_config(False, False)
+        cfg = self.read_current_config(False)
         base_cfg, comments = self.create_base_config_wrapper("printer_base.cfg")
         save_bed_mesh = web_request.getboolean('save_bed_mesh', False)
         save_pid = web_request.getboolean('save_pid', False)

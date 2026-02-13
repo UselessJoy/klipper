@@ -11,7 +11,6 @@ locales.set_locale()
 error = configparser.Error
 SECTIONS_DEPRECATED = ['motor_checker', 'wifi_mode']
 SECTIONS_FULL_REWRITABLE = []
-SECTIONS_SKIPPED = ['include']
 SECTIONS_SKIPPED = []#['include']
 #section -> deprecated option -> new option with def value
 SECTIONS_CHANGED = {
@@ -423,7 +422,6 @@ class PrinterConfig:
             logging.info("updating RESUME macro")
             self.update_config({'gcode_macro RESUME': {'gcode': base_resume}}, save_immediatly=True, need_restart=True, cfgname=pause_resume_path)
 
-    def read_main_config(self, parse_includes=True, compare=True) -> ConfigWrapper:
     def read_current_config(self, parse_includes=True)-> ConfigWrapper:
         filename = self.printer.get_start_args()['config_file']
         data = self._read_config_file(filename)
@@ -438,11 +436,9 @@ class PrinterConfig:
         cfg = self.read_current_config()
         compare = cfg.getsection('printer').getboolean('autoload_missing_sections', True)
         if compare:
-          self.compare_base_config(cfg) 
           cfg_to_compare = self.read_current_config(False)
           self.compare_base_config(cfg_to_compare) 
           self.compare_pause_resume_config()
-          if self.has_deprecated_options(cfg):
           if self.has_deprecated_options(cfg_to_compare):
             logging.info("saving config")
             self.save_config(True, True, with_options=True)

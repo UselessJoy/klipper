@@ -46,7 +46,7 @@ class PrinterProbe:
         self.multi_probe_pending = False
         self.last_z_result = 0.
         self.is_printer_homing = False
-
+        self.resonance_tester = self.bed_mesh = None
         self.gcode_move = self.printer.load_object(config, "gcode_move")
         # Infer Z position to move to during a probe
         if config.has_section('stepper_z'):
@@ -127,22 +127,30 @@ class PrinterProbe:
         logging.error(f"Error on is_probe_active: {e}\nThis often means what toolhead still not initialized")
       return res
     
-    def __update_is_using_magnet_probe_field(self, eventtime):
-        if not self.vsd.is_active() and not self.is_printer_homing:
-          with self.mutex:
+    def __update_is_using_magnet_probe_field(self, *args):
+        if self.vsd.is_active() or \
+          self.is_printer_homing or \
+          self.resonance_tester.is_shaping or \
+          self.bed_mesh.bmc.is_calibrating:
+            return self.reactor.NOW + 1
+        with self.mutex:
             self.is_using_magnet_probe = self.is_probe_active()
-        return eventtime + 1
+        return self.reactor.NOW + 1
     
     def _on_shutdown(self):
-        self.reactor.unregister_timer(self.magnet_checker_timer)
-        self.magnet_checker_timer = None
+        if self.magnet_checker_timer:
+            self.reactor.unregister_timer(self.magnet_checker_timer)
+            self.magnet_checker_timer = None
 
     def _on_ready(self):
         self.vsd = self.printer.lookup_object('virtual_sdcard')
         self.gcode_move = self.printer.lookup_object('gcode_move')
         self.toolhead = self.printer.lookup_object('toolhead')
+        self.resonance_tester = self.printer.lookup_object('resonance_tester')
+        self.bed_mesh = self.printer.lookup_object('bed_mesh')
         self.magnet_checker_timer = self.reactor.register_timer(
-                    self.__update_is_using_magnet_probe_field, self.reactor.NOW + 0.1)
+                    self.__update_is_using_magnet_probe_field, self.reactor.NOW + 1)
+
     def _test_magnet_probe(self, web_request):
         try:
             with self.mutex:
@@ -152,6 +160,7 @@ class PrinterProbe:
         except:
             raise web_request.error(_("Error on test magnet probe"))
         web_request.send({'test_result': True})
+
     def take_magnet_probe(self):
         # Если мы берем пробу на неотхоумленом принтере, при этом проба уже подключена, то нам все равно
         # необходимо сначала полностью отхоумиться, при этом вернув пробу, чтобы после уже на верных координатах

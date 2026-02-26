@@ -223,7 +223,7 @@ class ResonanceTester:
         self.generator = SweepingVibrationsTestGenerator(config)
         self.executor = ResonanceTestExecutor(config)
         self.stop_shaper = [False]
-        self.shaping = False
+        self.is_shaping = False
         config_file_path_name = self.printer.get_start_args()['config_file']
         config_dir = os.path.normpath(os.path.join(config_file_path_name, ".."))
         if not config.get('accel_chip_x', None):
@@ -284,7 +284,7 @@ class ResonanceTester:
     def _handle_ready(self):
         self.messages = self.printer.lookup_object("messages")
         # Не уверен, что есть необходимость им присваивать False на старте
-        self.shaping = False
+        self.is_shaping = False
         self.stop_shaper[0] = False
 
     def connect(self):
@@ -294,7 +294,7 @@ class ResonanceTester:
 
     cmd_ASYNC_STOP_SHAPER_help = _("Stop shaper calibrate")
     def cmd_async_STOP_SHAPER(self, gcmd):
-        if self.shaping:
+        if self.is_shaping:
           self.stop_shaper[0] = True
 
     def _run_test(self, gcmd, axes, helper, raw_name_suffix=None,
@@ -460,7 +460,7 @@ class ResonanceTester:
     cmd_SHAPER_CALIBRATE_help = (
         _("Simular to TEST_RESONANCES but suggest input shaper config"))
     def cmd_SHAPER_CALIBRATE(self, gcmd):
-        self.shaping = True
+        self.is_shaping = True
         # Parse parameters
         axis = gcmd.get("AXIS", None)
         if not axis or axis == 'all':
@@ -484,7 +484,7 @@ class ResonanceTester:
         self.printer.lookup_object('homing').run_G28_if_unhomed()
         calibration_data = self._run_test(gcmd, calibrate_axes, helper)
         if not calibration_data:
-            self.shaping = False
+            self.is_shaping = False
             return
         configfile = self.printer.lookup_object('configfile')
         for axis in calibrate_axes:
@@ -524,7 +524,7 @@ class ResonanceTester:
         gcmd.respond_info(
             _("The SAVE_CONFIG command will update the printer config file\n"
             "with these parameters and restart the printer."))
-        self.shaping = False
+        self.is_shaping = False
     
     def get_status(self, eventtime):
         return {
@@ -533,7 +533,7 @@ class ResonanceTester:
                   'belt_tensions': self.get_belt_tensions(),
                   'active_belt_tension': self.active_belt_tension,
                   'active': self.active_shaper_graph,
-                  'shaping': self.shaping
+                  'shaping': self.is_shaping
         }
 
     def get_belt_tensions(self):

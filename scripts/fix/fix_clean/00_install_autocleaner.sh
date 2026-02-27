@@ -16,8 +16,9 @@ main() {
     
     SRCDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
     
-    # Создаем файл сервиса
-    SERVICE_CONTENT=$(cat << EOF
+    # Создаем временный файл с содержимым сервиса
+    TEMP_SERVICE=$(mktemp)
+    cat > "$TEMP_SERVICE" << EOF
 [Unit]
 Description=System Cleanup Service
 After=network.target
@@ -31,12 +32,20 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 EOF
-    )
     
     log_info "Создаю файл сервиса: /etc/systemd/system/autocleaner.service"
-    if ! sudo_cmd sh -c "cat > /etc/systemd/system/autocleaner.service" <<< "$SERVICE_CONTENT"; then
+    
+    # Копируем временный файл в целевую директорию с правами суперпользователя
+    if ! sudo_cmd cp "$TEMP_SERVICE" /etc/systemd/system/autocleaner.service; then
+        rm -f "$TEMP_SERVICE"
         exit_error "Не удалось создать файл сервиса"
     fi
+    
+    # Удаляем временный файл
+    rm -f "$TEMP_SERVICE"
+    
+    # Устанавливаем правильные права доступа
+    sudo_cmd chmod 644 /etc/systemd/system/autocleaner.service
     
     log_info "Включаю сервис autocleaner"
     if ! sudo_cmd systemctl enable autocleaner.service; then

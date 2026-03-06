@@ -8,10 +8,8 @@ class Fixing():
         self.printer = config.get_printer()
         self.require_reboot = config.getboolean('require_reboot', False)
         self.require_internet = config.getboolean('require_internet', False)
-        self.is_updating = config.getboolean('is_updating', False)
-        self.is_all_updated = config.getboolean('is_all_updated', False)
+        self.is_updating = self.is_all_updated = False
         self.scripts = None
-        
         self.pivot_i = 0
         self.open_msg = _("Current update has system fixes. Install now?")
         self.printer.register_event_handler("klippy:ready",
@@ -42,15 +40,15 @@ class Fixing():
             return
         for i, (name, script) in enumerate(self.scripts):
             if not script.fixed:
-                script.run_fix(self.on_message, self.on_done)
                 self.pivot_i = i
                 self.is_updating = True
                 web_request.send({'updating': True})
+                script.run_fix(self.on_message, self.on_done)
                 return
         web_request.send({'updating': False})
 
     def on_message(self, msg):
-        self.open_msg += '\n' + msg
+        self.open_msg = '\n' + msg
 
     def on_done(self, status):
         self.is_all_updated = all(script.fixed for name, script in self.scripts)
@@ -59,16 +57,16 @@ class Fixing():
         self.is_updating = not (status or self.is_all_updated)
         if status:
             if self.require_reboot:
-                self.open_msg += '\n'+_("Installed updates requiring reboot. Please, reboot the system")
+                self.on_message('\n'+_("Installed updates requiring reboot. Please, reboot the system"))
             elif self.require_internet:
-                self.open_msg += '\n'+_("System updates requiring the internet. Please, connect to the internet")
+                self.on_message('\n'+_("System updates requiring the internet. Please, connect to the internet"))
             else:
-                self.open_msg += '\n'+_("The update failed. Please check the logs")
+                self.on_message('\n'+_("The update failed. Please check the logs"))
             return
         if self.is_all_updated:
-            self.open_msg += '\n'+_("Fix updates was installed")
+            self.on_message('\n'+_("Fix updates was installed"))
             if self.require_reboot:
-                self.open_msg += '\n' + _("Installed updates requiring reboot. Please, reboot the system")
+                self.on_message('\n' + _("Installed updates requiring reboot. Please, reboot the system"))
         else:
             self.pivot_i += 1
             if self.pivot_i <= len(self.scripts) - 1:

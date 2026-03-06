@@ -24,21 +24,44 @@ main() {
     fi
     log_info "✓ Hostname установлен"
     
-    # Удаляем старые записи этого хоста (если есть)
-    sudo_cmd sed -i "/[[:space:]]$NEW_HOSTNAME[[:space:]]*$/d" /etc/hosts
-    sudo_cmd sed -i "/[[:space:]]$NEW_HOSTNAME\.local[[:space:]]*$/d" /etc/hosts
+    # 2. Обновляем /etc/hosts
+    log_info "2. Обновляю /etc/hosts"
     
-    # Добавляем к существующей строке localhost
-    if sudo_cmd grep -q "^127\.0\.0\.1[[:space:]]" /etc/hosts; then
-        # Если строка с 127.0.0.1 существует, добавляем к ней
-        sudo_cmd sed -i "/^127\.0\.0\.1[[:space:]]/ s/$/ $NEW_HOSTNAME/" /etc/hosts
+    # Создаем временный файл для безопасного редактирования
+    TEMP_HOSTS=$(mktemp)
+    sudo_cmd cp /etc/hosts "$TEMP_HOSTS"
+    
+    # Удаляем старые записи с hostname из IPv4 и IPv6 строк
+    sudo_cmd sed -i -E "/^127\.0\.1\.1/ s/[[:space:]]+orangepi3-lts[[:space:]]*/ /g" "$TEMP_HOSTS"
+    sudo_cmd sed -i -E "/^::1/ s/[[:space:]]+orangepi3-lts[[:space:]]*/ /g" "$TEMP_HOSTS"
+    
+    # Добавляем новый hostname
+    # Для IPv4 строки
+    if sudo_cmd grep -q "^127\.0\.1\.1" "$TEMP_HOSTS"; then
+        # Добавляем к существующей строке 127.0.1.1
+        sudo_cmd sed -i "/^127\.0\.1\.1/ s/$/ $NEW_HOSTNAME/" "$TEMP_HOSTS"
     else
-        # Если строки нет, создаем новую
-        echo "127.0.0.1 localhost $NEW_HOSTNAME" | sudo_cmd tee -a /etc/hosts > /dev/null
+        # Создаем новую строку
+        echo "127.0.1.1 $NEW_HOSTNAME" | sudo_cmd tee -a "$TEMP_HOSTS" > /dev/null
     fi
     
-    # 2. Устанавливаем Avahi
-    log_info "2. Устанавливаю Avahi"
+    # Для IPv6 строки
+    if sudo_cmd grep -q "^::1" "$TEMP_HOSTS"; then
+        # Добавляем к существующей строке ::1
+        sudo_cmd sed -i "/^::1/ s/$/ $NEW_HOSTNAME/" "$TEMP_HOSTS"
+    fi
+    
+    # Убираем лишние пробелы
+    sudo_cmd sed -i 's/[[:space:]]\+/ /g' "$TEMP_HOSTS"
+    
+    # Копируем обратно
+    sudo_cmd cp "$TEMP_HOSTS" /etc/hosts
+    sudo_cmd rm "$TEMP_HOSTS"
+    
+    log_info "✓ /etc/hosts обновлен"
+    
+    # 3. Устанавливаем Avahi
+    log_info "3. Устанавливаю Avahi"
     if [ "$OS" = "debian" ]; then
         sudo_cmd apt-get install -y avahi-daemon
     elif [ "$OS" = "redos" ]; then
@@ -48,13 +71,23 @@ main() {
     fi
     log_info "✓ Avahi установлен"
     
-    # 3. Запускаем службу
-    log_info "3. Запускаю службу Avahi"
+    # 4. Запускаем службу
+    log_info "4. Запускаю службу Avahi"
     if ! sudo_cmd systemctl enable --now avahi-daemon; then
         log_warn "Не удалось запустить службу Avahi"
     else
         log_info "✓ Служба Avahi запущена"
     fi
+    
+    # 5. Проверяем результат
+    log_info "Проверка:"
+    log_info "  hostname: $(hostname)"
+    log_info "  /etc/hosts:"
+    sudo_cmd cat /etc/hosts | while read line; do
+        if echo "$line" | grep -q "$NEW_HOSTNAME"; then
+            log_info "    $line"
+        fi
+    done
     
     exit_with_reboot "Имя системы настроено. Теперь ваш компьютер доступен как: $NEW_HOSTNAME.local"
 }

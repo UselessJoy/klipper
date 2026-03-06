@@ -107,13 +107,13 @@ class FixScript:
     def run_fix(self, on_message, on_done):
         self.message_callback = on_message
         self.on_done_callback = on_done
-        
+
         if self.fixed:
             return
-        
+
         script_list = os.listdir(self.scriptpath)
         self.format_dir = []
-        
+
         for f in script_list:
             can_to_int = True
             try:
@@ -122,16 +122,19 @@ class FixScript:
                 can_to_int = False
             if f.endswith('.sh') and can_to_int:
                 self.format_dir.append(f)
-        
+
         self.format_dir = sorted(self.format_dir)
-        
+
         if not len(self.format_dir):
             logging.info(f"[{self.script_dir}] - no scripts found")
             return
-        
+
         if self.last_done >= len(self.format_dir):
-            logging.info(f"[{self.script_dir}] - all scripts done")
-            return
+            if not self.fixed:
+                self.last_done = 0
+            else:
+                logging.info(f"[{self.script_dir}] - all scripts done")
+                return
         
         self.start_process()
 

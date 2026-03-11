@@ -15,27 +15,41 @@ SECTIONS_SKIPPED = []#['include']
 #section -> deprecated option -> new option with def value
 SECTIONS_CHANGED = {
     'printer': {
-        'remove_option': ['max_accel_to_decel'],
-        'add_option': {'minimum_cruise_ratio': 0.5}
+        'remove_options': ['max_accel_to_decel'],
+        'force_add': True,
+        'add_options': {'minimum_cruise_ratio': 0.5}
     },
     'tmc2209 stepper_x': {
-        'remove_option': ['hold_current'],
-        'add_option': {'run_current': 1}
+        'remove_options': ['hold_current'],
+        'force_add': True,
+        'add_options': {
+            'run_current': 1
+        }
     },
     'tmc2209 stepper_y': {
-      'remove_option': ['hold_current'],
-      'add_option': {'run_current': 1}
+        'remove_options': ['hold_current'],
+        'force_add': True,
+        'add_options': {
+            'run_current': 1
+        }
     },
     'tmc2209 stepper_z': {
-      'remove_option': ['hold_current'],
-      'add_option': {'run_current': 1}
+        'remove_options': ['hold_current'],
+        'force_add': True,
+        'add_options': {
+            'run_current': 1
+        }
     },
     'tmc2209 extruder': {
-      'remove_option': ['hold_current'],
-      'add_option': {'run_current': 1}
+        'remove_options': ['hold_current'],
+        'force_add': True,
+        'add_options': {
+            'run_current': 1
+        }
     },
     'fan_back back': {
-        'add_option': {
+        'force_add': False,
+        'add_options': {
             'mode': 'config',
             'temp_30': 0.45,
             'temp_40': 0.55,
@@ -446,15 +460,17 @@ class PrinterConfig:
 
     def has_deprecated_options(self, cfg: ConfigWrapper):
       for section in SECTIONS_CHANGED:
-        if 'remove_option' in SECTIONS_CHANGED[section]:
-          for remove_option in SECTIONS_CHANGED[section]['remove_option']:
+        if 'remove_options' in SECTIONS_CHANGED[section]:
+          for remove_option in SECTIONS_CHANGED[section]['remove_options']:
               if cfg.has_option(section, remove_option):
                   logging.info("has removing sections")
                   return True
-        if 'add_option' in SECTIONS_CHANGED[section]:
-          for add_option in SECTIONS_CHANGED[section]['add_option']:
+        if not SECTIONS_CHANGED[section]['force_add']:
+            continue
+        if 'add_options' in SECTIONS_CHANGED[section]:
+          for add_option in SECTIONS_CHANGED[section]['add_options']:
               if cfg.has_option(section, add_option):
-                  if cfg.getsection(section).get(add_option) != str(SECTIONS_CHANGED[section]['add_option'][add_option]):
+                  if cfg.getsection(section).get(add_option) != str(SECTIONS_CHANGED[section]['add_options'][add_option]):
                       logging.info("has changed options")
                       return True
               else:
@@ -689,16 +705,14 @@ class PrinterConfig:
                 newConfigParser.set(section, option, value)
         if with_options:
           for section in SECTIONS_CHANGED:
-            if 'remove_option' in SECTIONS_CHANGED[section]:
-              for remove_option in SECTIONS_CHANGED[section]['remove_option']:
+            if 'remove_options' in SECTIONS_CHANGED[section]:
+              for remove_option in SECTIONS_CHANGED[section]['remove_options']:
                   if newConfigParser.has_option(section, remove_option):
                       newConfigParser.remove_option(section, remove_option)
-            if 'add_option' in SECTIONS_CHANGED[section]:
-              if section == 'fan_back back':
-                  if newConfigParser.has_option(section, 'mode'):
-                      continue
-              for add_option in SECTIONS_CHANGED[section]['add_option']:
-                  newConfigParser.set(section, add_option, SECTIONS_CHANGED[section]['add_option'][add_option])
+            # Остается проблема с тем, что если, как в fan_back. Разные режимы конфликтуют по параметрам, то может записаться каша из разных значений
+            if 'add_options' in SECTIONS_CHANGED[section]:
+                for add_option in SECTIONS_CHANGED[section]['add_options']:
+                    newConfigParser.set(section, add_option, SECTIONS_CHANGED[section]['add_options'][add_option])
 
         newConfigWrapper.fileconfig = newConfigParser
         return newConfigWrapper

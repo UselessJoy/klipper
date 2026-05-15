@@ -12,12 +12,17 @@ import locales
 class FixScript:
     def __init__(self, config):
         self.printer = config.get_printer()
-        self.fixed = config.getboolean('fixed', False)
-        self.require_internet = config.getboolean('require_internet', False)
-        self.last_done = config.getint('last_done', 0)
+        self.config_version = config.getint('version', 0)
         self.script_dir = config.get_name().split()[-1]
         klipperpath = pathlib.Path(__file__).parent.parent.parent.resolve()
         self.scriptpath = os.path.join(klipperpath, f"scripts/fix/{self.script_dir}")
+        self.fixed = config.getboolean('fixed', False)
+        self.last_done = config.getint('last_done', 0)
+        self.require_internet = config.getboolean('require_internet', False)
+        self.now_version = self._read_version()
+        if self.now_version > self.config_version:
+            self.fixed = False
+            self.last_done = 0
         self.reactor = self.printer.get_reactor()
         self.format_dir = []
         self.stdout_timer = None
@@ -31,6 +36,22 @@ class FixScript:
         self.start_time = None
         self.timeout = 600
 
+    def _read_version(self) -> int:
+        """Чтение текущей версии из файла"""
+        version_file = os.path.join(self.scriptpath, ".version")
+        try:
+            if os.path.exists(version_file):
+                with open(version_file, 'r') as f:
+                    version = int(f.read().strip())
+                logging.info(f"{self.script_dir}: read version {version} from {version_file}")
+                return version
+            else:
+                logging.info(f"Version file not found: {version_file}, assuming version 0")
+                return 0
+        except (ValueError, IOError) as e:
+            logging.error(f"Error reading version file {version_file}: {e}")
+            return 0
+
     def set_nonblocking(self, fd):
         """Устанавливаем неблокирующий режим для файлового дескриптора"""
         flags = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -43,6 +64,7 @@ class FixScript:
             if return_code is not None:
                 self._cleanup_and_finish(return_code)
                 return self.reactor.NEVER
+            
             
             # Проверяем таймаут
             if self.start_time and time.time() - self.start_time > self.timeout:
@@ -63,7 +85,7 @@ class FixScript:
                     self.raw_buffer = b''  # Очищаем буфер байтов после успешного декодирования
                     
                     # Добавляем декодированную строку в буфер строк
-                    self.line_buffer += data_str
+                    self.line_buffer = data_str
                     self.message_callback(self.line_buffer)
                 except UnicodeDecodeError:
                     pass
@@ -175,7 +197,7 @@ class FixScript:
 
     def save_result(self):
         configfile: PrinterConfig = self.printer.lookup_object('configfile')
-        fix_script_section = {f"fix_script {self.script_dir}": {"last_done": self.last_done, "fixed": self.fixed}}
+        fix_script_section = {f"fix_script {self.script_dir}": {"last_done": self.last_done, "fixed": self.fixed, "version": self.now_version}}
         configfile.update_config(setting_sections=fix_script_section)
 
     def on_done_script(self, status):

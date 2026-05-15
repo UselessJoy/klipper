@@ -16,19 +16,26 @@ else
   exit 1
 fi
 
-case $OS in
-  "debian")
-    sudo_cmd apt clean
-    sudo_cmd apt autoremove -y
-    sudo_cmd apt autoclean
-    ;;
-  "redos")
-    sudo_cmd dnf clean all
-    sudo_cmd dnf autoremove -y
-    ;;
-esac
+nice -n 19 ionice -c 3 bash -c "
+    case $OS in
+      'debian')
+        echo '$SUDO_PASS' | sudo -S apt clean > /dev/null 2>&1
+        echo '$SUDO_PASS' | sudo -S apt autoclean > /dev/null 2>&1
+        echo '$SUDO_PASS' | sudo -S apt autoremove -y > /dev/null 2>&1
+        ;;
+      'redos')
+        echo '$SUDO_PASS' | sudo -S dnf clean all > /dev/null 2>&1
+        echo '$SUDO_PASS' | sudo -S dnf autoremove -y > /dev/null 2>&1
+        ;;
+    esac
 
-sudo_cmd journalctl --vacuum-time=1h
-sudo_cmd journalctl --vacuum-size=100M
-sudo_cmd rm -rf ~/.cache/*
-sudo_cmd rm -rf /var/tmp/*
+    echo '$SUDO_PASS' | sudo -S journalctl --vacuum-time=1h > /dev/null 2>&1
+    echo '$SUDO_PASS' | sudo -S journalctl --vacuum-size=100M > /dev/null 2>&1
+
+    echo '$SUDO_PASS' | sudo -S rm -rf /var/tmp/* 2>/dev/null
+    rm -rf ~/.cache/* 2>/dev/null
+" &
+
+disown
+
+exit 0

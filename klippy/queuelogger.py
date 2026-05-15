@@ -48,13 +48,13 @@ class QueueListener(logging.handlers.TimedRotatingFileHandler):
         self.rollover_info.clear()
     def doRollover(self):
         logging.handlers.TimedRotatingFileHandler.doRollover(self)
-        lines = [self.rollover_info[name]
-                 for name in sorted(self.rollover_info)]
-        lines.append(
-            "=============== Log rollover at %s ===============" % (
-                time.asctime(),))
-        self.emit(logging.makeLogRecord(
-            {'msg': "\n".join(lines), 'level': logging.INFO}))
+        # lines = [self.rollover_info[name]
+        #          for name in sorted(self.rollover_info)]
+        # lines.append(
+        #     "=============== Log rollover at %s ===============" % (
+        #         time.asctime(),))
+        # self.emit(logging.makeLogRecord(
+        #     {'msg': "\n".join(lines), 'level': logging.INFO}))
 
 MainQueueHandler = None
 

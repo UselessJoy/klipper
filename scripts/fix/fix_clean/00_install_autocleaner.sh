@@ -21,13 +21,18 @@ main() {
     cat > "$TEMP_SERVICE" << EOF
 [Unit]
 Description=System Cleanup Service
-After=network.target
-Wants=network-online.target
+After=multi-user.target
+Wants=multi-user.target
 
 [Service]
 Type=oneshot
 ExecStart=$SRCDIR/clear_memory.sh
-RemainAfterExit=yes
+RemainAfterExit=no
+WorkingDirectory=$HOME
+Nice=19
+IOSchedulingClass=idle
+IOSchedulingPriority=7
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
@@ -47,6 +52,9 @@ EOF
     # Устанавливаем правильные права доступа
     sudo_cmd chmod 644 /etc/systemd/system/autocleaner.service
     
+    # Перезагружаем конфигурацию systemd
+    sudo_cmd systemctl daemon-reload
+    
     log_info "Включаю сервис autocleaner"
     if ! sudo_cmd systemctl enable autocleaner.service; then
         log_warn "Не удалось включить сервис autocleaner"
@@ -54,8 +62,10 @@ EOF
         log_info "✓ Сервис autocleaner включен"
     fi
     
+    # Не запускаем сразу - пусть работает через таймер или при следующей загрузке
+    log_info "Сервис будет запущен при следующей загрузке"
+    
     exit_success "Сервис autocleaner установлен"
 }
 
-# trap_cleanup 'log_warn "Прерывание работы"'
 main "$@"

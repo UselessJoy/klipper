@@ -19,7 +19,8 @@ class Fixing():
                             self._start_update)
 
     def _handle_ready(self):
-        self.scripts: list[(str, FixScript)] = self.printer.lookup_objects(module = 'fix_script')
+        scripts: list[(str, FixScript)] = self.printer.lookup_objects(module = 'fix_script')
+        self.scripts: list[(str, FixScript)] = [(name, script) for name, script in scripts if not script.fixed]
         self.is_all_updated = all(script.fixed for name, script in self.scripts)
         if self.is_all_updated:
             return
